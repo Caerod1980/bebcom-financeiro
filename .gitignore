@@ -1,0 +1,91 @@
+# ===========================================
+# BEBCOM FINANCEIRO - GLOBAL .gitignore
+# ===========================================
+
+# Environment variables (sensitive data)
+.env
+.env.local
+.env.production
+.env.development
+
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.tmp
+
+# Backup files
+*.bak
+*.backup
+backups/
+*.dump
+
+# MongoDB files
+dump/
+mongodb-data/
+
+# Testing
+coverage/
+.nyc_output/
+
+# Environment specific
+*.local
+.env.*.local
+
+# Temporary files
+tmp/
+temp/
+*.temp
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+
+# Database files
+*.sqlite
+*.db
+
+# API keys (security)
+secrets.json
+keys.json
+credentials.json
+service-account.json

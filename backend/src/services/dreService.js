@@ -1,0 +1,143 @@
+const Entry = require('../models/Entry');
+const MonthlyClosing = require('../models/MonthlyClosing');
+
+const calculateDRE = async (month, year) => {
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 0, 23, 59, 59);
+  
+  const entries = await Entry.find({
+    date: { $gte: startDate, $lte: endDate },
+    deleted: false,
+  });
+  
+  // Initialize DRE object
+  const dre = {
+    month,
+    year,
+    receitaBruta: 0,
+    deducoes: 0,
+    receitaLiquida: 0,
+    cmv: 0,
+    lucroBruto: 0,
+    despesasOperacionais: 0,
+    resultadoOperacional: 0,
+    despesasFinanceiras: 0,
+    outrasReceitas: 0,
+    outrasDespesas: 0,
+    lucroLiquido: 0,
+    details: {
+      receitaBrutaItems: [],
+      deducoesItems: [],
+      cmvItems: [],
+      despesasOperacionaisItems: [],
+      despesasFinanceirasItems: [],
+    }
+  };
+  
+  // Aggregate by dreGroup
+  entries.forEach(entry => {
+    const value = entry.amount;
+    
+    switch (entry.dreGroup) {
+      case 'receita_bruta':
+        dre.receitaBruta += value;
+        dre.details.receitaBrutaItems.push(entry);
+        break;
+      case 'deducoes':
+        dre.deducoes += value;
+        dre.details.deducoesItems.push(entry);
+        break;
+      case 'cmv':
+        dre.cmv += value;
+        dre.details.cmvItems.push(entry);
+        break;
+      case 'despesas_operacionais':
+        dre.despesasOperacionais += value;
+        dre.details.despesasOperacionaisItems.push(entry);
+        break;
+      case 'despesas_financeiras':
+        dre.despesasFinanceiras += value;
+        dre.details.despesasFinanceirasItems.push(entry);
+        break;
+      case 'outras_receitas':
+        dre.outrasReceitas += value;
+        break;
+      case 'outras_despesas':
+        dre.outrasDespesas += value;
+        break;
+    }
+  });
+  
+  // Calculate DRE
+  dre.receitaLiquida = dre.receitaBruta - dre.deducoes;
+  dre.lucroBruto = dre.receitaLiquida - dre.cmv;
+  dre.resultadoOperacional = dre.lucroBruto - dre.despesasOperacionais;
+  dre.lucroLiquido = dre.resultadoOperacional - dre.despesasFinanceiras + dre.outrasReceitas - dre.outrasDespesas;
+  
+  // Add percentages
+  dre.percentuais = {
+    margemBruta: (dre.lucroBruto / dre.receitaLiquida * 100).toFixed(2),
+    margemOperacional: (dre.resultadoOperacional / dre.receitaLiquida * 100).toFixed(2),
+    margemLiquida: (dre.lucroLiquido / dre.receitaLiquida * 100).toFixed(2),
+    cmvPercent: (dre.cmv / dre.receitaLiquida * 100).toFixed(2),
+    despesasPercent: (dre.despesasOperacionais / dre.receitaLiquida * 100).toFixed(2),
+  };
+  
+  return dre;
+};
+
+const saveMonthlyClosing = async (month, year, dre, userId) => {
+  const closing = await MonthlyClosing.findOneAndUpdate(
+    { month, year },
+    {
+      month,
+      year,
+      ...dre,
+      closed: true,
+      closedAt: new Date(),
+      closedBy: userId,
+      $push: {
+        versions: {
+          calculatedAt: new Date(),
+          values: {
+            receitaBruta: dre.receitaBruta,
+            receitaLiquida: dre.receitaLiquida,
+            lucroBruto: dre.lucroBruto,
+            lucroLiquido: dre.lucroLiquido,
+          }
+        }
+      }
+    },
+    { upsert: true, new: true }
+  );
+  
+  return closing;
+};
+
+const getTopExpenseCategories = async (month, year) => {
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 0, 23, 59, 59);
+  
+  const expenses = await Entry.aggregate([
+    {
+      $match: {
+        date: { $gte: startDate, $lte: endDate },
+        type: 'expense',
+        deleted: false,
+      }
+    },
+    {
+      $group: {
+        _id: '$category',
+        total: { $sum: '$amount' },
+        count: { $sum: 1 }
+      }
+    },
+    { $sort: { total: -1 } },
+    { $limit: 5 }
+  ]);
+  
+  return expenses;
+};
+
+module.exports = { calculateDRE, saveMonthlyClosing, getTopExpenseCategories };

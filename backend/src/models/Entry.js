@@ -54,25 +54,13 @@ const entrySchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now,
-  },
+}, {
+  timestamps: true  // ⭐ Mongoose gerencia createdAt e updatedAt automaticamente
 });
 
 // Indexes for faster queries
 entrySchema.index({ date: -1, type: 1, dreGroup: 1 });
 entrySchema.index({ date: 1, category: 1, channel: 1 });
 entrySchema.index({ deleted: 1 });
-
-// Update updatedAt on save
-entrySchema.pre('save', function(next) {
-  this.updatedAt = Date.now();
-  next();
-});
 
 module.exports = mongoose.model('Entry', entrySchema);

@@ -25,7 +25,12 @@ const getEntries = async (req, res) => {
     if (startDate || endDate) {
       query.date = {};
       if (startDate) query.date.$gte = new Date(startDate);
-      if (endDate) query.date.$lte = new Date(endDate);
+      if (endDate) {
+        // ⭐ CORREÇÃO: incluir até o FINAL do dia
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        query.date.$lte = end;
+      }
     }
     if (type) query.type = type;
     if (category) query.category = category;
@@ -65,9 +70,13 @@ const updateEntry = async (req, res) => {
       return res.status(404).json({ error: 'Lançamento não encontrado' });
     }
     
+    // ⭐ SEGURANÇA: remover campos que NÃO podem ser alterados
+    const { createdBy, deleted, deletedAt, _id, ...safeData } = req.body;
+    
+    // ⭐ NÃO precisa setar updatedAt manualmente - timestamps: true faz isso
     const updated = await Entry.findByIdAndUpdate(
       req.params.id,
-      { ...req.body, updatedAt: Date.now() },
+      safeData,
       { new: true, runValidators: true }
     );
     

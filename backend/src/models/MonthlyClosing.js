@@ -39,9 +39,8 @@ const monthlyClosingSchema = new mongoose.Schema({
       lucroLiquido: Number,
     },
   }],
-  
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now },
+}, {
+  timestamps: true  // ⭐ Mongoose gerencia createdAt e updatedAt automaticamente
 });
 
 // Compound index for unique month/year

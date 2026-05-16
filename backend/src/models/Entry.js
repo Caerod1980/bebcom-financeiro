@@ -1,0 +1,78 @@
+const mongoose = require('mongoose');
+
+const entrySchema = new mongoose.Schema({
+  type: {
+    type: String,
+    enum: ['income', 'expense'],
+    required: [true, 'Tipo é obrigatório'],
+  },
+  date: {
+    type: Date,
+    required: [true, 'Data é obrigatória'],
+  },
+  description: {
+    type: String,
+    required: [true, 'Descrição é obrigatória'],
+    trim: true,
+  },
+  amount: {
+    type: Number,
+    required: [true, 'Valor é obrigatório'],
+    min: 0.01,
+  },
+  category: {
+    type: String,
+    required: [true, 'Categoria é obrigatória'],
+  },
+  channel: {
+    type: String,
+    enum: ['loja_fisica', 'bebcom_delivery', 'ifood', 'whatsapp', 'bebcom_lounge', 'eventos', 'outros'],
+  },
+  paymentMethod: {
+    type: String,
+    enum: ['dinheiro', 'pix', 'debito', 'credito', 'mercado_pago', 'ifood_repasse', 'transferencia', 'outros'],
+  },
+  dreGroup: {
+    type: String,
+    enum: ['receita_bruta', 'deducoes', 'cmv', 'despesas_operacionais', 'despesas_financeiras', 'outras_receitas', 'outras_despesas'],
+    required: true,
+  },
+  notes: {
+    type: String,
+    trim: true,
+  },
+  deleted: {
+    type: Boolean,
+    default: false,
+  },
+  deletedAt: {
+    type: Date,
+    default: null,
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
+
+// Indexes for faster queries
+entrySchema.index({ date: -1, type: 1, dreGroup: 1 });
+entrySchema.index({ date: 1, category: 1, channel: 1 });
+entrySchema.index({ deleted: 1 });
+
+// Update updatedAt on save
+entrySchema.pre('save', function(next) {
+  this.updatedAt = Date.now();
+  next();
+});
+
+module.exports = mongoose.model('Entry', entrySchema);

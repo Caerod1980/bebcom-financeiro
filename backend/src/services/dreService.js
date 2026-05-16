@@ -1,10 +1,23 @@
 const Entry = require('../models/Entry');
 const MonthlyClosing = require('../models/MonthlyClosing');
 
-// ⭐ NOVA FUNÇÃO - Protege contra divisão por zero
+// ⭐ CALCULAR PERCENTUAL COM SEGURANÇA
 const calculatePercentage = (value, base) => {
   if (!base || base === 0) return '0.00';
   return ((value / base) * 100).toFixed(2);
+};
+
+// ⭐ VALIDAR SE MÊS TEM LANÇAMENTOS
+const hasEntriesInMonth = async (month, year) => {
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 0, 23, 59, 59);
+  
+  const count = await Entry.countDocuments({
+    date: { $gte: startDate, $lte: endDate },
+    deleted: false,
+  });
+  
+  return count > 0;
 };
 
 const calculateDRE = async (month, year) => {
@@ -32,6 +45,7 @@ const calculateDRE = async (month, year) => {
     outrasDespesas: 0,
     lucroLiquido: 0,
     closed: false,
+    hasEntries: entries.length > 0, // ⭐ INDICA SE HÁ LANÇAMENTOS
     details: {
       receitaBrutaItems: [],
       deducoesItems: [],
@@ -94,6 +108,13 @@ const calculateDRE = async (month, year) => {
 };
 
 const saveMonthlyClosing = async (month, year, dre, userId) => {
+  // ⭐ VERIFICAR SE JÁ EXISTE FECHAMENTO
+  const existing = await MonthlyClosing.findOne({ month, year });
+  
+  if (existing && existing.closed) {
+    throw new Error('Este mês já está fechado');
+  }
+  
   const closing = await MonthlyClosing.findOneAndUpdate(
     { month, year },
     {
@@ -157,4 +178,21 @@ const getTopExpenseCategories = async (month, year) => {
   return expenses;
 };
 
-module.exports = { calculateDRE, saveMonthlyClosing, getTopExpenseCategories };
+// ⭐ NOVA FUNÇÃO: obter resumo rápido
+const getQuickSummary = async (month, year) => {
+  const dre = await calculateDRE(month, year);
+  return {
+    receita: dre.receitaLiquida,
+    despesas: dre.despesasOperacionais,
+    lucro: dre.lucroLiquido,
+    margem: dre.percentuais.margemLiquida,
+  };
+};
+
+module.exports = { 
+  calculateDRE, 
+  saveMonthlyClosing, 
+  getTopExpenseCategories,
+  getQuickSummary,
+  hasEntriesInMonth 
+};

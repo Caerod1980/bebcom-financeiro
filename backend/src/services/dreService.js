@@ -1,6 +1,12 @@
 const Entry = require('../models/Entry');
 const MonthlyClosing = require('../models/MonthlyClosing');
 
+// ⭐ NOVA FUNÇÃO - Protege contra divisão por zero
+const calculatePercentage = (value, base) => {
+  if (!base || base === 0) return '0.00';
+  return ((value / base) * 100).toFixed(2);
+};
+
 const calculateDRE = async (month, year) => {
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 0, 23, 59, 59);
@@ -25,6 +31,7 @@ const calculateDRE = async (month, year) => {
     outrasReceitas: 0,
     outrasDespesas: 0,
     lucroLiquido: 0,
+    closed: false,
     details: {
       receitaBrutaItems: [],
       deducoesItems: [],
@@ -74,13 +81,13 @@ const calculateDRE = async (month, year) => {
   dre.resultadoOperacional = dre.lucroBruto - dre.despesasOperacionais;
   dre.lucroLiquido = dre.resultadoOperacional - dre.despesasFinanceiras + dre.outrasReceitas - dre.outrasDespesas;
   
-  // Add percentages
+  // ⭐ PERCENTUAIS CORRIGIDOS - sem divisão por zero
   dre.percentuais = {
-    margemBruta: (dre.lucroBruto / dre.receitaLiquida * 100).toFixed(2),
-    margemOperacional: (dre.resultadoOperacional / dre.receitaLiquida * 100).toFixed(2),
-    margemLiquida: (dre.lucroLiquido / dre.receitaLiquida * 100).toFixed(2),
-    cmvPercent: (dre.cmv / dre.receitaLiquida * 100).toFixed(2),
-    despesasPercent: (dre.despesasOperacionais / dre.receitaLiquida * 100).toFixed(2),
+    margemBruta: calculatePercentage(dre.lucroBruto, dre.receitaLiquida),
+    margemOperacional: calculatePercentage(dre.resultadoOperacional, dre.receitaLiquida),
+    margemLiquida: calculatePercentage(dre.lucroLiquido, dre.receitaLiquida),
+    cmvPercent: calculatePercentage(dre.cmv, dre.receitaLiquida),
+    despesasPercent: calculatePercentage(dre.despesasOperacionais, dre.receitaLiquida),
   };
   
   return dre;
@@ -92,7 +99,17 @@ const saveMonthlyClosing = async (month, year, dre, userId) => {
     {
       month,
       year,
-      ...dre,
+      receitaBruta: dre.receitaBruta,
+      deducoes: dre.deducoes,
+      receitaLiquida: dre.receitaLiquida,
+      cmv: dre.cmv,
+      lucroBruto: dre.lucroBruto,
+      despesasOperacionais: dre.despesasOperacionais,
+      resultadoOperacional: dre.resultadoOperacional,
+      despesasFinanceiras: dre.despesasFinanceiras,
+      outrasReceitas: dre.outrasReceitas,
+      outrasDespesas: dre.outrasDespesas,
+      lucroLiquido: dre.lucroLiquido,
       closed: true,
       closedAt: new Date(),
       closedBy: userId,

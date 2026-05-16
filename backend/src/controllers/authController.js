@@ -3,27 +3,39 @@ const User = require('../models/User');
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE || '30d', // ⭐ fallback seguro
+    expiresIn: process.env.JWT_EXPIRE || '30d',
   });
 };
 
 // @desc    Register user
 // @route   POST /api/auth/register
-// ⭐ SEGURANÇA: Em produção, esta rota deve ser desativada após primeiro admin
 const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    let { name, email, password } = req.body;
     
-    // ⭐ VERIFICAR se já existe algum admin no sistema
-    const adminExists = await User.findOne({ role: 'admin' });
+    // ⭐ NORMALIZAR EMAIL (lowercase + trim)
+    email = email?.toLowerCase().trim();
+    name = name?.trim();
     
-    // Se já existe admin e tentativa de registro, bloquear (segurança)
-    // ⭐ Em produção, descomente esta verificação
-    // if (adminExists && process.env.NODE_ENV === 'production') {
-    //   return res.status(403).json({ 
-    //     error: 'Registro bloqueado. Contate o administrador para criar novos usuários.' 
+    // ⭐ VALIDAÇÃO DE SENHA MÍNIMA
+    if (!password || password.length < 6) {
+      return res.status(400).json({ 
+        error: 'Senha deve ter pelo menos 6 caracteres' 
+      });
+    }
+    
+    // ⭐ VALIDAÇÃO DE SENHA FORTE (opcional - recomendo)
+    // const hasUpperCase = /[A-Z]/.test(password);
+    // const hasLowerCase = /[a-z]/.test(password);
+    // const hasNumbers = /\d/.test(password);
+    // if (!hasUpperCase || !hasLowerCase || !hasNumbers) {
+    //   return res.status(400).json({ 
+    //     error: 'Senha deve conter letras maiúsculas, minúsculas e números' 
     //   });
     // }
+    
+    // Verificar se já existe admin
+    const adminExists = await User.findOne({ role: 'admin' });
     
     const userExists = await User.findOne({ email });
     if (userExists) {
@@ -34,7 +46,7 @@ const register = async (req, res) => {
       name,
       email,
       passwordHash: password,
-      role: adminExists ? 'user' : 'admin', // ⭐ Primeiro usuário é admin
+      role: adminExists ? 'user' : 'admin',
     });
     
     res.status(201).json({
@@ -53,12 +65,19 @@ const register = async (req, res) => {
 // @route   POST /api/auth/login
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
+    
+    // ⭐ NORMALIZAR EMAIL (lowercase + trim) - CRÍTICO
+    const normalizedEmail = email?.toLowerCase().trim();
+    
+    if (!normalizedEmail || !password) {
+      return res.status(400).json({ error: 'Email e senha são obrigatórios' });
+    }
     
     // ⭐ VALIDAR: apenas usuários ATIVOS podem logar
     const user = await User.findOne({ 
-      email, 
-      active: true  // ⭐ CRÍTICO: usuário desativado não loga
+      email: normalizedEmail, 
+      active: true  
     });
     
     if (!user) {
@@ -86,7 +105,7 @@ const login = async (req, res) => {
 // @route   GET /api/auth/me
 const getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('-passwordHash');
+    const user = await User.findById(req.user._id).select('-passwordHash');
     if (!user) {
       return res.status(404).json({ error: 'Usuário não encontrado' });
     }
@@ -96,17 +115,24 @@ const getMe = async (req, res) => {
   }
 };
 
-// ⭐ NOVA FUNÇÃO: Apenas admin pode criar novos usuários (segurança)
 // @desc    Create user by admin
 // @route   POST /api/auth/admin/create-user
 const createUserByAdmin = async (req, res) => {
   try {
-    // Verificar se quem está criando é admin
     if (req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Acesso negado. Apenas administradores.' });
     }
     
-    const { name, email, password, role } = req.body;
+    let { name, email, password, role } = req.body;
+    
+    // ⭐ NORMALIZAR
+    email = email?.toLowerCase().trim();
+    name = name?.trim();
+    
+    // ⭐ VALIDAÇÃO SENHA MÍNIMA
+    if (!password || password.length < 6) {
+      return res.status(400).json({ error: 'Senha deve ter pelo menos 6 caracteres' });
+    }
     
     const userExists = await User.findOne({ email });
     if (userExists) {
@@ -133,7 +159,6 @@ const createUserByAdmin = async (req, res) => {
   }
 };
 
-// ⭐ NOVA FUNÇÃO: Desativar usuário (segurança)
 // @desc    Deactivate user
 // @route   PUT /api/auth/admin/deactivate/:id
 const deactivateUser = async (req, res) => {
@@ -164,6 +189,6 @@ module.exports = {
   register, 
   login, 
   getMe, 
-  createUserByAdmin,  // ⭐ NOVO
-  deactivateUser      // ⭐ NOVO
+  createUserByAdmin,
+  deactivateUser
 };

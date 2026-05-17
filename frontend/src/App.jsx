@@ -58,7 +58,9 @@ const AuthenticatedLayout = ({ children }) => {
           isMobile={isMobile}
           sidebarOpen={sidebarOpen}
         />
-        <main className="flex-1 overflow-y-auto">
+        
+        {/* ⭐ CORREÇÃO CRÍTICA: pt-16 no mobile para não ficar atrás do header fixo */}
+        <main className="flex-1 overflow-y-auto pt-16 md:pt-0">
           {children}
         </main>
       </div>

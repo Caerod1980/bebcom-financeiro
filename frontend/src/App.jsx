@@ -32,21 +32,20 @@ const AuthenticatedLayout = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Sidebar para desktop - FIXA, escondida em mobile */}
+      {/* Sidebar desktop fixa */}
       <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-64 bg-gray-900 text-white z-20">
         <Sidebar isOpen={true} onClose={closeSidebar} isMobile={false} />
       </aside>
 
-      {/* Sidebar para mobile (overlay) - já tratada no componente Sidebar, mas evitamos duplicação */}
-      <Sidebar 
-        isOpen={sidebarOpen} 
-        onClose={closeSidebar} 
-        isMobile={isMobile} 
-      />
+      {/* Sidebar mobile */}
+      <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} isMobile={isMobile} />
 
-      {/* Conteúdo principal – desktop com margem esquerda igual à largura da sidebar */}
+      {/* Conteúdo principal */}
       <main className={`min-h-screen ${!isMobile ? 'lg:ml-64' : ''}`}>
+        {/* Header NÃO FIXO no desktop */}
         <Header onMenuClick={toggleSidebar} isMobile={isMobile} sidebarOpen={sidebarOpen} />
+        
+        {/* Container do conteúdo – sem margem superior extra */}
         <div className="w-full max-w-none p-4 md:p-6 lg:p-8">
           {children}
         </div>
@@ -54,7 +53,6 @@ const AuthenticatedLayout = ({ children }) => {
     </div>
   );
 };
-
 function App() {
   return (
     <Router>

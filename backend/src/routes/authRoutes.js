@@ -1,29 +1,32 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const { 
-  register, 
-  login, 
-  getMe, 
+
+const {
+  register,
+  login,
+  getMe,
+  changePassword,
   createUserByAdmin,
-  deactivateUser
+  deactivateUser,
 } = require('../controllers/authController');
+
 const { protect } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-// ⭐ MIDDLEWARE DE VALIDAÇÃO REUTILIZÁVEL
 const validateRequest = (req, res, next) => {
   const errors = validationResult(req);
+
   if (!errors.isEmpty()) {
-    return res.status(400).json({ 
+    return res.status(400).json({
       error: 'Dados inválidos',
-      details: errors.array() 
+      details: errors.array(),
     });
   }
+
   next();
 };
 
-// ⭐ ROTAS PÚBLICAS COM VALIDAÇÃO
 router.post(
   '/login',
   [
@@ -32,14 +35,12 @@ router.post(
       .normalizeEmail()
       .notEmpty().withMessage('Email é obrigatório'),
     body('password')
-      .notEmpty().withMessage('Senha é obrigatória')
-      .isLength({ min: 1 }).withMessage('Senha não pode estar vazia'),
+      .notEmpty().withMessage('Senha é obrigatória'),
   ],
   validateRequest,
   login
 );
 
-// Registro apenas em desenvolvimento
 if (process.env.NODE_ENV !== 'production') {
   router.post(
     '/register',
@@ -58,13 +59,23 @@ if (process.env.NODE_ENV !== 'production') {
     validateRequest,
     register
   );
+
   console.log('⚠️ Rota /register disponível apenas para desenvolvimento');
 }
 
-// ⭐ ROTAS PROTEGIDAS
 router.get('/me', protect, getMe);
 
-// ⭐ ROTAS ADMIN COM VALIDAÇÃO
+router.put(
+  '/change-password',
+  protect,
+  [
+    body('newPassword')
+      .isLength({ min: 6 }).withMessage('A nova senha deve ter pelo menos 6 caracteres'),
+  ],
+  validateRequest,
+  changePassword
+);
+
 router.post(
   '/admin/create-user',
   protect,

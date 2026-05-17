@@ -107,7 +107,7 @@ const DreMonthly = () => {
   );
 
   return (
-    <div className="p-3 sm:p-4 md:p-6">
+    <div className="p-3 sm:p-4 md:py-6 md:pr-6 md:pl-4 lg:pl-6">
       {/* Header Responsivo */}
       <div className="mb-4 md:mb-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">

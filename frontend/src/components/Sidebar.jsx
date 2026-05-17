@@ -86,10 +86,10 @@ const Sidebar = ({ isOpen, onClose, isMobile }) => {
     </>
   );
 
-  // Desktop: sidebar fixa
+  // Desktop: sidebar fixa com posição normal (não fixed)
   if (!isMobile) {
     return (
-      <aside className="w-64 bg-gray-900 text-white flex flex-col fixed h-full z-20">
+      <aside className="w-64 bg-gray-900 text-white flex flex-col h-full z-20">
         <SidebarContent />
       </aside>
     );

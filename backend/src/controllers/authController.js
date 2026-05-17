@@ -123,7 +123,7 @@ const changePassword = async (req, res) => {
       });
     }
 
-    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    user.passwordHash = newPassword;
     await user.save();
 
     res.json({

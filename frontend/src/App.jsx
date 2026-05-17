@@ -17,8 +17,16 @@ const AuthenticatedLayout = ({ children }) => {
 
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      // Em desktop, sidebar sempre visível
+      if (!mobile) {
+        setSidebarOpen(true);
+      } else {
+        setSidebarOpen(false);
+      }
     };
+    
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -28,13 +36,29 @@ const AuthenticatedLayout = ({ children }) => {
     setSidebarOpen(!sidebarOpen);
   };
 
+  const closeSidebar = () => {
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
+  };
+
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      {/* Sidebar - controlada por estado */}
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        onClose={closeSidebar}
+        isMobile={isMobile}
+      />
       
-      <div className="flex-1 flex flex-col overflow-hidden md:ml-64">
-        <Header onMenuClick={toggleSidebar} isMobile={isMobile} />
-        <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
+      {/* Conteúdo principal */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header 
+          onMenuClick={toggleSidebar} 
+          isMobile={isMobile}
+          sidebarOpen={sidebarOpen}
+        />
+        <main className="flex-1 overflow-y-auto">
           {children}
         </main>
       </div>
@@ -45,7 +69,18 @@ const AuthenticatedLayout = ({ children }) => {
 function App() {
   return (
     <Router>
-      <Toaster position="top-right" />
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            fontSize: '14px',
+          },
+          mobile: {
+            duration: 2000,
+          },
+        }}
+      />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/" element={

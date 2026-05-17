@@ -86,16 +86,17 @@ const Sidebar = ({ isOpen, onClose, isMobile }) => {
     </>
   );
 
-  // Desktop: sidebar fixa com posição normal (não fixed)
+  // ⭐ DESKTOP: retorna apenas o conteúdo (sem aside próprio)
+  // O componente pai (App.jsx) já fornece um <aside className="w-64">, então usamos w-full
   if (!isMobile) {
     return (
-      <aside className="w-64 bg-gray-900 text-white flex flex-col h-full z-20">
+      <div className="flex flex-col h-full w-full">
         <SidebarContent />
-      </aside>
+      </div>
     );
   }
 
-  // Mobile: sidebar overlay com animação
+  // ⭐ MOBILE: overlay com animação
   return (
     <>
       {/* Overlay escuro */}

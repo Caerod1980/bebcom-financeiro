@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Download, FileSpreadsheet, Printer, Loader, CheckCircle } from 'lucide-react';
+import { FileSpreadsheet, Printer, Loader, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
-import Sidebar from '../components/Sidebar';
-import Header from '../components/Header';
+import * as XLSX from 'xlsx';
 import { dreService } from '../services/api';
 import { formatCurrency } from '../utils/formatCurrency';
 
@@ -36,10 +35,8 @@ const DreMonthly = () => {
   };
 
   const handleCloseMonth = async () => {
-    if (!confirm('Tem certeza que deseja fechar este mês? Após fechado, você não poderá mais editar lançamentos deste período.')) {
-      return;
-    }
-    
+    if (!confirm('Tem certeza que deseja fechar este mês?')) return;
+
     try {
       setClosing(true);
       await dreService.closeMonth(selectedMonth, selectedYear);
@@ -52,229 +49,203 @@ const DreMonthly = () => {
     }
   };
 
+  const dreRows = dre ? [
+    ['DEMONSTRAÇÃO DO RESULTADO DO EXERCÍCIO', '', ''],
+    ['Empresa', 'Bebidas & Companhia', ''],
+    ['Período', `${months[selectedMonth - 1]} de ${selectedYear}`, ''],
+    ['', '', ''],
+    ['Descrição', 'Valor', '% Receita Líquida'],
+    ['Receita Bruta', dre.receitaBruta, ''],
+    ['(-) Deduções', dre.deducoes, ''],
+    ['Receita Líquida', dre.receitaLiquida, '100%'],
+    ['(-) CMV', dre.cmv, `${dre.percentuais?.cmvPercent || '0.00'}%`],
+    ['Lucro Bruto', dre.lucroBruto, `${dre.percentuais?.margemBruta || '0.00'}%`],
+    ['(-) Despesas Operacionais', dre.despesasOperacionais, `${dre.percentuais?.despesasPercent || '0.00'}%`],
+    ['Resultado Operacional', dre.resultadoOperacional, `${dre.percentuais?.margemOperacional || '0.00'}%`],
+    ['(-) Despesas Financeiras', dre.despesasFinanceiras, ''],
+    ['Outras Receitas', dre.outrasReceitas, ''],
+    ['Outras Despesas', dre.outrasDespesas, ''],
+    ['Resultado Líquido do Período', dre.lucroLiquido, `${dre.percentuais?.margemLiquida || '0.00'}%`],
+  ] : [];
+
   const handleExportExcel = () => {
-    toast.success('Exportação em Excel disponível em breve!');
+    if (!dre) return;
+
+    const worksheet = XLSX.utils.aoa_to_sheet(dreRows);
+    worksheet['!cols'] = [
+      { wch: 38 },
+      { wch: 18 },
+      { wch: 18 },
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'DRE Mensal');
+
+    XLSX.writeFile(
+      workbook,
+      `DRE_Bebidas_e_Companhia_${months[selectedMonth - 1]}_${selectedYear}.xlsx`
+    );
+
+    toast.success('Excel exportado com sucesso!');
   };
 
   const handlePrint = () => {
     window.print();
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-screen">
-        <Sidebar />
-        <div className="flex-1 flex items-center justify-center">
-          <Loader className="w-12 h-12 animate-spin text-amber-500" />
-        </div>
-      </div>
-    );
-  }
-
-  if (!dre) {
-    return (
-      <div className="flex h-screen">
-        <Sidebar />
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-gray-500">Erro ao carregar DRE</p>
-        </div>
-      </div>
-    );
-  }
-
-  const DRELine = ({ label, value, percent, isBold = false, isNegative = false }) => (
-    <div className={`flex justify-between items-center py-2 sm:py-3 ${isBold ? 'border-t-2 border-gray-300 font-bold' : 'border-b border-gray-100'}`}>
-      <span className={`${isBold ? 'text-gray-900 font-semibold' : 'text-gray-600'} text-sm sm:text-base`}>
-        {label}
-      </span>
-      <div className="text-right">
-        <span className={`${isBold ? 'font-bold text-gray-900' : 'text-gray-700'} text-sm sm:text-base`}>
-          {formatCurrency(value)}
-        </span>
-        {percent && (
-          <span className={`ml-2 sm:ml-3 text-xs sm:text-sm ${parseFloat(percent) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            ({percent}%)
+  const Line = ({ label, value, percent, bold = false, highlight = false }) => (
+    <div
+      className={`
+        flex justify-between gap-4 py-3 border-b border-gray-100
+        ${bold ? 'font-bold text-gray-900' : 'text-gray-700'}
+        ${highlight ? 'bg-amber-50 px-4 rounded-lg border-none mt-3' : ''}
+        print:bg-transparent print:px-0 print:rounded-none
+      `}
+    >
+      <span>{label}</span>
+      <div className="text-right whitespace-nowrap">
+        <span>{formatCurrency(value || 0)}</span>
+        {percent !== undefined && percent !== null && (
+          <span className="ml-3 text-sm text-gray-500 print:text-gray-700">
+            {percent}%
           </span>
         )}
       </div>
     </div>
   );
 
-  const DREHeader = ({ children }) => (
-    <div className="bg-gray-100 px-4 sm:px-6 py-2 sm:py-3">
-      <h3 className="font-semibold text-gray-800 text-sm sm:text-base">{children}</h3>
+  const Section = ({ children }) => (
+    <div className="mt-5 mb-2 bg-gray-100 text-gray-800 px-4 py-2 rounded-lg font-semibold print:bg-gray-200 print:rounded-none print:border print:border-gray-300">
+      {children}
     </div>
   );
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-80">
+        <Loader className="w-10 h-10 animate-spin text-amber-500" />
+      </div>
+    );
+  }
+
+  if (!dre) {
+    return <p className="text-gray-500">Erro ao carregar DRE</p>;
+  }
+
   return (
-    <div className="p-3 sm:p-4 md:py-6 md:pr-6 md:pl-4 lg:pl-6">
-      {/* Header Responsivo */}
-      <div className="mb-4 md:mb-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <div className="p-3 sm:p-4 md:p-6 print:p-0">
+      <div className="print:hidden mb-6">
+        <div className="flex flex-col md:flex-row justify-between gap-4 md:items-center">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-gray-900">Demonstração de Resultados</h1>
-            <p className="text-sm text-gray-600 mt-1">DRE completo do período</p>
+            <h1 className="text-2xl font-bold text-gray-900">Demonstração de Resultados</h1>
+            <p className="text-sm text-gray-600 mt-1">DRE mensal da Bebidas & Companhia</p>
           </div>
-          
+
           <div className="flex gap-2">
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-              className="input-field w-32 sm:w-40 text-sm"
+              className="input-field w-40"
             >
               {months.map((month, index) => (
-                <option key={index} value={index + 1}>{month}</option>
+                <option key={month} value={index + 1}>{month}</option>
               ))}
             </select>
+
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-              className="input-field w-24 text-sm"
+              className="input-field w-28"
             >
-              {[2024, 2025, 2026].map(year => (
+              {[2024, 2025, 2026, 2027].map((year) => (
                 <option key={year} value={year}>{year}</option>
               ))}
             </select>
           </div>
         </div>
-      </div>
-      
-      {/* Action Buttons - Responsivo */}
-      <div className="flex flex-wrap gap-2 sm:gap-3 mb-4 md:mb-6">
-        <button
-          onClick={handleExportExcel}
-          className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-xs sm:text-sm"
-        >
-          <FileSpreadsheet className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-          <span className="hidden xs:inline">Exportar</span>
-          <span className="xs:hidden">Excel</span>
-        </button>
-        <button
-          onClick={handlePrint}
-          className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 text-xs sm:text-sm"
-        >
-          <Printer className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-          <span className="hidden xs:inline">Imprimir</span>
-          <span className="xs:hidden">PDF</span>
-        </button>
-        {!dre.closed && (
+
+        <div className="flex flex-wrap gap-3 mt-5">
           <button
-            onClick={handleCloseMonth}
-            disabled={closing}
-            className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 text-xs sm:text-sm"
+            onClick={handleExportExcel}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
           >
-            {closing ? (
-              <Loader className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
-            ) : (
-              <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            )}
-            <span className="hidden xs:inline">Fechar Mês</span>
-            <span className="xs:hidden">Fechar</span>
+            <FileSpreadsheet className="w-4 h-4" />
+            Exportar Excel
           </button>
-        )}
-        {dre.closed && (
-          <div className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-green-100 text-green-700 rounded-lg text-xs sm:text-sm">
-            <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            <span className="hidden xs:inline">Mês Fechado</span>
-            <span className="xs:hidden">Fechado</span>
-          </div>
-        )}
+
+          <button
+            onClick={handlePrint}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 text-sm"
+          >
+            <Printer className="w-4 h-4" />
+            Imprimir / PDF
+          </button>
+
+          {!dre.closed ? (
+            <button
+              onClick={handleCloseMonth}
+              disabled={closing}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 text-sm"
+            >
+              {closing ? (
+                <Loader className="w-4 h-4 animate-spin" />
+              ) : (
+                <CheckCircle className="w-4 h-4" />
+              )}
+              Fechar Mês
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm">
+              <CheckCircle className="w-4 h-4" />
+              Mês Fechado
+            </div>
+          )}
+        </div>
       </div>
-      
-      {/* DRE Content - Responsivo */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden print:shadow-none">
-        <div className="p-4 sm:p-6 border-b bg-gradient-to-r from-amber-50 to-orange-50 print:bg-white">
-          <h2 className="text-lg sm:text-xl font-bold text-center">Bebidas & Companhia</h2>
-          <p className="text-sm text-center text-gray-600">
-            Demonstração de Resultados - {months[selectedMonth - 1]} de {selectedYear}
+
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden print:shadow-none print:rounded-none print:w-full">
+        <div className="bg-gradient-to-r from-amber-100 to-orange-100 px-6 py-6 text-center print:bg-white print:border-b print:border-gray-300">
+          <h2 className="text-2xl font-bold text-gray-900 print:text-xl">
+            Bebidas & Companhia
+          </h2>
+          <p className="text-gray-700 mt-1 font-medium">
+            Demonstração do Resultado do Exercício
+          </p>
+          <p className="text-sm text-gray-600 mt-1">
+            Período: {months[selectedMonth - 1]} de {selectedYear}
           </p>
         </div>
-        
-        <div className="p-4 sm:p-6">
-          {/* RECEITA BRUTA */}
-          <DREHeader>1. RECEITA BRUTA</DREHeader>
-          <DRELine 
-            label="Vendas e Serviços" 
-            value={dre.receitaBruta} 
+
+        <div className="p-6 print:p-4">
+          <Section>1. Receita</Section>
+          <Line label="Receita Bruta" value={dre.receitaBruta} />
+          <Line label="(-) Deduções" value={dre.deducoes} />
+          <Line label="Receita Líquida" value={dre.receitaLiquida} percent="100.00" bold />
+
+          <Section>2. Custos</Section>
+          <Line label="(-) CMV" value={dre.cmv} percent={dre.percentuais?.cmvPercent || '0.00'} />
+          <Line label="Lucro Bruto" value={dre.lucroBruto} percent={dre.percentuais?.margemBruta || '0.00'} bold />
+
+          <Section>3. Despesas Operacionais</Section>
+          <Line label="(-) Despesas Operacionais" value={dre.despesasOperacionais} percent={dre.percentuais?.despesasPercent || '0.00'} />
+          <Line label="Resultado Operacional" value={dre.resultadoOperacional} percent={dre.percentuais?.margemOperacional || '0.00'} bold />
+
+          <Section>4. Resultado Financeiro e Outros</Section>
+          <Line label="(-) Despesas Financeiras" value={dre.despesasFinanceiras} />
+          <Line label="Outras Receitas" value={dre.outrasReceitas} />
+          <Line label="Outras Despesas" value={dre.outrasDespesas} />
+
+          <Line
+            label="Resultado Líquido do Período"
+            value={dre.lucroLiquido}
+            percent={dre.percentuais?.margemLiquida || '0.00'}
+            bold
+            highlight
           />
-          <DRELine 
-            label="(-) Deduções" 
-            value={dre.deducoes} 
-            isNegative 
-          />
-          <DRELine 
-            label="RECEITA LÍQUIDA" 
-            value={dre.receitaLiquida} 
-            percent={100}
-            isBold 
-          />
-          
-          <div className="h-3 sm:h-4"></div>
-          
-          {/* CUSTOS */}
-          <DREHeader>2. CUSTOS OPERACIONAIS</DREHeader>
-          <DRELine 
-            label="(-) CMV" 
-            value={dre.cmv} 
-            percent={dre.percentuais?.cmvPercent}
-          />
-          <DRELine 
-            label="LUCRO BRUTO" 
-            value={dre.lucroBruto} 
-            percent={dre.percentuais?.margemBruta}
-            isBold 
-          />
-          
-          <div className="h-3 sm:h-4"></div>
-          
-          {/* DESPESAS */}
-          <DREHeader>3. DESPESAS OPERACIONAIS</DREHeader>
-          <DRELine 
-            label="Despesas Operacionais" 
-            value={dre.despesasOperacionais}
-            percent={dre.percentuais?.despesasPercent}
-          />
-          <DRELine 
-            label="RESULTADO OPERACIONAL (EBIT)" 
-            value={dre.resultadoOperacional}
-            percent={dre.percentuais?.margemOperacional}
-            isBold 
-          />
-          
-          <div className="h-3 sm:h-4"></div>
-          
-          {/* RESULTADO FINANCEIRO */}
-          <DREHeader>4. RESULTADO FINANCEIRO</DREHeader>
-          <DRELine 
-            label="Despesas Financeiras" 
-            value={dre.despesasFinanceiras}
-          />
-          <DRELine 
-            label="Outras Receitas" 
-            value={dre.outrasReceitas}
-          />
-          <DRELine 
-            label="Outras Despesas" 
-            value={dre.outrasDespesas}
-          />
-          
-          <div className="h-3 sm:h-4"></div>
-          
-          {/* RESULTADO LÍQUIDO */}
-          <div className="bg-amber-50 rounded-lg p-3 sm:p-4 mt-3 sm:mt-4">
-            <DRELine 
-              label="RESULTADO LÍQUIDO DO PERÍODO" 
-              value={dre.lucroLiquido}
-              percent={dre.percentuais?.margemLiquida}
-              isBold 
-            />
-          </div>
         </div>
-        
-        {/* Footer - Responsivo */}
-        <div className="p-4 sm:p-6 border-t bg-gray-50 text-xs sm:text-sm text-gray-500 text-center print:hidden">
-          <p>Relatório gerado pelo Bebcom Financeiro - Bebidas & Companhia</p>
-          <p className="text-[10px] sm:text-xs mt-1">* CMV calculado com base no markup padrão de 35% sobre vendas</p>
+
+        <div className="px-6 py-4 bg-gray-50 text-center text-xs text-gray-500 print:bg-white print:border-t print:border-gray-300">
+          Relatório gerado pelo Bebcom Financeiro
         </div>
       </div>
     </div>

@@ -14,7 +14,7 @@ const Sidebar = ({ isOpen, onClose, isMobile }) => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    window.location.href = '/login';
+    window.location.href = `${import.meta.env.BASE_URL}#/login`;
   };
 
   const navItems = [

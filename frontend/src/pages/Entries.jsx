@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Pencil, Trash2, Eye, Loader, Search, Filter, X } from 'lucide-react';
+import { Pencil, Trash2, Loader, Filter, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
@@ -138,194 +138,227 @@ const Entries = () => {
     return labels[channel] || channel;
   };
 
+  const getPaymentMethodLabel = (method) => {
+    const labels = {
+      dinheiro: 'Dinheiro',
+      pix: 'PIX',
+      debito: 'Débito',
+      credito: 'Crédito',
+      mercado_pago: 'Mercado Pago',
+      ifood_repasse: 'iFood Repasse',
+      transferencia: 'Transferência',
+      outros: 'Outros',
+    };
+    return labels[method] || method;
+  };
+
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar />
+    <div className="p-3 sm:p-4 md:p-6">
+      {/* Header */}
+      <div className="mb-4 md:mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900">Lançamentos</h1>
+            <p className="text-sm text-gray-600 mt-1">Histórico completo de transações</p>
+          </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+          >
+            <Filter className="w-4 h-4" />
+            Filtros
+            {Object.values(filters).some(f => f) && (
+              <span className="ml-1 w-2 h-2 bg-amber-500 rounded-full" />
+            )}
+          </button>
+        </div>
+      </div>
       
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
-        
-        <main className="flex-1 overflow-y-auto p-6">
-          <div className="mb-6 flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Lançamentos</h1>
-              <p className="text-gray-600 mt-1">Histórico completo de transações</p>
-            </div>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+      {/* Filters - Responsivo */}
+      {showFilters && (
+        <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 mb-4 md:mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-semibold text-sm md:text-base">Filtros de Busca</h3>
+            <button 
+              onClick={clearFilters} 
+              className="text-xs md:text-sm text-amber-600 hover:text-amber-700 flex items-center gap-1"
             >
-              <Filter className="w-4 h-4" />
-              Filtros
+              <X className="w-3 h-3 md:w-4 md:h-4" />
+              Limpar filtros
             </button>
           </div>
           
-          {/* Filters */}
-          {showFilters && (
-            <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-semibold">Filtros de Busca</h3>
-                <button onClick={clearFilters} className="text-sm text-amber-600 hover:text-amber-700">
-                  Limpar filtros
-                </button>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Data Início
-                  </label>
-                  <input
-                    type="date"
-                    value={filters.startDate}
-                    onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-                    className="input-field"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Data Fim
-                  </label>
-                  <input
-                    type="date"
-                    value={filters.endDate}
-                    onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-                    className="input-field"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tipo
-                  </label>
-                  <select
-                    value={filters.type}
-                    onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-                    className="input-field"
-                  >
-                    <option value="">Todos</option>
-                    <option value="income">Entrada</option>
-                    <option value="expense">Saída</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Categoria
-                  </label>
-                  <select
-                    value={filters.category}
-                    onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-                    className="input-field"
-                  >
-                    <option value="">Todas</option>
-                    {filters.type === 'income' && categories.income.map(cat => (
-                      <option key={cat} value={cat}>{getCategoryLabel(cat)}</option>
-                    ))}
-                    {filters.type === 'expense' && categories.expense.map(cat => (
-                      <option key={cat} value={cat}>{getCategoryLabel(cat)}</option>
-                    ))}
-                    {!filters.type && [...categories.income, ...categories.expense].map(cat => (
-                      <option key={cat} value={cat}>{getCategoryLabel(cat)}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Canal
-                  </label>
-                  <select
-                    value={filters.channel}
-                    onChange={(e) => setFilters({ ...filters, channel: e.target.value })}
-                    className="input-field"
-                  >
-                    <option value="">Todos</option>
-                    {channels.map(ch => (
-                      <option key={ch} value={ch}>{getChannelLabel(ch)}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Pagamento
-                  </label>
-                  <select
-                    value={filters.paymentMethod}
-                    onChange={(e) => setFilters({ ...filters, paymentMethod: e.target.value })}
-                    className="input-field"
-                  >
-                    <option value="">Todos</option>
-                    {paymentMethods.map(pm => (
-                      <option key={pm} value={pm}>{pm.replace('_', ' ').toUpperCase()}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+            <div>
+              <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">
+                Data Início
+              </label>
+              <input
+                type="date"
+                value={filters.startDate}
+                onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                className="input-field text-sm"
+              />
             </div>
-          )}
-          
-          {/* Entries Table */}
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            {loading ? (
-              <div className="flex justify-center py-12">
-                <Loader className="w-8 h-8 animate-spin text-amber-500" />
-              </div>
-            ) : entries.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-500">Nenhum lançamento encontrado</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b">
-                    <tr>
-                      <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Data</th>
-                      <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Descrição</th>
-                      <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Categoria</th>
-                      <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Canal</th>
-                      <th className="text-right px-6 py-3 text-sm font-semibold text-gray-600">Valor</th>
-                      <th className="text-center px-6 py-3 text-sm font-semibold text-gray-600">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {entries.map((entry) => (
-                      <tr key={entry._id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 text-sm">{formatDate(entry.date)}</td>
-                        <td className="px-6 py-4 text-sm">{entry.description}</td>
-                        <td className="px-6 py-4 text-sm">{getCategoryLabel(entry.category)}</td>
-                        <td className="px-6 py-4 text-sm">{getChannelLabel(entry.channel)}</td>
-                        <td className={`px-6 py-4 text-sm text-right font-semibold ${
-                          entry.type === 'income' ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {entry.type === 'income' ? '+' : '-'} {formatCurrency(entry.amount)}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <div className="flex justify-center gap-2">
-                            <button
-                              onClick={() => handleEdit(entry)}
-                              className="p-1 text-blue-600 hover:text-blue-800"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(entry._id)}
-                              className="p-1 text-red-600 hover:text-red-800"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            
+            <div>
+              <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">
+                Data Fim
+              </label>
+              <input
+                type="date"
+                value={filters.endDate}
+                onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+                className="input-field text-sm"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">
+                Tipo
+              </label>
+              <select
+                value={filters.type}
+                onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+                className="input-field text-sm"
+              >
+                <option value="">Todos</option>
+                <option value="income">Entrada</option>
+                <option value="expense">Saída</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">
+                Categoria
+              </label>
+              <select
+                value={filters.category}
+                onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+                className="input-field text-sm"
+              >
+                <option value="">Todas</option>
+                {filters.type === 'income' && categories.income.map(cat => (
+                  <option key={cat} value={cat}>{getCategoryLabel(cat)}</option>
+                ))}
+                {filters.type === 'expense' && categories.expense.map(cat => (
+                  <option key={cat} value={cat}>{getCategoryLabel(cat)}</option>
+                ))}
+                {!filters.type && [...categories.income, ...categories.expense].map(cat => (
+                  <option key={cat} value={cat}>{getCategoryLabel(cat)}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">
+                Canal
+              </label>
+              <select
+                value={filters.channel}
+                onChange={(e) => setFilters({ ...filters, channel: e.target.value })}
+                className="input-field text-sm"
+              >
+                <option value="">Todos</option>
+                {channels.map(ch => (
+                  <option key={ch} value={ch}>{getChannelLabel(ch)}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">
+                Pagamento
+              </label>
+              <select
+                value={filters.paymentMethod}
+                onChange={(e) => setFilters({ ...filters, paymentMethod: e.target.value })}
+                className="input-field text-sm"
+              >
+                <option value="">Todos</option>
+                {paymentMethods.map(pm => (
+                  <option key={pm} value={pm}>{getPaymentMethodLabel(pm)}</option>
+                ))}
+              </select>
+            </div>
           </div>
-        </main>
+        </div>
+      )}
+      
+      {/* Entries Table - Responsivo com scroll horizontal */}
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <Loader className="w-8 h-8 animate-spin text-amber-500" />
+          </div>
+        ) : entries.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500">Nenhum lançamento encontrado</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px]">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="text-left px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-gray-600">Data</th>
+                  <th className="text-left px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-gray-600">Descrição</th>
+                  <th className="text-left px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-gray-600 hidden md:table-cell">Categoria</th>
+                  <th className="text-left px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-gray-600 hidden lg:table-cell">Canal</th>
+                  <th className="text-right px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-gray-600">Valor</th>
+                  <th className="text-center px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-gray-600">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {entries.map((entry) => (
+                  <tr key={entry._id} className="hover:bg-gray-50">
+                    <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-xs sm:text-sm">
+                      {formatDate(entry.date)}
+                    </td>
+                    <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-xs sm:text-sm">
+                      <div>
+                        <p className="font-medium text-gray-900 truncate max-w-[150px] sm:max-w-[200px] md:max-w-none">
+                          {entry.description}
+                        </p>
+                        <p className="text-xs text-gray-400 md:hidden mt-1">
+                          {getCategoryLabel(entry.category)}
+                        </p>
+                      </div>
+                    </td>
+                    <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-xs sm:text-sm hidden md:table-cell">
+                      {getCategoryLabel(entry.category)}
+                    </td>
+                    <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-xs sm:text-sm hidden lg:table-cell">
+                      {getChannelLabel(entry.channel)}
+                    </td>
+                    <td className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-xs sm:text-sm text-right font-semibold ${
+                      entry.type === 'income' ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {entry.type === 'income' ? '+' : '-'} {formatCurrency(entry.amount)}
+                    </td>
+                    <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-center">
+                      <div className="flex justify-center gap-1 sm:gap-2">
+                        <button
+                          onClick={() => handleEdit(entry)}
+                          className="p-1.5 sm:p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition"
+                          aria-label="Editar"
+                        >
+                          <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(entry._id)}
+                          className="p-1.5 sm:p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition"
+                          aria-label="Excluir"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
       
       {/* Edit Modal */}

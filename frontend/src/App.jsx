@@ -19,58 +19,38 @@ const AuthenticatedLayout = ({ children }) => {
     const checkMobile = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-      // Em desktop, sidebar sempre visível
-      if (!mobile) {
-        setSidebarOpen(true);
-      } else {
-        setSidebarOpen(false);
-      }
+      if (!mobile) setSidebarOpen(true);
+      else setSidebarOpen(false);
     };
-    
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-
-  const closeSidebar = () => {
-    if (isMobile) {
-      setSidebarOpen(false);
-    }
-  };
+  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+  const closeSidebar = () => isMobile && setSidebarOpen(false);
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
-      {/* Sidebar - controlada por estado */}
+    <div className="min-h-screen bg-gray-50">
+      {/* Sidebar para desktop - FIXA, escondida em mobile */}
+      <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-64 bg-gray-900 text-white z-20">
+        <Sidebar isOpen={true} onClose={closeSidebar} isMobile={false} />
+      </aside>
+
+      {/* Sidebar para mobile (overlay) - já tratada no componente Sidebar, mas evitamos duplicação */}
       <Sidebar 
         isOpen={sidebarOpen} 
-        onClose={closeSidebar}
-        isMobile={isMobile}
+        onClose={closeSidebar} 
+        isMobile={isMobile} 
       />
-      
-      {/* Conteúdo principal - com margem esquerda no desktop */}
-      <div className={`
-        flex-1 flex flex-col overflow-hidden
-        transition-all duration-300
-        ${!isMobile ? 'ml-64' : 'ml-0'}
-      `}>
-        <Header 
-          onMenuClick={toggleSidebar} 
-          isMobile={isMobile}
-          sidebarOpen={sidebarOpen}
-        />
-        
-        {/* pt-16 no mobile para não ficar atrás do header fixo */}
-        <main className={`
-          flex-1 overflow-y-auto
-          ${isMobile ? 'pt-16' : 'pt-0'}
-        `}>
+
+      {/* Conteúdo principal – desktop com margem esquerda igual à largura da sidebar */}
+      <main className={`min-h-screen ${!isMobile ? 'lg:ml-64' : ''}`}>
+        <Header onMenuClick={toggleSidebar} isMobile={isMobile} sidebarOpen={sidebarOpen} />
+        <div className="w-full max-w-none p-4 md:p-6 lg:p-8">
           {children}
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   );
 };

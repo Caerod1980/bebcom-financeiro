@@ -17,15 +17,16 @@ const Header = ({ onMenuClick, isMobile, sidebarOpen }) => {
     setCurrentDate(date);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setShowUserMenu(false);
+ const handleLogout = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  setShowUserMenu(false);
 
-    // GitHub Pages + HashRouter
-    window.location.href = '/bebcom-financeiro/#/login';
-  };
-
+  // Redireciona corretamente no GitHub Pages
+  window.location.replace(
+    'https://caerod1980.github.io/bebcom-financeiro/#/login'
+  );
+};
   return (
     <header
       className={`

@@ -51,16 +51,23 @@ const AuthenticatedLayout = ({ children }) => {
         isMobile={isMobile}
       />
       
-      {/* Conteúdo principal */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Conteúdo principal - com margem esquerda no desktop */}
+      <div className={`
+        flex-1 flex flex-col overflow-hidden
+        transition-all duration-300
+        ${!isMobile ? 'ml-64' : 'ml-0'}
+      `}>
         <Header 
           onMenuClick={toggleSidebar} 
           isMobile={isMobile}
           sidebarOpen={sidebarOpen}
         />
         
-        {/* ⭐ CORREÇÃO CRÍTICA: pt-16 no mobile para não ficar atrás do header fixo */}
-        <main className="flex-1 overflow-y-auto pt-16 md:pt-0">
+        {/* pt-16 no mobile para não ficar atrás do header fixo */}
+        <main className={`
+          flex-1 overflow-y-auto
+          ${isMobile ? 'pt-16' : 'pt-0'}
+        `}>
           {children}
         </main>
       </div>

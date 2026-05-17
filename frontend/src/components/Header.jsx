@@ -26,7 +26,7 @@ const Header = ({ onMenuClick, isMobile, sidebarOpen }) => {
   return (
     <header className={`
       bg-white border-b border-gray-200 px-4 py-3 z-10
-      ${isMobile ? 'fixed top-0 right-0 left-0' : 'relative'}
+      ${isMobile ? 'fixed top-0 right-0 left-0' : 'relative w-full'}
     `}>
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-3">

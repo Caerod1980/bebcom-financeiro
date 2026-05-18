@@ -1,6 +1,20 @@
 const Entry = require('../models/Entry');
 const dreService = require('../services/dreService');
 
+const normalizeEntryPayload = (data) => {
+  const payload = { ...data };
+
+  if (payload.type === 'income') {
+    payload.costCenter = '';
+  }
+
+  if (payload.type === 'expense') {
+    payload.channel = '';
+  }
+
+  return payload;
+};
+
 // @desc    Create entry
 // @route   POST /api/entries
 const createEntry = async (req, res) => {
@@ -13,8 +27,10 @@ const createEntry = async (req, res) => {
       });
     }
 
+    const payload = normalizeEntryPayload(req.body);
+
     const entry = await Entry.create({
-      ...req.body,
+      ...payload,
       createdBy: req.user._id,
     });
 
@@ -28,7 +44,15 @@ const createEntry = async (req, res) => {
 // @route   GET /api/entries
 const getEntries = async (req, res) => {
   try {
-    const { startDate, endDate, type, category, channel, paymentMethod } = req.query;
+    const {
+      startDate,
+      endDate,
+      type,
+      category,
+      channel,
+      costCenter,
+      paymentMethod,
+    } = req.query;
 
     const query = { deleted: false };
 
@@ -49,6 +73,7 @@ const getEntries = async (req, res) => {
     if (type) query.type = type;
     if (category) query.category = category;
     if (channel) query.channel = channel;
+    if (costCenter) query.costCenter = costCenter;
     if (paymentMethod) query.paymentMethod = paymentMethod;
 
     const entries = await Entry.find(query)
@@ -105,7 +130,8 @@ const updateEntry = async (req, res) => {
       }
     }
 
-    const { createdBy, deleted, deletedAt, _id, ...safeData } = req.body;
+    const { createdBy, deleted, deletedAt, _id, ...rawSafeData } = req.body;
+    const safeData = normalizeEntryPayload(rawSafeData);
 
     const updated = await Entry.findByIdAndUpdate(
       req.params.id,

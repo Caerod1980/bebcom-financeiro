@@ -1,3 +1,4 @@
+const dreService = require('../services/dreService');
 const Entry = require('../models/Entry');
 
 // @desc    Create entry

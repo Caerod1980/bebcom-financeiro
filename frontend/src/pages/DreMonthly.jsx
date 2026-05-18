@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { FileSpreadsheet, Printer, Loader, CheckCircle } from 'lucide-react';
+import { FileSpreadsheet, Printer, Loader, CheckCircle, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { dreService } from '../services/api';
 import { formatCurrency } from '../utils/formatCurrency';
 
@@ -14,7 +16,7 @@ const DreMonthly = () => {
 
   const months = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
   ];
 
   useEffect(() => {
@@ -35,7 +37,7 @@ const DreMonthly = () => {
   };
 
   const handleCloseMonth = async () => {
-    if (!confirm('Tem certeza que deseja fechar este mês?')) return;
+    if (!confirm('Tem certeza que deseja fechar este mês? Esta ação será definitiva.')) return;
 
     try {
       setClosing(true);
@@ -49,34 +51,34 @@ const DreMonthly = () => {
     }
   };
 
-  const dreRows = dre ? [
-    ['DEMONSTRAÇÃO DO RESULTADO DO EXERCÍCIO', '', ''],
-    ['Empresa', 'Bebidas & Companhia', ''],
-    ['Período', `${months[selectedMonth - 1]} de ${selectedYear}`, ''],
-    ['', '', ''],
-    ['Descrição', 'Valor', '% Receita Líquida'],
-    ['Receita Bruta', dre.receitaBruta, ''],
-    ['(-) Deduções', dre.deducoes, ''],
-    ['Receita Líquida', dre.receitaLiquida, '100%'],
-    ['(-) CMV', dre.cmv, `${dre.percentuais?.cmvPercent || '0.00'}%`],
-    ['Lucro Bruto', dre.lucroBruto, `${dre.percentuais?.margemBruta || '0.00'}%`],
-    ['(-) Despesas Operacionais', dre.despesasOperacionais, `${dre.percentuais?.despesasPercent || '0.00'}%`],
-    ['Resultado Operacional', dre.resultadoOperacional, `${dre.percentuais?.margemOperacional || '0.00'}%`],
-    ['(-) Despesas Financeiras', dre.despesasFinanceiras, ''],
-    ['Outras Receitas', dre.outrasReceitas, ''],
-    ['Outras Despesas', dre.outrasDespesas, ''],
-    ['Resultado Líquido do Período', dre.lucroLiquido, `${dre.percentuais?.margemLiquida || '0.00'}%`],
-  ] : [];
+  const getDreRows = () => {
+    if (!dre) return [];
+
+    return [
+      ['DEMONSTRAÇÃO DO RESULTADO DO EXERCÍCIO', '', ''],
+      ['Empresa', 'Bebidas & Companhia', ''],
+      ['Período', `${months[selectedMonth - 1]} de ${selectedYear}`, ''],
+      ['', '', ''],
+      ['Descrição', 'Valor', '% Receita Líquida'],
+      ['Receita Bruta', dre.receitaBruta, ''],
+      ['(-) Deduções', dre.deducoes, ''],
+      ['Receita Líquida', dre.receitaLiquida, '100%'],
+      ['(-) CMV', dre.cmv, `${dre.percentuais?.cmvPercent || '0.00'}%`],
+      ['Lucro Bruto', dre.lucroBruto, `${dre.percentuais?.margemBruta || '0.00'}%`],
+      ['(-) Despesas Operacionais', dre.despesasOperacionais, `${dre.percentuais?.despesasPercent || '0.00'}%`],
+      ['Resultado Operacional', dre.resultadoOperacional, `${dre.percentuais?.margemOperacional || '0.00'}%`],
+      ['(-) Despesas Financeiras', dre.despesasFinanceiras, ''],
+      ['Outras Receitas', dre.outrasReceitas, ''],
+      ['Outras Despesas', dre.outrasDespesas, ''],
+      ['Resultado Líquido do Período', dre.lucroLiquido, `${dre.percentuais?.margemLiquida || '0.00'}%`],
+    ];
+  };
 
   const handleExportExcel = () => {
     if (!dre) return;
 
-    const worksheet = XLSX.utils.aoa_to_sheet(dreRows);
-    worksheet['!cols'] = [
-      { wch: 38 },
-      { wch: 18 },
-      { wch: 18 },
-    ];
+    const worksheet = XLSX.utils.aoa_to_sheet(getDreRows());
+    worksheet['!cols'] = [{ wch: 38 }, { wch: 18 }, { wch: 18 }];
 
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'DRE Mensal');
@@ -87,6 +89,116 @@ const DreMonthly = () => {
     );
 
     toast.success('Excel exportado com sucesso!');
+  };
+
+  const handleExportPDF = () => {
+    if (!dre) return;
+
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const emittedAt = new Date().toLocaleString('pt-BR');
+    const period = `${months[selectedMonth - 1]} de ${selectedYear}`;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text('Bebidas & Companhia', 105, 18, { align: 'center' });
+
+    doc.setFontSize(13);
+    doc.text('Demonstração do Resultado do Exercício', 105, 27, { align: 'center' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text(`Período: ${period}`, 105, 34, { align: 'center' });
+    doc.text(`Data de emissão: ${emittedAt}`, 105, 40, { align: 'center' });
+
+    const tableBody = [
+      ['Receita Bruta', formatCurrency(dre.receitaBruta), '-'],
+      ['(-) Deduções', formatCurrency(dre.deducoes), '-'],
+      ['Receita Líquida', formatCurrency(dre.receitaLiquida), '100.00%'],
+      ['(-) CMV', formatCurrency(dre.cmv), `${dre.percentuais?.cmvPercent || '0.00'}%`],
+      ['Lucro Bruto', formatCurrency(dre.lucroBruto), `${dre.percentuais?.margemBruta || '0.00'}%`],
+      ['(-) Despesas Operacionais', formatCurrency(dre.despesasOperacionais), `${dre.percentuais?.despesasPercent || '0.00'}%`],
+      ['Resultado Operacional', formatCurrency(dre.resultadoOperacional), `${dre.percentuais?.margemOperacional || '0.00'}%`],
+      ['(-) Despesas Financeiras', formatCurrency(dre.despesasFinanceiras), '-'],
+      ['Outras Receitas', formatCurrency(dre.outrasReceitas), '-'],
+      ['Outras Despesas', formatCurrency(dre.outrasDespesas), '-'],
+      ['Resultado Líquido do Período', formatCurrency(dre.lucroLiquido), `${dre.percentuais?.margemLiquida || '0.00'}%`],
+    ];
+
+    autoTable(doc, {
+      startY: 50,
+      head: [['Descrição', 'Valor', '% Receita Líquida']],
+      body: tableBody,
+      theme: 'grid',
+      headStyles: {
+        fillColor: [31, 41, 55],
+        textColor: 255,
+        fontStyle: 'bold',
+      },
+      styles: {
+        fontSize: 10,
+        cellPadding: 3,
+      },
+      columnStyles: {
+        0: { cellWidth: 95 },
+        1: { cellWidth: 45, halign: 'right' },
+        2: { cellWidth: 38, halign: 'right' },
+      },
+      didParseCell: (data) => {
+        const label = data.row.raw?.[0];
+
+        if (
+          label === 'Receita Líquida' ||
+          label === 'Lucro Bruto' ||
+          label === 'Resultado Operacional' ||
+          label === 'Resultado Líquido do Período'
+        ) {
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.fillColor = [245, 245, 245];
+        }
+
+        if (label === 'Resultado Líquido do Período') {
+          data.cell.styles.fillColor = [254, 243, 199];
+        }
+      },
+    });
+
+    const finalY = doc.lastAutoTable.finalY + 10;
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+
+    if (dre.closed) {
+      doc.text('Status: Mês fechado oficialmente', 14, finalY);
+
+      if (dre.auditHash) {
+        doc.text('Hash de auditoria SHA256:', 14, finalY + 7);
+        doc.setFontSize(7);
+        doc.text(String(dre.auditHash), 14, finalY + 12, { maxWidth: 180 });
+        doc.setFontSize(9);
+      }
+
+      if (dre.closedAt) {
+        doc.text(
+          `Fechado em: ${new Date(dre.closedAt).toLocaleString('pt-BR')}`,
+          14,
+          finalY + 20
+        );
+      }
+    } else {
+      doc.text('Status: Relatório preliminar — mês ainda não fechado', 14, finalY);
+    }
+
+    doc.setFontSize(8);
+    doc.setTextColor(120);
+    doc.text(
+      'Documento gerado pelo Bebcom Financeiro — Bebidas & Companhia',
+      105,
+      287,
+      { align: 'center' }
+    );
+
+    doc.save(`DRE_Oficial_Bebidas_e_Companhia_${period.replaceAll(' ', '_')}.pdf`);
+    toast.success('PDF oficial gerado com sucesso!');
   };
 
   const handlePrint = () => {
@@ -171,6 +283,14 @@ const DreMonthly = () => {
           >
             <FileSpreadsheet className="w-4 h-4" />
             Exportar Excel
+          </button>
+
+          <button
+            onClick={handleExportPDF}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 text-sm"
+          >
+            <FileText className="w-4 h-4" />
+            PDF Oficial
           </button>
 
           <button

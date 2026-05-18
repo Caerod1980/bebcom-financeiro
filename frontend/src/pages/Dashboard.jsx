@@ -204,9 +204,9 @@ const Dashboard = () => {
           color="amber"
           percentage={current.percentuais?.margemBruta}
         />
-        <Card
+       <Card
           title="Despesas"
-          value={formatCurrency(current.despesasOperacionais)}
+          value={formatCurrency(current.totalDespesas || 0)}
           icon={CreditCard}
           color="red"
         />

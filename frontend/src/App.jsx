@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import NewEntry from './pages/NewEntry';
 import Entries from './pages/Entries';
 import DreMonthly from './pages/DreMonthly';
+import AnnualDashboard from './pages/AnnualDashboard';
 
 import PrivateRoute from './components/PrivateRoute';
 import Sidebar from './components/Sidebar';
@@ -127,6 +128,17 @@ function App() {
                 <DreMonthly />
               </AuthenticatedLayout>
             </PrivateRoute>
+          }
+        />
+
+        <Route
+           path="/annual-dashboard"
+           element={
+              <PrivateRoute>
+                <AuthenticatedLayout>
+                  <AnnualDashboard />
+                </AuthenticatedLayout>
+              </PrivateRoute>
           }
         />
 

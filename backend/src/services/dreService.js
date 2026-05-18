@@ -189,10 +189,26 @@ const getQuickSummary = async (month, year) => {
   };
 };
 
-module.exports = { 
-  calculateDRE, 
-  saveMonthlyClosing, 
+const isMonthClosed = async (date) => {
+  const entryDate = new Date(date);
+
+  const month = entryDate.getMonth() + 1;
+  const year = entryDate.getFullYear();
+
+  const closing = await MonthlyClosing.findOne({
+    month,
+    year,
+    closed: true,
+  });
+
+  return !!closing;
+};
+
+module.exports = {
+  calculateDRE,
+  saveMonthlyClosing,
   getTopExpenseCategories,
   getQuickSummary,
-  hasEntriesInMonth 
+  hasEntriesInMonth,
+  isMonthClosed,
 };

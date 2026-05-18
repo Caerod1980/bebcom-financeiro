@@ -5,10 +5,19 @@ const dreService = require('../services/dreService');
 // @route   POST /api/entries
 const createEntry = async (req, res) => {
   try {
+    const monthClosed = await dreService.isMonthClosed(req.body.date);
+
+    if (monthClosed) {
+      return res.status(400).json({
+        error: 'Este mês está fechado e não aceita novos lançamentos.',
+      });
+    }
+
     const entry = await Entry.create({
       ...req.body,
       createdBy: req.user._id,
     });
+
     res.status(201).json(entry);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -20,28 +29,32 @@ const createEntry = async (req, res) => {
 const getEntries = async (req, res) => {
   try {
     const { startDate, endDate, type, category, channel, paymentMethod } = req.query;
-    
-    let query = { deleted: false };
-    
+
+    const query = { deleted: false };
+
     if (startDate || endDate) {
       query.date = {};
-      if (startDate) query.date.$gte = new Date(startDate);
+
+      if (startDate) {
+        query.date.$gte = new Date(startDate);
+      }
+
       if (endDate) {
-        // ⭐ CORREÇÃO: incluir até o FINAL do dia
         const end = new Date(endDate);
         end.setHours(23, 59, 59, 999);
         query.date.$lte = end;
       }
     }
+
     if (type) query.type = type;
     if (category) query.category = category;
     if (channel) query.channel = channel;
     if (paymentMethod) query.paymentMethod = paymentMethod;
-    
+
     const entries = await Entry.find(query)
       .sort({ date: -1 })
       .populate('createdBy', 'name');
-    
+
     res.json(entries);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -53,9 +66,11 @@ const getEntries = async (req, res) => {
 const getEntry = async (req, res) => {
   try {
     const entry = await Entry.findById(req.params.id).populate('createdBy', 'name');
+
     if (!entry || entry.deleted) {
       return res.status(404).json({ error: 'Lançamento não encontrado' });
     }
+
     res.json(entry);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -67,20 +82,37 @@ const getEntry = async (req, res) => {
 const updateEntry = async (req, res) => {
   try {
     const entry = await Entry.findById(req.params.id);
+
     if (!entry || entry.deleted) {
       return res.status(404).json({ error: 'Lançamento não encontrado' });
     }
-    
-    // ⭐ SEGURANÇA: remover campos que NÃO podem ser alterados
+
+    const originalMonthClosed = await dreService.isMonthClosed(entry.date);
+
+    if (originalMonthClosed) {
+      return res.status(400).json({
+        error: 'Este mês está fechado e não pode ser alterado.',
+      });
+    }
+
+    if (req.body.date) {
+      const newMonthClosed = await dreService.isMonthClosed(req.body.date);
+
+      if (newMonthClosed) {
+        return res.status(400).json({
+          error: 'Não é possível mover lançamento para um mês fechado.',
+        });
+      }
+    }
+
     const { createdBy, deleted, deletedAt, _id, ...safeData } = req.body;
-    
-    // ⭐ NÃO precisa setar updatedAt manualmente - timestamps: true faz isso
+
     const updated = await Entry.findByIdAndUpdate(
       req.params.id,
       safeData,
       { new: true, runValidators: true }
     );
-    
+
     res.json(updated);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -92,18 +124,34 @@ const updateEntry = async (req, res) => {
 const deleteEntry = async (req, res) => {
   try {
     const entry = await Entry.findById(req.params.id);
+
     if (!entry || entry.deleted) {
       return res.status(404).json({ error: 'Lançamento não encontrado' });
     }
-    
+
+    const monthClosed = await dreService.isMonthClosed(entry.date);
+
+    if (monthClosed) {
+      return res.status(400).json({
+        error: 'Este mês está fechado e não pode ser removido.',
+      });
+    }
+
     entry.deleted = true;
     entry.deletedAt = Date.now();
+
     await entry.save();
-    
+
     res.json({ message: 'Lançamento removido com sucesso' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-module.exports = { createEntry, getEntries, getEntry, updateEntry, deleteEntry };
+module.exports = {
+  createEntry,
+  getEntries,
+  getEntry,
+  updateEntry,
+  deleteEntry,
+};

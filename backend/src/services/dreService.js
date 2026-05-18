@@ -58,7 +58,7 @@ const calculateDRE = async (month, year) => {
   
   // Aggregate by dreGroup
   entries.forEach(entry => {
-    const value = entry.amount;
+    const value = Math.abs(entry.amount);
     
     switch (entry.dreGroup) {
       case 'receita_bruta':

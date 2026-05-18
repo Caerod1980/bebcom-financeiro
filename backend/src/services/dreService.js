@@ -95,6 +95,12 @@ const calculateDRE = async (month, year) => {
   dre.lucroBruto = dre.receitaLiquida - dre.cmv;
   dre.resultadoOperacional = dre.lucroBruto - dre.despesasOperacionais;
   dre.lucroLiquido = dre.resultadoOperacional - dre.despesasFinanceiras + dre.outrasReceitas - dre.outrasDespesas;
+  dre.totalDespesas =
+  dre.deducoes +
+  dre.cmv +
+  dre.despesasOperacionais +
+  dre.despesasFinanceiras +
+  dre.outrasDespesas;
   
   // ⭐ PERCENTUAIS CORRIGIDOS - sem divisão por zero
   dre.percentuais = {
@@ -246,7 +252,7 @@ const getQuickSummary = async (month, year) => {
   const dre = await calculateDRE(month, year);
   return {
     receita: dre.receitaLiquida,
-    despesas: dre.despesasOperacionais,
+    despesas: dre.totalDespesas,
     lucro: dre.lucroLiquido,
     margem: dre.percentuais.margemLiquida,
   };

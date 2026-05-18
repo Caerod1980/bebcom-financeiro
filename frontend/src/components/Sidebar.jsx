@@ -1,13 +1,14 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  PlusCircle, 
-  List, 
+import {
+  LayoutDashboard,
+  PlusCircle,
+  List,
   FileText,
+  BarChart3,
   LogOut,
   Beer,
-  X
+  X,
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, onClose, isMobile }) => {
@@ -22,15 +23,15 @@ const Sidebar = ({ isOpen, onClose, isMobile }) => {
     { path: '/new-entry', icon: PlusCircle, label: 'Novo Lançamento' },
     { path: '/entries', icon: List, label: 'Lançamentos' },
     { path: '/dre', icon: FileText, label: 'DRE Mensal' },
+    { path: '/annual-dashboard', icon: BarChart3, label: 'Dashboard Anual' },
   ];
 
   const handleNavClick = () => {
-    if (isMobile) {
+    if (isMobile && onClose) {
       onClose();
     }
   };
 
-  // Conteúdo do sidebar (compartilhado entre mobile e desktop)
   const SidebarContent = () => (
     <>
       <div className="p-4 sm:p-6 border-b border-gray-800">
@@ -42,19 +43,21 @@ const Sidebar = ({ isOpen, onClose, isMobile }) => {
               <p className="text-xs text-gray-400">Financeiro</p>
             </div>
           </div>
+
           {isMobile && (
-            <button 
+            <button
               onClick={onClose}
               className="p-2 hover:bg-gray-800 rounded-lg transition text-gray-400 hover:text-white"
               aria-label="Fechar menu"
+              type="button"
             >
               <X className="w-5 h-5" />
             </button>
           )}
         </div>
       </div>
-      
-      <nav className="flex-1 p-4">
+
+      <nav className="flex-1 p-4 overflow-y-auto">
         {navItems.map((item) => (
           <NavLink
             key={item.path}
@@ -73,9 +76,10 @@ const Sidebar = ({ isOpen, onClose, isMobile }) => {
           </NavLink>
         ))}
       </nav>
-      
+
       <div className="p-4 border-t border-gray-800">
         <button
+          type="button"
           onClick={handleLogout}
           className="flex items-center gap-3 px-4 py-3 w-full rounded-lg text-gray-300 hover:bg-gray-800 transition duration-200"
         >
@@ -86,8 +90,6 @@ const Sidebar = ({ isOpen, onClose, isMobile }) => {
     </>
   );
 
-  // ⭐ DESKTOP: retorna apenas o conteúdo (sem aside próprio)
-  // O componente pai (App.jsx) já fornece um <aside className="w-64">, então usamos w-full
   if (!isMobile) {
     return (
       <div className="flex flex-col h-full w-full">
@@ -96,19 +98,16 @@ const Sidebar = ({ isOpen, onClose, isMobile }) => {
     );
   }
 
-  // ⭐ MOBILE: overlay com animação
   return (
     <>
-      {/* Overlay escuro */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-30 transition-opacity duration-300"
           onClick={onClose}
         />
       )}
-      
-      {/* Sidebar mobile deslizante */}
-      <aside 
+
+      <aside
         className={`
           fixed top-0 left-0 h-full bg-gray-900 text-white z-40
           transition-transform duration-300 ease-in-out w-64

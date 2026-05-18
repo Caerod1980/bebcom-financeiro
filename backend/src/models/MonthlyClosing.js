@@ -11,7 +11,14 @@ const monthlyClosingSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
-  // DRE Values
+
+  // Saldo inicial do mês
+  openingBalance: {
+    type: Number,
+    default: 0,
+  },
+
+  // Valores principais da DRE
   receitaBruta: { type: Number, default: 0 },
   deducoes: { type: Number, default: 0 },
   receitaLiquida: { type: Number, default: 0 },
@@ -23,15 +30,66 @@ const monthlyClosingSchema = new mongoose.Schema({
   outrasReceitas: { type: Number, default: 0 },
   outrasDespesas: { type: Number, default: 0 },
   lucroLiquido: { type: Number, default: 0 },
-  
-  // Metadata
+
+  // Snapshot completo congelado
+  snapshotDRE: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {},
+  },
+
+  // Indicadores congelados
+  indicators: {
+    margemBruta: { type: String, default: '0.00' },
+    margemOperacional: { type: String, default: '0.00' },
+    margemLiquida: { type: String, default: '0.00' },
+    cmvPercent: { type: String, default: '0.00' },
+    despesasPercent: { type: String, default: '0.00' },
+  },
+
+  // Categorias e despesas top congeladas
+  categoriesSnapshot: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {},
+  },
+
+  topExpensesSnapshot: {
+    type: Array,
+    default: [],
+  },
+
+  // Fechamento
   closed: { type: Boolean, default: false },
   closedAt: { type: Date, default: null },
   closedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  
-  // Version history
+
+  // Auditoria
+  auditHash: {
+    type: String,
+    default: null,
+  },
+  auditPayload: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {},
+  },
+  ipAddress: {
+    type: String,
+    default: null,
+  },
+  userAgent: {
+    type: String,
+    default: null,
+  },
+
+  // Saldo automático do próximo mês
+  nextMonthOpeningBalance: {
+    type: Number,
+    default: 0,
+  },
+
+  // Histórico técnico
   versions: [{
     calculatedAt: { type: Date, default: Date.now },
+    auditHash: String,
     values: {
       receitaBruta: Number,
       receitaLiquida: Number,
@@ -40,10 +98,9 @@ const monthlyClosingSchema = new mongoose.Schema({
     },
   }],
 }, {
-  timestamps: true  // ⭐ Mongoose gerencia createdAt e updatedAt automaticamente
+  timestamps: true,
 });
 
-// Compound index for unique month/year
 monthlyClosingSchema.index({ month: 1, year: 1 }, { unique: true });
 
 module.exports = mongoose.model('MonthlyClosing', monthlyClosingSchema);

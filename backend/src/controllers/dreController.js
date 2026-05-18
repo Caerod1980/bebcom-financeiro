@@ -86,11 +86,15 @@ const closeMonth = async (req, res) => {
     
     const dre = await dreService.calculateDRE(validation.month, validation.year);
     const closing = await dreService.saveMonthlyClosing(
-      validation.month, 
-      validation.year, 
-      dre, 
-      req.user._id
-    );
+     validation.month,
+     validation.year,
+     dre,
+     req.user._id,
+  {
+    ipAddress: req.headers['x-forwarded-for'] || req.socket.remoteAddress,
+    userAgent: req.headers['user-agent'],
+  }
+);
     
     res.json({ 
       message: 'Mês fechado com sucesso!', 

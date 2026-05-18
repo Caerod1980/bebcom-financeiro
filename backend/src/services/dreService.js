@@ -1,5 +1,6 @@
 const Entry = require('../models/Entry');
 const MonthlyClosing = require('../models/MonthlyClosing');
+const crypto = require('crypto');
 
 // ⭐ CALCULAR PERCENTUAL COM SEGURANÇA
 const calculatePercentage = (value, base) => {
@@ -107,19 +108,49 @@ const calculateDRE = async (month, year) => {
   return dre;
 };
 
-const saveMonthlyClosing = async (month, year, dre, userId) => {
-  // ⭐ VERIFICAR SE JÁ EXISTE FECHAMENTO
+const saveMonthlyClosing = async (month, year, dre, userId, auditInfo = {}) => {
   const existing = await MonthlyClosing.findOne({ month, year });
-  
+
   if (existing && existing.closed) {
     throw new Error('Este mês já está fechado');
   }
-  
+
+  const topExpenses = await getTopExpenseCategories(month, year);
+  const categoriesSnapshot = buildCategoriesSnapshot(dre);
+
+  const closedAt = new Date();
+
+  const auditPayload = {
+    month,
+    year,
+    closedAt: closedAt.toISOString(),
+    closedBy: userId.toString(),
+    receitaBruta: dre.receitaBruta,
+    deducoes: dre.deducoes,
+    receitaLiquida: dre.receitaLiquida,
+    cmv: dre.cmv,
+    lucroBruto: dre.lucroBruto,
+    despesasOperacionais: dre.despesasOperacionais,
+    resultadoOperacional: dre.resultadoOperacional,
+    despesasFinanceiras: dre.despesasFinanceiras,
+    outrasReceitas: dre.outrasReceitas,
+    outrasDespesas: dre.outrasDespesas,
+    lucroLiquido: dre.lucroLiquido,
+    percentuais: dre.percentuais,
+    categoriesSnapshot,
+    topExpenses,
+  };
+
+  const auditHash = buildAuditHash(auditPayload);
+
+  const { nextMonth, nextYear } = getNextMonthYear(month, year);
+
   const closing = await MonthlyClosing.findOneAndUpdate(
     { month, year },
     {
       month,
       year,
+
       receitaBruta: dre.receitaBruta,
       deducoes: dre.deducoes,
       receitaLiquida: dre.receitaLiquida,
@@ -131,24 +162,56 @@ const saveMonthlyClosing = async (month, year, dre, userId) => {
       outrasReceitas: dre.outrasReceitas,
       outrasDespesas: dre.outrasDespesas,
       lucroLiquido: dre.lucroLiquido,
+
+      snapshotDRE: dre,
+      indicators: dre.percentuais,
+      categoriesSnapshot,
+      topExpensesSnapshot: topExpenses,
+
       closed: true,
-      closedAt: new Date(),
+      closedAt,
       closedBy: userId,
+
+      auditHash,
+      auditPayload,
+      ipAddress: auditInfo.ipAddress || null,
+      userAgent: auditInfo.userAgent || null,
+
+      nextMonthOpeningBalance: dre.lucroLiquido,
+
       $push: {
         versions: {
-          calculatedAt: new Date(),
+          calculatedAt: closedAt,
+          auditHash,
           values: {
             receitaBruta: dre.receitaBruta,
             receitaLiquida: dre.receitaLiquida,
             lucroBruto: dre.lucroBruto,
             lucroLiquido: dre.lucroLiquido,
-          }
-        }
-      }
+          },
+        },
+      },
     },
     { upsert: true, new: true }
   );
-  
+
+  const nextClosing = await MonthlyClosing.findOne({
+    month: nextMonth,
+    year: nextYear,
+  });
+
+  if (!nextClosing || !nextClosing.closed) {
+    await MonthlyClosing.findOneAndUpdate(
+      { month: nextMonth, year: nextYear },
+      {
+        month: nextMonth,
+        year: nextYear,
+        openingBalance: dre.lucroLiquido,
+      },
+      { upsert: true, new: true }
+    );
+  }
+
   return closing;
 };
 
@@ -202,6 +265,77 @@ const isMonthClosed = async (date) => {
   });
 
   return !!closing;
+};
+
+const sortObjectDeep = (obj) => {
+  if (Array.isArray(obj)) {
+    return obj.map(sortObjectDeep);
+  }
+
+  if (obj && typeof obj === 'object') {
+    return Object.keys(obj)
+      .sort()
+      .reduce((acc, key) => {
+        acc[key] = sortObjectDeep(obj[key]);
+        return acc;
+      }, {});
+  }
+
+  return obj;
+};
+
+const buildAuditHash = (payload) => {
+  const normalizedPayload = sortObjectDeep(payload);
+  const normalized = JSON.stringify(normalizedPayload);
+
+  return crypto.createHash('sha256').update(normalized).digest('hex');
+};
+
+const getNextMonthYear = (month, year) => {
+  if (month === 12) {
+    return { nextMonth: 1, nextYear: year + 1 };
+  }
+
+  return { nextMonth: month + 1, nextYear: year };
+};
+
+const buildCategoriesSnapshot = (dre) => {
+  return {
+    receitaBruta: dre.details?.receitaBrutaItems?.map((item) => ({
+      description: item.description,
+      category: item.category,
+      amount: item.amount,
+      date: item.date,
+    })) || [],
+
+    deducoes: dre.details?.deducoesItems?.map((item) => ({
+      description: item.description,
+      category: item.category,
+      amount: item.amount,
+      date: item.date,
+    })) || [],
+
+    cmv: dre.details?.cmvItems?.map((item) => ({
+      description: item.description,
+      category: item.category,
+      amount: item.amount,
+      date: item.date,
+    })) || [],
+
+    despesasOperacionais: dre.details?.despesasOperacionaisItems?.map((item) => ({
+      description: item.description,
+      category: item.category,
+      amount: item.amount,
+      date: item.date,
+    })) || [],
+
+    despesasFinanceiras: dre.details?.despesasFinanceirasItems?.map((item) => ({
+      description: item.description,
+      category: item.category,
+      amount: item.amount,
+      date: item.date,
+    })) || [],
+  };
 };
 
 module.exports = {

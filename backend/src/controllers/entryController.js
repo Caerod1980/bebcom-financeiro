@@ -1,5 +1,5 @@
-const dreService = require('../services/dreService');
 const Entry = require('../models/Entry');
+const dreService = require('../services/dreService');
 
 // @desc    Create entry
 // @route   POST /api/entries

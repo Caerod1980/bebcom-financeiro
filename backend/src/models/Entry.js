@@ -29,6 +29,11 @@ const entrySchema = new mongoose.Schema({
     required: [true, 'Categoria é obrigatória'],
   },
 
+  categoryNormalized: {
+  type: String,
+  default: '',
+},
+
   // Usado em receitas
   channel: {
     type: String,
@@ -65,21 +70,21 @@ const entrySchema = new mongoose.Schema({
     default: '',
   },
 
-  paymentMethod: {
-    type: String,
-    enum: [
-      'dinheiro',
-      'pix',
-      'debito',
-      'credito',
-      'mercado_pago',
-      'ifood_repasse',
-      'transferencia',
-      'outros',
-      '',
-    ],
-    default: '',
-  },
+ paymentMethod: {
+  type: String,
+  enum: [
+    'dinheiro',
+    'pix',
+    'debito',
+    'credito',
+    'mercado_pago',
+    'ifood_repasse',
+    'boleto',
+    'outros',
+    '',
+  ],
+  default: '',
+},
 
   dreGroup: {
     type: String,
@@ -136,6 +141,17 @@ entrySchema.pre('validate', function (next) {
 
     this.channel = '';
   }
+
+  next();
+});
+
+entrySchema.pre('save', function (next) {
+  this.categoryNormalized = String(this.category || '')
+    .toLowerCase()
+    .trim();
+
+  this.description = String(this.description || '')
+    .trim();
 
   next();
 });

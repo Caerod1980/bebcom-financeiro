@@ -124,12 +124,33 @@ const calculateDRE = async (month, year) => {
     Number(dre.outrasDespesas || 0);
 
   dre.percentuais = {
-    margemBruta: calculatePercentage(dre.lucroBruto, dre.receitaLiquida),
-    margemOperacional: calculatePercentage(dre.resultadoOperacional, dre.receitaLiquida),
-    margemLiquida: calculatePercentage(dre.lucroLiquido, dre.receitaLiquida),
-    cmvPercent: calculatePercentage(dre.cmv, dre.receitaLiquida),
-    despesasPercent: calculatePercentage(dre.totalDespesas, dre.receitaLiquida),
-  };
+  margemBruta: calculatePercentage(dre.lucroBruto, dre.receitaLiquida),
+
+  margemOperacional: calculatePercentage(
+    dre.resultadoOperacional,
+    dre.receitaLiquida
+  ),
+
+  margemLiquida: calculatePercentage(
+    dre.lucroLiquido,
+    dre.receitaLiquida
+  ),
+
+  cmvPercent: calculatePercentage(
+    dre.cmv,
+    dre.receitaLiquida
+  ),
+
+  despesasOperacionaisPercent: calculatePercentage(
+    dre.despesasOperacionais,
+    dre.receitaLiquida
+  ),
+
+  despesasPercent: calculatePercentage(
+    dre.totalDespesas,
+    dre.receitaLiquida
+  ),
+};
 
   return dre;
 };

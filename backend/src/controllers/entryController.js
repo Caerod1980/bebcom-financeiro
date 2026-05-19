@@ -45,14 +45,15 @@ const createEntry = async (req, res) => {
 const getEntries = async (req, res) => {
   try {
     const {
-      startDate,
-      endDate,
-      type,
-      category,
-      channel,
-      costCenter,
-      paymentMethod,
-    } = req.query;
+  description,
+  startDate,
+  endDate,
+  type,
+  category,
+  channel,
+  costCenter,
+  paymentMethod,
+} = req.query;
 
     const query = { deleted: false };
 
@@ -75,6 +76,12 @@ const getEntries = async (req, res) => {
     if (channel) query.channel = channel;
     if (costCenter) query.costCenter = costCenter;
     if (paymentMethod) query.paymentMethod = paymentMethod;
+    if (description) {
+  query.description = {
+    $regex: description,
+    $options: 'i',
+  };
+}
 
     const entries = await Entry.find(query)
       .sort({ date: -1 })

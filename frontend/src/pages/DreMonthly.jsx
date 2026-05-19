@@ -65,7 +65,7 @@ const DreMonthly = () => {
       ['Receita Líquida', dre.receitaLiquida, '100%'],
       ['(-) CMV', dre.cmv, `${dre.percentuais?.cmvPercent || '0.00'}%`],
       ['Lucro Bruto', dre.lucroBruto, `${dre.percentuais?.margemBruta || '0.00'}%`],
-      ['(-) Despesas Operacionais', dre.despesasOperacionais, `${dre.percentuais?.despesasPercent || '0.00'}%`],
+      ['(-) Despesas Operacionais', dre.despesasOperacionais, `${dre.percentuais?.despesasOperacionaisPercent || '0.00'}%`],
       ['Resultado Operacional', dre.resultadoOperacional, `${dre.percentuais?.margemOperacional || '0.00'}%`],
       ['(-) Despesas Financeiras', dre.despesasFinanceiras, ''],
       ['Outras Receitas', dre.outrasReceitas, ''],
@@ -347,7 +347,7 @@ const DreMonthly = () => {
           <Line label="Lucro Bruto" value={dre.lucroBruto} percent={dre.percentuais?.margemBruta || '0.00'} bold />
 
           <Section>3. Despesas Operacionais</Section>
-          <Line label="(-) Despesas Operacionais" value={dre.despesasOperacionais} percent={dre.percentuais?.despesasPercent || '0.00'} />
+          <Line label="(-) Despesas Operacionais" value={dre.despesasOperacionais} percent={dre.percentuais?.despesasOperacionaisPercent || '0.00'} />
           <Line label="Resultado Operacional" value={dre.resultadoOperacional} percent={dre.percentuais?.margemOperacional || '0.00'} bold />
 
           <Section>4. Resultado Financeiro e Outros</Section>

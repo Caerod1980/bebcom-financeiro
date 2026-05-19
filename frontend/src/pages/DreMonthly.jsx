@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileSpreadsheet, Printer, Loader, CheckCircle, FileText } from 'lucide-react';
+import { FileSpreadsheet, Loader, CheckCircle, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -116,7 +116,7 @@ const DreMonthly = () => {
       ['Receita Líquida', formatCurrency(dre.receitaLiquida), '100.00%'],
       ['(-) CMV', formatCurrency(dre.cmv), `${dre.percentuais?.cmvPercent || '0.00'}%`],
       ['Lucro Bruto', formatCurrency(dre.lucroBruto), `${dre.percentuais?.margemBruta || '0.00'}%`],
-      ['(-) Despesas Operacionais', formatCurrency(dre.despesasOperacionais), `${dre.percentuais?.despesasPercent || '0.00'}%`],
+      ['(-) Despesas Operacionais', formatCurrency(dre.despesasOperacionais), `${dre.percentuais?.despesasOperacionaisPercent || '0.00'}%`],
       ['Resultado Operacional', formatCurrency(dre.resultadoOperacional), `${dre.percentuais?.margemOperacional || '0.00'}%`],
       ['(-) Despesas Financeiras', formatCurrency(dre.despesasFinanceiras), '-'],
       ['Outras Receitas', formatCurrency(dre.outrasReceitas), '-'],
@@ -199,10 +199,6 @@ const DreMonthly = () => {
 
     doc.save(`DRE_Oficial_Bebidas_e_Companhia_${period.replaceAll(' ', '_')}.pdf`);
     toast.success('PDF oficial gerado com sucesso!');
-  };
-
-  const handlePrint = () => {
-    window.print();
   };
 
   const Line = ({ label, value, percent, bold = false, highlight = false }) => (
@@ -291,14 +287,6 @@ const DreMonthly = () => {
           >
             <FileText className="w-4 h-4" />
             PDF Oficial
-          </button>
-
-          <button
-            onClick={handlePrint}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 text-sm"
-          >
-            <Printer className="w-4 h-4" />
-            Imprimir / PDF
           </button>
 
           {!dre.closed ? (

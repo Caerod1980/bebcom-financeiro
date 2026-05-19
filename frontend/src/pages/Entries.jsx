@@ -13,6 +13,7 @@ const Entries = () => {
   const [selectedEntry, setSelectedEntry] = useState(null);
 
   const [filters, setFilters] = useState({
+    description: '',
     startDate: '',
     endDate: '',
     type: '',
@@ -33,7 +34,6 @@ const Entries = () => {
     ],
     expense: [
       'compras_mercadorias',
-      'fornecedores',
       'funcionarios',
       'motoboy',
       'aluguel',
@@ -46,6 +46,7 @@ const Entries = () => {
       'taxas_cartao',
       'taxas_mercado_pago',
       'taxas_ifood',
+      'emprestimos',
       'impostos',
       'manutencao',
       'embalagens',
@@ -84,7 +85,7 @@ const Entries = () => {
     'credito',
     'mercado_pago',
     'ifood_repasse',
-    'transferencia',
+    'boleto',
     'outros',
   ];
 
@@ -98,6 +99,7 @@ const Entries = () => {
 
       const params = {};
 
+      if (filters.description) params.description = filters.description;
       if (filters.startDate) params.startDate = filters.startDate;
       if (filters.endDate) params.endDate = filters.endDate;
       if (filters.type) params.type = filters.type;
@@ -147,6 +149,7 @@ const Entries = () => {
 
   const clearFilters = () => {
     setFilters({
+      description: '',
       startDate: '',
       endDate: '',
       type: '',
@@ -177,7 +180,6 @@ const Entries = () => {
       outras_receitas: 'Outras Receitas',
 
       compras_mercadorias: 'Compras',
-      fornecedores: 'Fornecedores',
       funcionarios: 'Funcionários',
       motoboy: 'Motoboy',
       aluguel: 'Aluguel',
@@ -190,6 +192,7 @@ const Entries = () => {
       taxas_cartao: 'Taxas Cartão',
       taxas_mercado_pago: 'Taxas Mercado Pago',
       taxas_ifood: 'Taxas iFood',
+      emprestimos: 'Empréstimos',
       impostos: 'Impostos',
       manutencao: 'Manutenção',
       embalagens: 'Embalagens',
@@ -247,7 +250,7 @@ const Entries = () => {
       credito: 'Crédito',
       mercado_pago: 'Mercado Pago',
       ifood_repasse: 'iFood Repasse',
-      transferencia: 'Transferência',
+      boleto: 'Boleto',
       outros: 'Outros',
     };
 
@@ -302,6 +305,22 @@ const Entries = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+            <div>
+              <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">
+                Descrição
+              </label>
+
+              <input
+                type="text"
+                value={filters.description}
+                onChange={(e) =>
+                  setFilters({ ...filters, description: e.target.value })
+                }
+                className="input-field text-sm"
+                placeholder="Ex: Ambev, Faturamento, Santander..."
+              />
+            </div>
+
             <div>
               <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">
                 Data Início

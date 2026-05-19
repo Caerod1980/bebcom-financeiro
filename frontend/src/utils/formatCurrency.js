@@ -6,7 +6,13 @@ export const formatCurrency = (value) => {
 };
 
 export const formatDate = (date) => {
-  return new Intl.DateTimeFormat('pt-BR').format(new Date(date));
+  if (!date) return '';
+
+  const safeDate = String(date).slice(0, 10);
+
+  const [year, month, day] = safeDate.split('-');
+
+  return `${day}/${month}/${year}`;
 };
 
 export const formatPercentage = (value) => {

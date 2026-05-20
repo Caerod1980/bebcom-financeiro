@@ -206,35 +206,14 @@ const getYearSummary = async (req, res) => {
   try {
     const { year } = req.query;
     const parsedYear = parseInt(year);
-    
+
     if (isNaN(parsedYear) || parsedYear < 2000 || parsedYear > 2100) {
       return res.status(400).json({ error: 'Ano inválido.' });
     }
-    
-    const monthsSummary = [];
-    
-    for (let month = 1; month <= 12; month++) {
-      const dre = await dreService.calculateDRE(month, parsedYear);
-      monthsSummary.push({
-        month,
-        receitaLiquida: dre.receitaLiquida,
-        lucroLiquido: dre.lucroLiquido,
-        margemLiquida: dre.percentuais?.margemLiquida || '0.00',
-      });
-    }
-    
-    const totalRevenue = monthsSummary.reduce((sum, m) => sum + m.receitaLiquida, 0);
-    const totalProfit = monthsSummary.reduce((sum, m) => sum + m.lucroLiquido, 0);
-    
-    res.json({
-      year: parsedYear,
-      months: monthsSummary,
-      totals: {
-        receitaAnual: totalRevenue,
-        lucroAnual: totalProfit,
-        margemMedia: totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(2) : '0.00',
-      }
-    });
+
+    const annualSummary = await dreService.calculateAnnualDRE(parsedYear);
+
+    res.json(annualSummary);
   } catch (error) {
     console.error('Erro ao carregar resumo anual:', error);
     res.status(500).json({ error: error.message });

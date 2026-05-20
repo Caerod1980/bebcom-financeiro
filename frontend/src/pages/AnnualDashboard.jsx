@@ -22,9 +22,12 @@ import {
   CreditCard,
   Package,
   FileText,
+  Download,
 } from 'lucide-react';
 
 import toast from 'react-hot-toast';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { dreService } from '../services/api';
 import { formatCurrency } from '../utils/formatCurrency';
 
@@ -112,7 +115,6 @@ const AnnualDashboard = () => {
 
   const annual = data.annualDRE || {};
   const percentuais = data.percentuais || {};
-
   const months = data.months || [];
 
   const monthsWithEntries = months.filter((m) => m.hasEntries);
@@ -141,6 +143,125 @@ const AnnualDashboard = () => {
     name: getCostCenterLabel(item._id),
     value: item.total,
   }));
+
+  const handleExportAnnualPDF = () => {
+    if (!data || !annual) return;
+
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const emittedAt = new Date().toLocaleString('pt-BR');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text('Bebidas & Companhia', 105, 18, { align: 'center' });
+
+    doc.setFontSize(13);
+    doc.text('DRE Consolidada Anual', 105, 27, { align: 'center' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text(`Exercício: ${year}`, 105, 34, { align: 'center' });
+    doc.text(`Data de emissão: ${emittedAt}`, 105, 40, { align: 'center' });
+
+    const tableBody = [
+      ['Receita Bruta', formatCurrency(annual.receitaBruta), '-'],
+      ['(-) Deduções', formatCurrency(annual.deducoes), '-'],
+      ['Receita Líquida', formatCurrency(annual.receitaLiquida), '100.00%'],
+      ['(-) CMV', formatCurrency(annual.cmv), `${percentuais.cmvPercent || '0.00'}%`],
+      ['Lucro Bruto', formatCurrency(annual.lucroBruto), `${percentuais.margemBruta || '0.00'}%`],
+      ['(-) Despesas Operacionais', formatCurrency(annual.despesasOperacionais), `${percentuais.despesasOperacionaisPercent || '0.00'}%`],
+      ['Resultado Operacional', formatCurrency(annual.resultadoOperacional), `${percentuais.margemOperacional || '0.00'}%`],
+      ['(-) Despesas Financeiras', formatCurrency(annual.despesasFinanceiras), '-'],
+      ['Outras Receitas', formatCurrency(annual.outrasReceitas), '-'],
+      ['Outras Despesas', formatCurrency(annual.outrasDespesas), '-'],
+      ['Resultado Líquido do Exercício', formatCurrency(annual.lucroLiquido), `${percentuais.margemLiquida || '0.00'}%`],
+    ];
+
+    autoTable(doc, {
+      startY: 50,
+      head: [['Descrição', 'Valor', '% Receita Líquida']],
+      body: tableBody,
+      theme: 'grid',
+      headStyles: {
+        fillColor: [31, 41, 55],
+        textColor: 255,
+        fontStyle: 'bold',
+      },
+      styles: {
+        fontSize: 10,
+        cellPadding: 3,
+      },
+      columnStyles: {
+        0: { cellWidth: 95 },
+        1: { cellWidth: 45, halign: 'right' },
+        2: { cellWidth: 38, halign: 'right' },
+      },
+      didParseCell: (cellData) => {
+        const label = cellData.row.raw?.[0];
+
+        if (
+          label === 'Receita Líquida' ||
+          label === 'Lucro Bruto' ||
+          label === 'Resultado Operacional' ||
+          label === 'Resultado Líquido do Exercício'
+        ) {
+          cellData.cell.styles.fontStyle = 'bold';
+          cellData.cell.styles.fillColor = [245, 245, 245];
+        }
+
+        if (label === 'Resultado Líquido do Exercício') {
+          cellData.cell.styles.fillColor = [254, 243, 199];
+        }
+      },
+    });
+
+    let finalY = doc.lastAutoTable.finalY + 10;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text('Resumo Patrimonial Preparatório', 14, finalY);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text(
+      `Empréstimos pagos no exercício: ${formatCurrency(data.patrimonialPreview?.emprestimosPagosNoAno || 0)}`,
+      14,
+      finalY + 7
+    );
+
+    doc.text(
+      'Valor separado para futura composição de passivo/amortização no Balanço Patrimonial.',
+      14,
+      finalY + 13,
+      { maxWidth: 180 }
+    );
+
+    finalY += 32;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text('Assinatura Contábil / Responsável', 14, finalY);
+
+    doc.setDrawColor(180);
+    doc.line(14, finalY + 18, 90, finalY + 18);
+    doc.line(120, finalY + 18, 196, finalY + 18);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text('Responsável pela Empresa', 14, finalY + 24);
+    doc.text('Responsável Contábil', 120, finalY + 24);
+
+    doc.setFontSize(8);
+    doc.setTextColor(120);
+    doc.text(
+      'Documento gerado pelo Bebcom Financeiro — DRE Consolidada Anual',
+      105,
+      287,
+      { align: 'center' }
+    );
+
+    doc.save(`DRE_Anual_Oficial_Bebidas_e_Companhia_${year}.pdf`);
+    toast.success('PDF anual oficial gerado com sucesso!');
+  };
 
   const cards = [
     {
@@ -210,17 +331,27 @@ const AnnualDashboard = () => {
           </p>
         </div>
 
-        <select
-          value={year}
-          onChange={(e) => setYear(parseInt(e.target.value))}
-          className="input-field w-40"
-        >
-          {[2024, 2025, 2026, 2027].map((y) => (
-            <option key={y} value={y}>
-              {y}
-            </option>
-          ))}
-        </select>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <select
+            value={year}
+            onChange={(e) => setYear(parseInt(e.target.value))}
+            className="input-field w-40"
+          >
+            {[2024, 2025, 2026, 2027].map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </select>
+
+          <button
+            onClick={handleExportAnnualPDF}
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 text-sm"
+          >
+            <Download className="w-4 h-4" />
+            PDF Anual Oficial
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">

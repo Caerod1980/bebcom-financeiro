@@ -168,6 +168,30 @@ export const dreService = {
   getYearSummary: (year) => 
     api.get('/dre/year-summary', { params: { year } }),
 };
+// ============================================
+// BALANCE SHEET SERVICES
+// ============================================
+export const balanceSheetService = {
+  getByYear: (year) => {
+    const parsedYear = parseInt(year);
+
+    if (isNaN(parsedYear) || parsedYear < 2000 || parsedYear > 2100) {
+      return Promise.reject(new Error('Ano inválido'));
+    }
+
+    return api.get(`/balance-sheet/${parsedYear}`);
+  },
+
+  save: (year, data) => {
+    const parsedYear = parseInt(year);
+
+    if (isNaN(parsedYear) || parsedYear < 2000 || parsedYear > 2100) {
+      return Promise.reject(new Error('Ano inválido'));
+    }
+
+    return api.put(`/balance-sheet/${parsedYear}`, data);
+  },
+};
 
 // ============================================
 // HEALTH CHECK SERVICE

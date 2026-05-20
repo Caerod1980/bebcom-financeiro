@@ -6,9 +6,7 @@ const EntryForm = ({ onSubmit, onClose, initialData = null }) => {
     if (!data) {
       return {
         type: 'income',
-        date: new Date(
-  Date.now() - new Date().getTimezoneOffset() * 60000
-).toISOString().split('T')[0],
+        date: getTodayInputDate(),
         description: '',
         amount: '',
         category: '',
@@ -22,12 +20,7 @@ const EntryForm = ({ onSubmit, onClose, initialData = null }) => {
 
     return {
       ...data,
-      date: data.date
-  ? new Date(
-      new Date(data.date).getTime() -
-      new Date(data.date).getTimezoneOffset() * 60000
-    ).toISOString().split('T')[0]
-  : '',
+      date: normalizeDateForInput(data.date),
       amount: data.amount || '',
       channel: data.channel || '',
       costCenter: data.costCenter || '',

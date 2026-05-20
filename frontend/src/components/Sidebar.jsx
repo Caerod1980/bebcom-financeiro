@@ -6,6 +6,7 @@ import {
   List,
   FileText,
   BarChart3,
+  Scale,
   LogOut,
   Beer,
   X,
@@ -24,6 +25,7 @@ const Sidebar = ({ isOpen, onClose, isMobile }) => {
     { path: '/entries', icon: List, label: 'Lançamentos' },
     { path: '/dre', icon: FileText, label: 'DRE Mensal' },
     { path: '/annual-dashboard', icon: BarChart3, label: 'Dashboard Anual' },
+    { path: '/balance-sheet', icon: Scale, label: 'Balanço Patrimonial' },
   ];
 
   const handleNavClick = () => {

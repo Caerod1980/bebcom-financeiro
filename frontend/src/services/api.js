@@ -194,6 +194,41 @@ export const balanceSheetService = {
 };
 
 // ============================================
+// ACCOUNT SERVICES
+// ============================================
+export const accountService = {
+  create: (data) => api.post('/accounts', data),
+
+  getAll: (params) => {
+    const cleanParams = {};
+
+    if (params) {
+      Object.keys(params).forEach((key) => {
+        if (params[key] && params[key] !== '') {
+          cleanParams[key] = params[key];
+        }
+      });
+    }
+
+    return api.get('/accounts', { params: cleanParams });
+  },
+
+  getById: (id) => api.get(`/accounts/${id}`),
+
+  update: (id, data) => {
+    const { createdBy, deleted, deletedAt, _id, ...safeData } = data;
+    return api.put(`/accounts/${id}`, safeData);
+  },
+
+  settle: (id, paymentDate) =>
+    api.put(`/accounts/${id}/settle`, { paymentDate }),
+
+  cancel: (id) => api.put(`/accounts/${id}/cancel`),
+
+  delete: (id) => api.delete(`/accounts/${id}`),
+};
+
+// ============================================
 // HEALTH CHECK SERVICE
 // ============================================
 export const healthService = {

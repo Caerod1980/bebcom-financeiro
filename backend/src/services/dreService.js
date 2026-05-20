@@ -399,8 +399,159 @@ const buildCategoriesSnapshot = (dre) => {
   };
 };
 
+const calculateAnnualDRE = async (year) => {
+  const months = [];
+
+  const annual = {
+    year,
+    receitaBruta: 0,
+    deducoes: 0,
+    receitaLiquida: 0,
+    cmv: 0,
+    lucroBruto: 0,
+    despesasOperacionais: 0,
+    resultadoOperacional: 0,
+    despesasFinanceiras: 0,
+    outrasReceitas: 0,
+    outrasDespesas: 0,
+    totalDespesas: 0,
+    lucroLiquido: 0,
+    emprestimos: 0,
+  };
+
+  for (let month = 1; month <= 12; month++) {
+    const dre = await calculateDRE(month, year);
+
+    months.push({
+      month,
+      receitaBruta: dre.receitaBruta,
+      receitaLiquida: dre.receitaLiquida,
+      cmv: dre.cmv,
+      lucroBruto: dre.lucroBruto,
+      despesasOperacionais: dre.despesasOperacionais,
+      resultadoOperacional: dre.resultadoOperacional,
+      despesasFinanceiras: dre.despesasFinanceiras,
+      outrasReceitas: dre.outrasReceitas,
+      outrasDespesas: dre.outrasDespesas,
+      totalDespesas: dre.totalDespesas,
+      lucroLiquido: dre.lucroLiquido,
+      margemLiquida: dre.percentuais?.margemLiquida || '0.00',
+      hasEntries: dre.hasEntries,
+    });
+
+    annual.receitaBruta += dre.receitaBruta;
+    annual.deducoes += dre.deducoes;
+    annual.receitaLiquida += dre.receitaLiquida;
+    annual.cmv += dre.cmv;
+    annual.lucroBruto += dre.lucroBruto;
+    annual.despesasOperacionais += dre.despesasOperacionais;
+    annual.resultadoOperacional += dre.resultadoOperacional;
+    annual.despesasFinanceiras += dre.despesasFinanceiras;
+    annual.outrasReceitas += dre.outrasReceitas;
+    annual.outrasDespesas += dre.outrasDespesas;
+    annual.totalDespesas += dre.totalDespesas;
+    annual.lucroLiquido += dre.lucroLiquido;
+  }
+
+  const startDate = new Date(year, 0, 1);
+  const endDate = new Date(year, 11, 31, 23, 59, 59);
+
+  const expensesByCategory = await Entry.aggregate([
+    {
+      $match: {
+        date: { $gte: startDate, $lte: endDate },
+        type: 'expense',
+        deleted: false,
+      },
+    },
+    {
+      $group: {
+        _id: '$category',
+        total: { $sum: { $abs: '$amount' } },
+        count: { $sum: 1 },
+      },
+    },
+    { $sort: { total: -1 } },
+  ]);
+
+  const expensesByCostCenter = await Entry.aggregate([
+    {
+      $match: {
+        date: { $gte: startDate, $lte: endDate },
+        type: 'expense',
+        deleted: false,
+      },
+    },
+    {
+      $group: {
+        _id: '$costCenter',
+        total: { $sum: { $abs: '$amount' } },
+        count: { $sum: 1 },
+      },
+    },
+    { $sort: { total: -1 } },
+  ]);
+
+  const emprestimos = await Entry.aggregate([
+    {
+      $match: {
+        date: { $gte: startDate, $lte: endDate },
+        type: 'expense',
+        category: 'emprestimos',
+        deleted: false,
+      },
+    },
+    {
+      $group: {
+        _id: '$category',
+        total: { $sum: { $abs: '$amount' } },
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  annual.emprestimos = emprestimos[0]?.total || 0;
+
+  const percentuais = {
+    margemBruta: calculatePercentage(annual.lucroBruto, annual.receitaLiquida),
+    margemOperacional: calculatePercentage(
+      annual.resultadoOperacional,
+      annual.receitaLiquida
+    ),
+    margemLiquida: calculatePercentage(annual.lucroLiquido, annual.receitaLiquida),
+    cmvPercent: calculatePercentage(annual.cmv, annual.receitaLiquida),
+    despesasOperacionaisPercent: calculatePercentage(
+      annual.despesasOperacionais,
+      annual.receitaLiquida
+    ),
+    despesasPercent: calculatePercentage(annual.totalDespesas, annual.receitaLiquida),
+  };
+
+  return {
+    year,
+    months,
+    annualDRE: annual,
+    percentuais,
+    expensesByCategory,
+    expensesByCostCenter,
+    patrimonialPreview: {
+      emprestimosPagosNoAno: annual.emprestimos,
+      observacao:
+        'Valor separado para futura composição de passivo/amortização no Balanço Patrimonial.',
+    },
+    totals: {
+      receitaAnual: annual.receitaLiquida,
+      lucroAnual: annual.lucroLiquido,
+      despesasAnual: annual.totalDespesas,
+      cmvAnual: annual.cmv,
+      margemMedia: percentuais.margemLiquida,
+    },
+  };
+};
+
 module.exports = {
   calculateDRE,
+  calculateAnnualDRE,
   saveMonthlyClosing,
   getTopExpenseCategories,
   getQuickSummary,

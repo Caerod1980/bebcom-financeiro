@@ -1,6 +1,25 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 
+const getTodayInputDate = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+};
+
+const normalizeDateForInput = (date) => {
+  if (!date) return '';
+
+  if (typeof date === 'string') {
+    return date.slice(0, 10);
+  }
+
+  return '';
+};
+
 const EntryForm = ({ onSubmit, onClose, initialData = null }) => {
   const normalizeInitialData = (data) => {
     if (!data) {
@@ -113,7 +132,9 @@ const EntryForm = ({ onSubmit, onClose, initialData = null }) => {
     }
 
     if (name === 'category') {
-      const selectedCategory = categories[formData.type].find((cat) => cat.value === value);
+      const selectedCategory = categories[formData.type].find(
+        (cat) => cat.value === value
+      );
 
       setFormData({
         ...formData,
@@ -150,7 +171,11 @@ const EntryForm = ({ onSubmit, onClose, initialData = null }) => {
             {initialData ? 'Editar Lançamento' : 'Novo Lançamento'}
           </h2>
 
-          <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -158,44 +183,95 @@ const EntryForm = ({ onSubmit, onClose, initialData = null }) => {
         <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tipo *</label>
-              <select name="type" value={formData.type} onChange={handleChange} className="input-field" required>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tipo *
+              </label>
+
+              <select
+                name="type"
+                value={formData.type}
+                onChange={handleChange}
+                className="input-field"
+                required
+              >
                 <option value="income">Entrada (Receita)</option>
                 <option value="expense">Saída (Despesa)</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Data *</label>
-              <input type="date" name="date" value={formData.date} onChange={handleChange} className="input-field" required />
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Data *
+              </label>
+
+              <input
+                type="date"
+                name="date"
+                value={formData.date}
+                onChange={handleChange}
+                className="input-field"
+                required
+              />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Descrição *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Descrição *
+            </label>
+
             <input
               type="text"
               name="description"
               value={formData.description}
               onChange={handleChange}
               className="input-field"
-              placeholder={formData.type === 'income' ? 'Ex: Faturamento loja física' : 'Ex: Ambev / Santander / Energia'}
+              placeholder={
+                formData.type === 'income'
+                  ? 'Ex: Faturamento loja física'
+                  : 'Ex: Ambev / Santander / Energia'
+              }
               required
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Valor *</label>
-              <input type="number" step="0.01" min="0.01" name="amount" value={formData.amount} onChange={handleChange} className="input-field" placeholder="0,00" required />
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Valor *
+              </label>
+
+              <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                name="amount"
+                value={formData.amount}
+                onChange={handleChange}
+                className="input-field"
+                placeholder="0,00"
+                required
+              />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Categoria *</label>
-              <select name="category" value={formData.category} onChange={handleChange} className="input-field" required>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Categoria *
+              </label>
+
+              <select
+                name="category"
+                value={formData.category}
+                onChange={handleChange}
+                className="input-field"
+                required
+              >
                 <option value="">Selecione...</option>
+
                 {categories[formData.type].map((cat) => (
-                  <option key={cat.value} value={cat.value}>{cat.label}</option>
+                  <option key={cat.value} value={cat.value}>
+                    {cat.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -204,45 +280,95 @@ const EntryForm = ({ onSubmit, onClose, initialData = null }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {formData.type === 'income' ? (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Canal de Venda *</label>
-                <select name="channel" value={formData.channel} onChange={handleChange} className="input-field" required>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Canal de Venda *
+                </label>
+
+                <select
+                  name="channel"
+                  value={formData.channel}
+                  onChange={handleChange}
+                  className="input-field"
+                  required
+                >
                   <option value="">Selecione...</option>
+
                   {channels.map((channel) => (
-                    <option key={channel.value} value={channel.value}>{channel.label}</option>
+                    <option key={channel.value} value={channel.value}>
+                      {channel.label}
+                    </option>
                   ))}
                 </select>
               </div>
             ) : (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Centro de Custo *</label>
-                <select name="costCenter" value={formData.costCenter} onChange={handleChange} className="input-field" required>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Centro de Custo *
+                </label>
+
+                <select
+                  name="costCenter"
+                  value={formData.costCenter}
+                  onChange={handleChange}
+                  className="input-field"
+                  required
+                >
                   <option value="">Selecione...</option>
+
                   {costCenters.map((center) => (
-                    <option key={center.value} value={center.value}>{center.label}</option>
+                    <option key={center.value} value={center.value}>
+                      {center.label}
+                    </option>
                   ))}
                 </select>
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Forma de Pagamento</label>
-              <select name="paymentMethod" value={formData.paymentMethod} onChange={handleChange} className="input-field">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Forma de Pagamento
+              </label>
+
+              <select
+                name="paymentMethod"
+                value={formData.paymentMethod}
+                onChange={handleChange}
+                className="input-field"
+              >
                 <option value="">Selecione...</option>
+
                 {paymentMethods.map((method) => (
-                  <option key={method.value} value={method.value}>{method.label}</option>
+                  <option key={method.value} value={method.value}>
+                    {method.label}
+                  </option>
                 ))}
               </select>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Observação</label>
-            <textarea name="notes" value={formData.notes} onChange={handleChange} className="input-field" rows="3" placeholder="Informações adicionais..." />
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Observação
+            </label>
+
+            <textarea
+              name="notes"
+              value={formData.notes}
+              onChange={handleChange}
+              className="input-field"
+              rows="3"
+              placeholder="Informações adicionais..."
+            />
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
-            <button type="submit" className="btn-primary flex-1">Salvar Lançamento</button>
-            <button type="button" onClick={onClose} className="btn-secondary">Cancelar</button>
+            <button type="submit" className="btn-primary flex-1">
+              Salvar Lançamento
+            </button>
+
+            <button type="button" onClick={onClose} className="btn-secondary">
+              Cancelar
+            </button>
           </div>
         </form>
       </div>

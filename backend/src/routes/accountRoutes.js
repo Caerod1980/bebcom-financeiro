@@ -7,6 +7,7 @@ const {
   settleAccount,
   cancelAccount,
   deleteAccount,
+  getCashFlowProjection,
 } = require('../controllers/accountController');
 
 const { protect } = require('../middleware/authMiddleware');
@@ -18,6 +19,8 @@ router.use(protect);
 router.route('/')
   .post(createAccount)
   .get(getAccounts);
+
+router.get('/cash-flow', getCashFlowProjection);
 
 router.route('/:id')
   .get(getAccount)

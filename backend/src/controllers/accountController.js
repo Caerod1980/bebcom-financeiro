@@ -438,8 +438,44 @@ const buildCashFlowProjection = async () => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
+
+  // =========================================
+  // CALCULAR MÉDIA DIÁRIA DE RECEITA
+  // =========================================
+
+  const monthStart = new Date(currentYear, currentMonth, 1);
+  const monthEnd = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
+
+  const incomeEntries = await Entry.find({
+    deleted: { $ne: true },
+    type: 'income',
+    date: {
+      $gte: monthStart,
+      $lte: monthEnd,
+    },
+  });
+
+  let totalIncomeMonth = 0;
+
+  incomeEntries.forEach((entry) => {
+    totalIncomeMonth += Math.abs(Number(entry.amount || 0));
+  });
+
+  const currentDay = today.getDate();
+
+  const averageDailyIncome =
+    currentDay > 0
+      ? totalIncomeMonth / currentDay
+      : 0;
+
+  // =========================================
+  // PERÍODOS
+  // =========================================
+
   const periods = [
-    { label: 'Hoje', days: 0 },
+    { label: 'Hoje', days: 1 },
     { label: '7 Dias', days: 7 },
     { label: '15 Dias', days: 15 },
     { label: '30 Dias', days: 30 },
@@ -461,14 +497,14 @@ const buildCashFlowProjection = async () => {
       },
     });
 
-    let receivable = 0;
+    let receivableAccounts = 0;
     let payable = 0;
 
     accounts.forEach((account) => {
       const amount = Math.abs(Number(account.amount || 0));
 
       if (account.type === 'receivable') {
-        receivable += amount;
+        receivableAccounts += amount;
       }
 
       if (account.type === 'payable') {
@@ -476,17 +512,33 @@ const buildCashFlowProjection = async () => {
       }
     });
 
+    // =========================================
+    // PROJEÇÃO OPERACIONAL
+    // =========================================
+
+    const projectedOperationalIncome =
+      averageDailyIncome * period.days;
+
+    const receivable =
+      projectedOperationalIncome + receivableAccounts;
+
     projection.push({
       label: period.label,
+
+      operationalForecast: projectedOperationalIncome,
+
+      receivableAccounts,
+
       receivable,
+
       payable,
+
       balance: receivable - payable,
     });
   }
 
   return projection;
 };
-
 // @desc    Cash Flow Projection
 // @route   GET /api/accounts/cash-flow
 const getCashFlowProjection = async (req, res) => {

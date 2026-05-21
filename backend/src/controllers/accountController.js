@@ -1,4 +1,6 @@
 const Account = require('../models/Account');
+const Entry = require('../models/Entry');
+const dreService = require('../services/dreService');
 
 const toNumber = (value) => {
   const number = Number(value || 0);
@@ -208,7 +210,45 @@ const updateAccount = async (req, res) => {
   }
 };
 
-// @desc    Mark account as paid/received
+const getDreGroupByCategory = (category, type) => {
+  const expenseMap = {
+    compras_mercadorias: 'cmv',
+    funcionarios: 'despesas_operacionais',
+    motoboy: 'despesas_operacionais',
+    aluguel: 'despesas_operacionais',
+    energia: 'despesas_operacionais',
+    agua: 'despesas_operacionais',
+    internet: 'despesas_operacionais',
+    sistema: 'despesas_operacionais',
+    contador: 'despesas_operacionais',
+    marketing: 'despesas_operacionais',
+    taxas_cartao: 'despesas_financeiras',
+    taxas_mercado_pago: 'despesas_financeiras',
+    taxas_ifood: 'despesas_financeiras',
+    emprestimos: 'despesas_financeiras',
+    impostos: 'deducoes',
+    manutencao: 'despesas_operacionais',
+    embalagens: 'despesas_operacionais',
+    outras_despesas: 'outras_despesas',
+  };
+
+  const incomeMap = {
+    vendas_loja_fisica: 'receita_bruta',
+    vendas_delivery: 'receita_bruta',
+    vendas_ifood: 'receita_bruta',
+    vendas_lounge: 'receita_bruta',
+    eventos: 'receita_bruta',
+    outras_receitas: 'outras_receitas',
+  };
+
+  if (type === 'expense') {
+    return expenseMap[category] || 'outras_despesas';
+  }
+
+  return incomeMap[category] || 'receita_bruta';
+};
+
+// @desc    Mark account as paid/received and generate financial entry
 // @route   PUT /api/accounts/:id/settle
 const settleAccount = async (req, res) => {
   try {
@@ -224,19 +264,64 @@ const settleAccount = async (req, res) => {
       });
     }
 
-    account.status = account.type === 'payable' ? 'paid' : 'received';
-    account.paymentDate = req.body.paymentDate
+    if (account.entryGenerated || account.generatedEntry) {
+      return res.status(400).json({
+        error: 'Esta conta já gerou um lançamento financeiro.',
+      });
+    }
+
+    const paymentDate = req.body.paymentDate
       ? new Date(req.body.paymentDate)
       : new Date();
+
+    const monthClosed = await dreService.isMonthClosed(paymentDate);
+
+    if (monthClosed) {
+      return res.status(400).json({
+        error:
+          'O mês da baixa está fechado. Não é possível gerar lançamento financeiro.',
+      });
+    }
+
+    const entryType = account.type === 'payable' ? 'expense' : 'income';
+
+    const entryPayload = {
+      type: entryType,
+      date: paymentDate,
+      description: account.description,
+      amount: Math.abs(Number(account.amount || 0)),
+      category:
+        account.category ||
+        (entryType === 'expense' ? 'outras_despesas' : 'outras_receitas'),
+      channel: entryType === 'income' ? account.channel || 'outros' : '',
+      costCenter: entryType === 'expense' ? account.costCenter || 'outros' : '',
+      paymentMethod: account.paymentMethod || 'outros',
+      dreGroup: getDreGroupByCategory(
+        account.category,
+        entryType
+      ),
+      notes: account.notes
+        ? `Gerado automaticamente a partir de Conta: ${account.notes}`
+        : 'Gerado automaticamente a partir de Contas a Pagar/Receber',
+      createdBy: req.user._id,
+    };
+
+    const entry = await Entry.create(entryPayload);
+
+    account.status = account.type === 'payable' ? 'paid' : 'received';
+    account.paymentDate = paymentDate;
+    account.generatedEntry = entry._id;
+    account.entryGenerated = true;
 
     await account.save();
 
     res.json({
       message:
         account.type === 'payable'
-          ? 'Conta marcada como paga.'
-          : 'Conta marcada como recebida.',
+          ? 'Conta marcada como paga e lançamento gerado com sucesso.'
+          : 'Conta marcada como recebida e lançamento gerado com sucesso.',
       account,
+      entry,
     });
   } catch (error) {
     console.error('Erro ao baixar conta:', error);

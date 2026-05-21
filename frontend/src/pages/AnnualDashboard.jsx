@@ -9,9 +9,6 @@ import {
   CartesianGrid,
   LineChart,
   Line,
-  PieChart,
-  Pie,
-  Cell,
 } from 'recharts';
 
 import {
@@ -422,23 +419,33 @@ const AnnualDashboard = () => {
           {categoryData.length === 0 ? (
             <p className="text-gray-500">Sem despesas no ano selecionado.</p>
           ) : (
-            <ResponsiveContainer width="100%" height={320}>
-              <PieChart>
-                <Pie
-                  data={categoryData}
-                  dataKey="value"
-                  nameKey="name"
-                  outerRadius={110}
-                  label
-                >
-                  {categoryData.map((_, index) => (
-                    <Cell key={index} />
-                  ))}
-                </Pie>
+           <ResponsiveContainer width="100%" height={320}>
+  <BarChart
+    data={categoryData}
+    layout="vertical"
+    margin={{ top: 10, right: 20, left: 40, bottom: 10 }}
+  >
+    <CartesianGrid strokeDasharray="3 3" />
 
-                <Tooltip formatter={(value) => formatCurrency(value)} />
-              </PieChart>
-            </ResponsiveContainer>
+    <XAxis
+      type="number"
+      tickFormatter={(value) => formatCurrency(value)}
+    />
+
+    <YAxis
+      dataKey="name"
+      type="category"
+      width={140}
+    />
+
+    <Tooltip formatter={(value) => formatCurrency(value)} />
+
+    <Bar
+      dataKey="value"
+      radius={[0, 8, 8, 0]}
+    />
+  </BarChart>
+</ResponsiveContainer>
           )}
         </div>
 
@@ -451,22 +458,32 @@ const AnnualDashboard = () => {
             <p className="text-gray-500">Sem despesas no ano selecionado.</p>
           ) : (
             <ResponsiveContainer width="100%" height={320}>
-              <PieChart>
-                <Pie
-                  data={costCenterData}
-                  dataKey="value"
-                  nameKey="name"
-                  outerRadius={110}
-                  label
-                >
-                  {costCenterData.map((_, index) => (
-                    <Cell key={index} />
-                  ))}
-                </Pie>
+  <BarChart
+    data={costCenterData}
+    layout="vertical"
+    margin={{ top: 10, right: 20, left: 40, bottom: 10 }}
+  >
+    <CartesianGrid strokeDasharray="3 3" />
 
-                <Tooltip formatter={(value) => formatCurrency(value)} />
-              </PieChart>
-            </ResponsiveContainer>
+    <XAxis
+      type="number"
+      tickFormatter={(value) => formatCurrency(value)}
+    />
+
+    <YAxis
+      dataKey="name"
+      type="category"
+      width={140}
+    />
+
+    <Tooltip formatter={(value) => formatCurrency(value)} />
+
+    <Bar
+      dataKey="value"
+      radius={[0, 8, 8, 0]}
+    />
+  </BarChart>
+</ResponsiveContainer>
           )}
         </div>
       </div>

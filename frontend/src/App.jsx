@@ -9,6 +9,7 @@ import Entries from './pages/Entries';
 import DreMonthly from './pages/DreMonthly';
 import AnnualDashboard from './pages/AnnualDashboard';
 import BalanceSheet from './pages/BalanceSheet';
+import Accounts from './pages/Accounts';
 
 import PrivateRoute from './components/PrivateRoute';
 import Sidebar from './components/Sidebar';
@@ -149,6 +150,17 @@ function App() {
             <PrivateRoute>
               <AuthenticatedLayout>
                 <BalanceSheet />
+              </AuthenticatedLayout>
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/accounts"
+          element={
+            <PrivateRoute>
+              <AuthenticatedLayout>
+                <Accounts />
               </AuthenticatedLayout>
             </PrivateRoute>
           }

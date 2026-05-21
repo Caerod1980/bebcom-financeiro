@@ -83,6 +83,17 @@ const accountSchema = new mongoose.Schema({
     default: null,
   },
 
+  generatedEntry: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'Entry',
+  default: null,
+},
+
+entryGenerated: {
+  type: Boolean,
+  default: false,
+},
+
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

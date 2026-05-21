@@ -1,3 +1,12 @@
+import {
+  BarChart,
+  Bar,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from 'recharts';
 import React, { useEffect, useState } from 'react';
 import {
   PlusCircle,
@@ -13,6 +22,7 @@ import {
   TrendingUp,
   TrendingDown,
   AlertTriangle,
+  Activity,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { accountService } from '../services/api';
@@ -21,6 +31,7 @@ import { formatCurrency, formatDate } from '../utils/formatCurrency';
 const Accounts = () => {
   const [accounts, setAccounts] = useState([]);
   const [summary, setSummary] = useState({});
+  const [cashFlow, setCashFlow] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -128,9 +139,13 @@ const Accounts = () => {
   const loadAccounts = async () => {
     try {
       setLoading(true);
+      
       const response = await accountService.getAll(filters);
+      const cashFlowResponse = await accountService.getCashFlow();
+      
       setAccounts(response.data.accounts || []);
       setSummary(response.data.summary || {});
+      setCashFlow(cashFlowResponse.data.projection || []);
     } catch (error) {
       toast.error('Erro ao carregar contas');
       console.error(error);
@@ -413,6 +428,97 @@ const Accounts = () => {
           tone="amber"
         />
       </div>
+
+      <div className="bg-white rounded-2xl shadow-sm border p-5 mb-6">
+  <div className="flex items-center justify-between mb-4">
+    <div>
+      <h2 className="text-lg font-semibold text-gray-900">
+        Fluxo de Caixa Previsto
+      </h2>
+
+      <p className="text-sm text-gray-600">
+        Projeção baseada em contas pendentes e vencidas
+      </p>
+    </div>
+
+    <div className="bg-blue-100 p-3 rounded-xl">
+      <Activity className="w-6 h-6 text-blue-600" />
+    </div>
+  </div>
+
+  {cashFlow.length === 0 ? (
+    <p className="text-gray-500">
+      Sem dados para projeção.
+    </p>
+  ) : (
+    <>
+      <ResponsiveContainer width="100%" height={320}>
+        <BarChart data={cashFlow}>
+          <CartesianGrid strokeDasharray="3 3" />
+
+          <XAxis dataKey="label" />
+
+          <YAxis tickFormatter={(value) => formatCurrency(value)} />
+
+          <Tooltip formatter={(value) => formatCurrency(value)} />
+
+          <Bar
+            dataKey="receivable"
+            name="Entradas Previstas"
+            radius={[8, 8, 0, 0]}
+          />
+
+          <Bar
+            dataKey="payable"
+            name="Saídas Previstas"
+            radius={[8, 8, 0, 0]}
+          />
+
+          <Bar
+            dataKey="balance"
+            name="Saldo Previsto"
+            radius={[8, 8, 0, 0]}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-5">
+        {cashFlow.map((item) => (
+          <div
+            key={item.label}
+            className={`rounded-xl p-4 border ${
+              item.balance < 0
+                ? 'bg-red-50 border-red-200'
+                : 'bg-green-50 border-green-200'
+            }`}
+          >
+            <p className="text-sm font-medium text-gray-700">
+              {item.label}
+            </p>
+
+            <p className="text-xs text-gray-500 mt-2">
+              Entradas: {formatCurrency(item.receivable || 0)}
+            </p>
+
+            <p className="text-xs text-gray-500">
+              Saídas: {formatCurrency(item.payable || 0)}
+            </p>
+
+            <p
+              className={`text-lg font-bold mt-2 ${
+                item.balance < 0
+                  ? 'text-red-700'
+                  : 'text-green-700'
+              }`}
+            >
+              {formatCurrency(item.balance || 0)}
+            </p>
+          </div>
+        ))}
+      </div>
+    </>
+  )}
+</div>
 
       {showFilters && (
         <div className="bg-white rounded-2xl border shadow-sm p-5 mb-6">

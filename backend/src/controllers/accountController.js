@@ -487,6 +487,20 @@ const buildCashFlowProjection = async () => {
     const endDate = new Date(today);
     endDate.setDate(endDate.getDate() + period.days);
     endDate.setHours(23, 59, 59, 999);
+    const expenseEntries = await Entry.find({
+  deleted: { $ne: true },
+  type: 'expense',
+  date: {
+    $gte: today,
+    $lte: endDate,
+  },
+});
+
+let paidExpenses = 0;
+
+expenseEntries.forEach((entry) => {
+  paidExpenses += Math.abs(Number(entry.amount || 0));
+});
 
     const accounts = await Account.find({
       deleted: false,
@@ -498,7 +512,7 @@ const buildCashFlowProjection = async () => {
     });
 
     let receivableAccounts = 0;
-    let payable = 0;
+    let pendingPayable = 0;
 
     accounts.forEach((account) => {
       const amount = Math.abs(Number(account.amount || 0));
@@ -508,8 +522,8 @@ const buildCashFlowProjection = async () => {
       }
 
       if (account.type === 'payable') {
-        payable += amount;
-      }
+      pendingPayable += amount;
+     }
     });
 
     // =========================================
@@ -531,9 +545,10 @@ const buildCashFlowProjection = async () => {
 
       receivable,
 
-      payable,
-
-      balance: receivable - payable,
+      paidExpenses,
+      pendingPayable,
+      payable: paidExpenses + pendingPayable,
+      balance: receivable - (paidExpenses + pendingPayable),
     });
   }
 

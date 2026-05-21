@@ -151,21 +151,29 @@ const Accounts = () => {
   };
 
   const handleEdit = (account) => {
-    setEditingAccount(account);
-    setFormData({
-      type: account.type || 'payable',
-      description: account.description || '',
-      person: account.person || '',
-      amount: account.amount || '',
-      dueDate: normalizeDateForInput(account.dueDate),
-      category: account.category || '',
-      channel: account.channel || '',
-      costCenter: account.costCenter || '',
-      paymentMethod: account.paymentMethod || '',
-      notes: account.notes || '',
+  setEditingAccount(account);
+  setFormData({
+    type: account.type || 'payable',
+    description: account.description || '',
+    person: account.person || '',
+    amount: account.amount || '',
+    dueDate: normalizeDateForInput(account.dueDate),
+    category: account.category || '',
+    channel: account.channel || '',
+    costCenter: account.costCenter || '',
+    paymentMethod: account.paymentMethod || '',
+    notes: account.notes || '',
+  });
+
+  setShowForm(true);
+
+  setTimeout(() => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
     });
-    setShowForm(true);
-  };
+  }, 100);
+};
 
   const handleChange = (field, value) => {
     if (field === 'type') {

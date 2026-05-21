@@ -434,8 +434,77 @@ const buildSummary = async () => {
   return summary;
 };
 
+const buildCashFlowProjection = async () => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const periods = [
+    { label: 'Hoje', days: 0 },
+    { label: '7 Dias', days: 7 },
+    { label: '15 Dias', days: 15 },
+    { label: '30 Dias', days: 30 },
+  ];
+
+  const projection = [];
+
+  for (const period of periods) {
+    const endDate = new Date(today);
+    endDate.setDate(endDate.getDate() + period.days);
+    endDate.setHours(23, 59, 59, 999);
+
+    const accounts = await Account.find({
+      deleted: false,
+      status: { $in: ['pending', 'overdue'] },
+      dueDate: {
+        $gte: today,
+        $lte: endDate,
+      },
+    });
+
+    let receivable = 0;
+    let payable = 0;
+
+    accounts.forEach((account) => {
+      const amount = Math.abs(Number(account.amount || 0));
+
+      if (account.type === 'receivable') {
+        receivable += amount;
+      }
+
+      if (account.type === 'payable') {
+        payable += amount;
+      }
+    });
+
+    projection.push({
+      label: period.label,
+      receivable,
+      payable,
+      balance: receivable - payable,
+    });
+  }
+
+  return projection;
+};
+
+// @desc    Cash Flow Projection
+// @route   GET /api/accounts/cash-flow
+const getCashFlowProjection = async (req, res) => {
+  try {
+    const projection = await buildCashFlowProjection();
+
+    res.json({
+      projection,
+    });
+  } catch (error) {
+    console.error('Erro fluxo de caixa:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 module.exports = {
   createAccount,
+  getCashFlowProjection,
   getAccounts,
   getAccount,
   updateAccount,

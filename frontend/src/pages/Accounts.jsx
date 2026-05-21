@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   PlusCircle,
   Save,
+  Pencil,
   Loader,
   X,
   CheckCircle,
@@ -757,8 +758,8 @@ const Accounts = () => {
                           onClick={() => handleEdit(account)}
                           className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
                           title="Editar"
-                        >
-                          <Save className="w-4 h-4" />
+                          >
+                          <Pencil className="w-4 h-4" />
                         </button>
 
                         {(account.status === 'pending' || account.status === 'overdue') && (

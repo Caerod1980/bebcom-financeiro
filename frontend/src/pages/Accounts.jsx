@@ -141,10 +141,20 @@ const Accounts = () => {
     { value: 'outros', label: 'Outros' },
   ];
 
-  useEffect(() => {
+useEffect(() => {
   loadAccounts();
-}, [filters]);
-
+}, [
+  filters.type,
+  filters.status,
+  filters.description,
+  filters.person,
+  filters.startDate,
+  filters.endDate,
+  filters.category,
+  filters.costCenter,
+  filters.channel,
+  filters.paymentMethod,
+]);
 useEffect(() => {
   loadCashFlow();
 }, [cashFlowFilters.month, cashFlowFilters.year]);

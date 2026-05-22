@@ -32,6 +32,7 @@ const Accounts = () => {
   const [accounts, setAccounts] = useState([]);
   const [summary, setSummary] = useState({});
   const [cashFlow, setCashFlow] = useState([]);
+  const [realizedCashFlow, setRealizedCashFlow] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -142,10 +143,12 @@ const Accounts = () => {
       
       const response = await accountService.getAll(filters);
       const cashFlowResponse = await accountService.getCashFlow();
+      const realizedResponse = await accountService.getRealizedCashFlow();
       
       setAccounts(response.data.accounts || []);
       setSummary(response.data.summary || {});
       setCashFlow(cashFlowResponse.data.projection || []);
+      setRealizedCashFlow(realizedResponse.data.realized || []);
     } catch (error) {
       toast.error('Erro ao carregar contas');
       console.error(error);

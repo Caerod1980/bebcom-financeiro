@@ -8,6 +8,7 @@ const {
   cancelAccount,
   deleteAccount,
   getCashFlowProjection,
+  getRealizedCashFlow,
 } = require('../controllers/accountController');
 
 const { protect } = require('../middleware/authMiddleware');
@@ -21,6 +22,7 @@ router.route('/')
   .get(getAccounts);
 
 router.get('/cash-flow', getCashFlowProjection);
+router.get('/realized-cash-flow', getRealizedCashFlow);
 
 router.route('/:id')
   .get(getAccount)

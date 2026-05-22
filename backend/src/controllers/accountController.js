@@ -569,9 +569,80 @@ const getCashFlowProjection = async (req, res) => {
   }
 };
 
+const buildRealizedCashFlow = async () => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const startDate = new Date(today);
+  startDate.setDate(startDate.getDate() - 30);
+
+  const entries = await Entry.find({
+    deleted: { $ne: true },
+    date: {
+      $gte: startDate,
+      $lte: today,
+    },
+  }).sort({ date: 1 });
+
+  const grouped = {};
+
+  entries.forEach((entry) => {
+    const dateKey = entry.date.toISOString().slice(0, 10);
+
+    if (!grouped[dateKey]) {
+      grouped[dateKey] = {
+        date: dateKey,
+        income: 0,
+        expense: 0,
+        balance: 0,
+        accumulated: 0,
+      };
+    }
+
+    const amount = Math.abs(Number(entry.amount || 0));
+
+    if (entry.type === 'income') {
+      grouped[dateKey].income += amount;
+    }
+
+    if (entry.type === 'expense') {
+      grouped[dateKey].expense += amount;
+    }
+  });
+
+  let accumulated = 0;
+
+  const realized = Object.values(grouped).map((day) => {
+    const balance = day.income - day.expense;
+    accumulated += balance;
+
+    return {
+      ...day,
+      balance,
+      accumulated,
+    };
+  });
+
+  return realized;
+};
+
+// @desc    Realized Cash Flow
+// @route   GET /api/accounts/realized-cash-flow
+const getRealizedCashFlow = async (req, res) => {
+  try {
+    const realized = await buildRealizedCashFlow();
+
+    res.json({ realized });
+  } catch (error) {
+    console.error('Erro fluxo de caixa realizado:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 module.exports = {
   createAccount,
   getCashFlowProjection,
+  getRealizedCashFlow,
   getAccounts,
   getAccount,
   updateAccount,

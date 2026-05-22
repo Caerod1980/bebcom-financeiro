@@ -434,26 +434,36 @@ const buildSummary = async () => {
   return summary;
 };
 
-const buildCashFlowProjection = async () => {
+const getMonthPeriod = (month, year) => {
+  const selectedMonth = parseInt(month) || new Date().getMonth() + 1;
+  const selectedYear = parseInt(year) || new Date().getFullYear();
+
+  const start = new Date(selectedYear, selectedMonth - 1, 1);
+  const end = new Date(selectedYear, selectedMonth, 0, 23, 59, 59, 999);
+
+  return { selectedMonth, selectedYear, start, end };
+};
+
+const buildCashFlowProjection = async (month, year) => {
+  const { selectedMonth, selectedYear, start, end } = getMonthPeriod(month, year);
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const currentMonth = today.getMonth();
-  const currentYear = today.getFullYear();
+  const isCurrentMonth =
+    selectedMonth === today.getMonth() + 1 &&
+    selectedYear === today.getFullYear();
 
-  // =========================================
-  // CALCULAR MÉDIA DIÁRIA DE RECEITA
-  // =========================================
-
-  const monthStart = new Date(currentYear, currentMonth, 1);
-  const monthEnd = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
+  const referenceDay = isCurrentMonth
+    ? today.getDate()
+    : new Date(selectedYear, selectedMonth, 0).getDate();
 
   const incomeEntries = await Entry.find({
     deleted: { $ne: true },
     type: 'income',
     date: {
-      $gte: monthStart,
-      $lte: monthEnd,
+      $gte: start,
+      $lte: end,
     },
   });
 
@@ -463,16 +473,8 @@ const buildCashFlowProjection = async () => {
     totalIncomeMonth += Math.abs(Number(entry.amount || 0));
   });
 
-  const currentDay = today.getDate();
-
   const averageDailyIncome =
-    currentDay > 0
-      ? totalIncomeMonth / currentDay
-      : 0;
-
-  // =========================================
-  // PERÍODOS
-  // =========================================
+    referenceDay > 0 ? totalIncomeMonth / referenceDay : 0;
 
   const periods = [
     { label: 'Hoje', days: 1 },
@@ -481,33 +483,38 @@ const buildCashFlowProjection = async () => {
     { label: '30 Dias', days: 30 },
   ];
 
+  const baseDate = isCurrentMonth ? today : start;
+
   const projection = [];
 
   for (const period of periods) {
-    const endDate = new Date(today);
+    const endDate = new Date(baseDate);
     endDate.setDate(endDate.getDate() + period.days);
     endDate.setHours(23, 59, 59, 999);
+
+    const limitedEndDate = endDate > end ? end : endDate;
+
     const expenseEntries = await Entry.find({
-  deleted: { $ne: true },
-  type: 'expense',
-  date: {
-    $gte: today,
-    $lte: endDate,
-  },
-});
+      deleted: { $ne: true },
+      type: 'expense',
+      date: {
+        $gte: baseDate,
+        $lte: limitedEndDate,
+      },
+    });
 
-let paidExpenses = 0;
+    let paidExpenses = 0;
 
-expenseEntries.forEach((entry) => {
-  paidExpenses += Math.abs(Number(entry.amount || 0));
-});
+    expenseEntries.forEach((entry) => {
+      paidExpenses += Math.abs(Number(entry.amount || 0));
+    });
 
     const accounts = await Account.find({
       deleted: false,
       status: { $in: ['pending', 'overdue'] },
       dueDate: {
-        $gte: today,
-        $lte: endDate,
+        $gte: baseDate,
+        $lte: limitedEndDate,
       },
     });
 
@@ -522,13 +529,9 @@ expenseEntries.forEach((entry) => {
       }
 
       if (account.type === 'payable') {
-      pendingPayable += amount;
-     }
+        pendingPayable += amount;
+      }
     });
-
-    // =========================================
-    // PROJEÇÃO OPERACIONAL
-    // =========================================
 
     const projectedOperationalIncome =
       averageDailyIncome * period.days;
@@ -538,13 +541,9 @@ expenseEntries.forEach((entry) => {
 
     projection.push({
       label: period.label,
-
       operationalForecast: projectedOperationalIncome,
-
       receivableAccounts,
-
       receivable,
-
       paidExpenses,
       pendingPayable,
       payable: paidExpenses + pendingPayable,
@@ -554,33 +553,30 @@ expenseEntries.forEach((entry) => {
 
   return projection;
 };
+
 // @desc    Cash Flow Projection
 // @route   GET /api/accounts/cash-flow
 const getCashFlowProjection = async (req, res) => {
   try {
-    const projection = await buildCashFlowProjection();
+    const { month, year } = req.query;
 
-    res.json({
-      projection,
-    });
+    const projection = await buildCashFlowProjection(month, year);
+
+    res.json({ projection });
   } catch (error) {
     console.error('Erro fluxo de caixa:', error);
     res.status(500).json({ error: error.message });
   }
 };
 
-const buildRealizedCashFlow = async () => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const startDate = new Date(today);
-  startDate.setDate(startDate.getDate() - 30);
+const buildRealizedCashFlow = async (month, year) => {
+  const { start, end } = getMonthPeriod(month, year);
 
   const entries = await Entry.find({
     deleted: { $ne: true },
     date: {
-      $gte: startDate,
-      $lte: today,
+      $gte: start,
+      $lte: end,
     },
   }).sort({ date: 1 });
 
@@ -630,7 +626,9 @@ const buildRealizedCashFlow = async () => {
 // @route   GET /api/accounts/realized-cash-flow
 const getRealizedCashFlow = async (req, res) => {
   try {
-    const realized = await buildRealizedCashFlow();
+    const { month, year } = req.query;
+
+    const realized = await buildRealizedCashFlow(month, year);
 
     res.json({ realized });
   } catch (error) {

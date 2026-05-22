@@ -213,6 +213,7 @@ export const accountService = {
     return api.get('/accounts', { params: cleanParams });
   },
   getCashFlow: () => api.get('/accounts/cash-flow'),
+  getRealizedCashFlow: () => api.get('/accounts/realized-cash-flow'),
 
   getById: (id) => api.get(`/accounts/${id}`),
 

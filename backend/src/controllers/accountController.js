@@ -512,7 +512,7 @@ const endDate = new Date(baseDate);
 endDate.setDate(endDate.getDate() + period.endOffset);
 endDate.setHours(23, 59, 59, 999);
 
-const limitedEndDate = endDate > end ? end : endDate;
+const limitedEndDate = endDate;
 
     const expenseEntries = await Entry.find({
       deleted: { $ne: true },

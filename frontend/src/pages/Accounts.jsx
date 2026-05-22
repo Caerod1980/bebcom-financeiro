@@ -523,6 +523,99 @@ const Accounts = () => {
   )}
 </div>
 
+      <div className="bg-white rounded-2xl shadow-sm border overflow-hidden mb-6">
+  <div className="flex items-center justify-between p-5 border-b">
+    <div>
+      <h2 className="text-lg font-semibold text-gray-900">
+        Fluxo de Caixa Realizado
+      </h2>
+
+      <p className="text-sm text-gray-600">
+        Entradas e saídas reais provenientes dos lançamentos
+      </p>
+    </div>
+
+    <div className="bg-green-100 p-3 rounded-xl">
+      <Wallet className="w-6 h-6 text-green-600" />
+    </div>
+  </div>
+
+  {realizedCashFlow.length === 0 ? (
+    <div className="p-6 text-gray-500">
+      Nenhum lançamento encontrado.
+    </div>
+  ) : (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[900px]">
+        <thead className="bg-gray-50 border-b">
+          <tr>
+            <th className="text-left px-4 py-3 text-sm font-semibold text-gray-600">
+              Data
+            </th>
+
+            <th className="text-right px-4 py-3 text-sm font-semibold text-green-700">
+              Entradas
+            </th>
+
+            <th className="text-right px-4 py-3 text-sm font-semibold text-red-700">
+              Saídas
+            </th>
+
+            <th className="text-right px-4 py-3 text-sm font-semibold text-blue-700">
+              Saldo do Dia
+            </th>
+
+            <th className="text-right px-4 py-3 text-sm font-semibold text-amber-700">
+              Saldo Acumulado
+            </th>
+          </tr>
+        </thead>
+
+        <tbody className="divide-y">
+          {realizedCashFlow.map((item) => (
+            <tr
+              key={item.date}
+              className="hover:bg-gray-50"
+            >
+              <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                {formatDate(item.date)}
+              </td>
+
+              <td className="px-4 py-3 text-sm text-right font-semibold text-green-600">
+                {formatCurrency(item.income || 0)}
+              </td>
+
+              <td className="px-4 py-3 text-sm text-right font-semibold text-red-600">
+                {formatCurrency(item.expense || 0)}
+              </td>
+
+              <td
+                className={`px-4 py-3 text-sm text-right font-bold ${
+                  item.balance < 0
+                    ? 'text-red-700'
+                    : 'text-green-700'
+                }`}
+              >
+                {formatCurrency(item.balance || 0)}
+              </td>
+
+              <td
+                className={`px-4 py-3 text-sm text-right font-bold ${
+                  item.accumulated < 0
+                    ? 'text-red-700'
+                    : 'text-blue-700'
+                }`}
+              >
+                {formatCurrency(item.accumulated || 0)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+</div>
+
       {showFilters && (
         <div className="bg-white rounded-2xl border shadow-sm p-5 mb-6">
           <div className="flex justify-between items-center mb-4">

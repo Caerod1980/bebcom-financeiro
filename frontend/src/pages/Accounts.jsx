@@ -33,6 +33,14 @@ const Accounts = () => {
   const [summary, setSummary] = useState({});
   const [cashFlow, setCashFlow] = useState([]);
   const [realizedCashFlow, setRealizedCashFlow] = useState([]);
+  const [cashFlowFilters, setCashFlowFilters] = useState(() => {
+  const currentDate = new Date();
+
+  return {
+    month: currentDate.getMonth() + 1,
+    year: currentDate.getFullYear(),
+  };
+});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -134,28 +142,48 @@ const Accounts = () => {
   ];
 
   useEffect(() => {
-    loadAccounts();
-  }, [filters]);
+  loadAccounts();
+}, [filters]);
+
+useEffect(() => {
+  loadCashFlow();
+}, [cashFlowFilters.month, cashFlowFilters.year]);
 
   const loadAccounts = async () => {
-    try {
-      setLoading(true);
-      
-      const response = await accountService.getAll(filters);
-      const cashFlowResponse = await accountService.getCashFlow();
-      const realizedResponse = await accountService.getRealizedCashFlow();
-      
-      setAccounts(response.data.accounts || []);
-      setSummary(response.data.summary || {});
-      setCashFlow(cashFlowResponse.data.projection || []);
-      setRealizedCashFlow(realizedResponse.data.realized || []);
-    } catch (error) {
-      toast.error('Erro ao carregar contas');
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    setLoading(true);
+
+    const response = await accountService.getAll(filters);
+
+    setAccounts(response.data.accounts || []);
+    setSummary(response.data.summary || {});
+  } catch (error) {
+    toast.error('Erro ao carregar contas');
+    console.error(error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+  const loadCashFlow = async () => {
+  try {
+    const cashFlowResponse = await accountService.getCashFlow(
+      cashFlowFilters.month,
+      cashFlowFilters.year
+    );
+
+    const realizedResponse = await accountService.getRealizedCashFlow(
+      cashFlowFilters.month,
+      cashFlowFilters.year
+    );
+
+    setCashFlow(cashFlowResponse.data.projection || []);
+    setRealizedCashFlow(realizedResponse.data.realized || []);
+  } catch (error) {
+    toast.error('Erro ao carregar fluxo de caixa');
+    console.error(error);
+  }
+};
 
   const resetForm = () => {
     setFormData(emptyForm);

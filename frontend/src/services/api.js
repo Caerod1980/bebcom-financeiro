@@ -212,8 +212,11 @@ export const accountService = {
 
     return api.get('/accounts', { params: cleanParams });
   },
-  getCashFlow: () => api.get('/accounts/cash-flow'),
-  getRealizedCashFlow: () => api.get('/accounts/realized-cash-flow'),
+  getCashFlow: (month, year) =>
+  api.get('/accounts/cash-flow', { params: { month, year } }),
+
+getRealizedCashFlow: (month, year) =>
+  api.get('/accounts/realized-cash-flow', { params: { month, year } }),
 
   getById: (id) => api.get(`/accounts/${id}`),
 

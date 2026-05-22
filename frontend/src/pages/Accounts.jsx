@@ -461,6 +461,69 @@ useEffect(() => {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border p-5 mb-6">
+  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div>
+      <h2 className="text-lg font-semibold text-gray-900">
+        Análise de Fluxo de Caixa
+      </h2>
+
+      <p className="text-sm text-gray-600">
+        Selecione o mês e ano para atualizar o fluxo previsto e realizado
+      </p>
+    </div>
+
+    <div className="flex flex-col sm:flex-row gap-3">
+      <select
+        value={cashFlowFilters.month}
+        onChange={(e) =>
+          setCashFlowFilters((prev) => ({
+            ...prev,
+            month: Number(e.target.value),
+          }))
+        }
+        className="input-field"
+      >
+        {[
+          'Janeiro',
+          'Fevereiro',
+          'Março',
+          'Abril',
+          'Maio',
+          'Junho',
+          'Julho',
+          'Agosto',
+          'Setembro',
+          'Outubro',
+          'Novembro',
+          'Dezembro',
+        ].map((month, index) => (
+          <option key={month} value={index + 1}>
+            {month}
+          </option>
+        ))}
+      </select>
+
+      <select
+        value={cashFlowFilters.year}
+        onChange={(e) =>
+          setCashFlowFilters((prev) => ({
+            ...prev,
+            year: Number(e.target.value),
+          }))
+        }
+        className="input-field"
+      >
+        {[2024, 2025, 2026, 2027, 2028].map((year) => (
+          <option key={year} value={year}>
+            {year}
+          </option>
+        ))}
+      </select>
+    </div>
+  </div>
+</div>
+
+      <div className="bg-white rounded-2xl shadow-sm border p-5 mb-6">
   <div className="flex items-center justify-between mb-4">
     <div>
       <h2 className="text-lg font-semibold text-gray-900">

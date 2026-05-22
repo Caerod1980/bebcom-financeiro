@@ -510,13 +510,12 @@ const buildCashFlowProjection = async (month, year) => {
     });
 
     const accounts = await Account.find({
-      deleted: false,
-      status: { $in: ['pending', 'overdue'] },
-      dueDate: {
-        $gte: baseDate,
-        $lte: limitedEndDate,
-      },
-    });
+  deleted: false,
+  status: { $in: ['pending', 'overdue'] },
+  dueDate: {
+    $lte: limitedEndDate,
+  },
+});
 
     let receivableAccounts = 0;
     let pendingPayable = 0;

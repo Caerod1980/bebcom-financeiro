@@ -477,30 +477,50 @@ const buildCashFlowProjection = async (month, year) => {
     referenceDay > 0 ? totalIncomeMonth / referenceDay : 0;
 
   const periods = [
-    { label: 'Hoje', days: 1 },
-    { label: '7 Dias', days: 7 },
-    { label: '15 Dias', days: 15 },
-    { label: '30 Dias', days: 30 },
-  ];
+  {
+    label: 'Hoje',
+    startOffset: 0,
+    endOffset: 0,
+  },
+  {
+    label: '7 Dias',
+    startOffset: 1,
+    endOffset: 7,
+  },
+  {
+    label: '15 Dias',
+    startOffset: 8,
+    endOffset: 15,
+  },
+  {
+    label: '30 Dias',
+    startOffset: 16,
+    endOffset: 30,
+  },
+];
 
   const baseDate = isCurrentMonth ? today : start;
 
   const projection = [];
 
   for (const period of periods) {
-    const endDate = new Date(baseDate);
-    endDate.setDate(endDate.getDate() + period.days);
-    endDate.setHours(23, 59, 59, 999);
+    const startDate = new Date(baseDate);
+startDate.setDate(startDate.getDate() + period.startOffset);
+startDate.setHours(0, 0, 0, 0);
 
-    const limitedEndDate = endDate > end ? end : endDate;
+const endDate = new Date(baseDate);
+endDate.setDate(endDate.getDate() + period.endOffset);
+endDate.setHours(23, 59, 59, 999);
+
+const limitedEndDate = endDate > end ? end : endDate;
 
     const expenseEntries = await Entry.find({
       deleted: { $ne: true },
       type: 'expense',
       date: {
-        $gte: baseDate,
-        $lte: limitedEndDate,
-      },
+      $gte: startDate,
+      $lte: limitedEndDate,
+  },
     });
 
     let paidExpenses = 0;
@@ -532,15 +552,18 @@ const buildCashFlowProjection = async (month, year) => {
       }
     });
 
-   const projectedOperationalIncome =
-  averageDailyIncome * period.days;
+   const intervalDays =
+  period.endOffset - period.startOffset + 1;
 
+const projectedOperationalIncome =
+  averageDailyIncome * intervalDays;
 const receivable =
   projectedOperationalIncome + receivableAccounts;
 
 // Hoje: considera despesas já lançadas + contas pendentes/vencidas.
 // 7/15/30: considera somente contas pendentes/vencidas.
-const shouldIncludePaidExpenses = period.days === 1;
+const shouldIncludePaidExpenses =
+  period.startOffset === 0 && period.endOffset === 0;
 
 const totalPayable = shouldIncludePaidExpenses
   ? paidExpenses + pendingPayable

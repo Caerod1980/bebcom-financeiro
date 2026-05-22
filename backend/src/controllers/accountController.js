@@ -533,22 +533,30 @@ const buildCashFlowProjection = async (month, year) => {
       }
     });
 
-    const projectedOperationalIncome =
-      averageDailyIncome * period.days;
+   const projectedOperationalIncome =
+  averageDailyIncome * period.days;
 
-    const receivable =
-      projectedOperationalIncome + receivableAccounts;
+const receivable =
+  projectedOperationalIncome + receivableAccounts;
 
-    projection.push({
-      label: period.label,
-      operationalForecast: projectedOperationalIncome,
-      receivableAccounts,
-      receivable,
-      paidExpenses,
-      pendingPayable,
-      payable: paidExpenses + pendingPayable,
-      balance: receivable - (paidExpenses + pendingPayable),
-    });
+// Hoje: considera despesas já lançadas + contas pendentes/vencidas.
+// 7/15/30: considera somente contas pendentes/vencidas.
+const shouldIncludePaidExpenses = period.days === 1;
+
+const totalPayable = shouldIncludePaidExpenses
+  ? paidExpenses + pendingPayable
+  : pendingPayable;
+
+projection.push({
+  label: period.label,
+  operationalForecast: projectedOperationalIncome,
+  receivableAccounts,
+  receivable,
+  paidExpenses: shouldIncludePaidExpenses ? paidExpenses : 0,
+  pendingPayable,
+  payable: totalPayable,
+  balance: receivable - totalPayable,
+});
   }
 
   return projection;

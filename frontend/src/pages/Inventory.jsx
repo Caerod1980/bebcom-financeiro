@@ -254,7 +254,7 @@ const Inventory = () => {
           tone="green"
         />
 
-        <div className="bg-white rounded-2xl p-5 shadow-sm border">
+       <div className="bg-white rounded-2xl p-5 shadow-sm border">
   <div className="flex items-center justify-between">
     <div>
       <p className="text-sm text-gray-500">
@@ -266,7 +266,15 @@ const Inventory = () => {
       </h3>
 
       <p className="text-xs text-gray-500 mt-2">
-        CMV apurado: {formatCurrency(totals.cmv || 0)}
+        Receita Líquida:
+        {' '}
+        {formatCurrency(totals.netRevenue || 0)}
+      </p>
+
+      <p className="text-xs text-gray-500">
+        Margem Bruta:
+        {' '}
+        {((totals.grossMarginPercent || 0) * 100).toFixed(1)}%
       </p>
     </div>
 
@@ -299,20 +307,25 @@ const Inventory = () => {
             </label>
 
             <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={formData.initialStock}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  initialStock:
-                    e.target.value,
-                })
-              }
-              className="input-field"
-              placeholder="0,00"
-            />
+  type="number"
+  step="0.01"
+  min="0"
+  disabled={month !== 1}
+  value={formData.initialStock}
+  onChange={(e) =>
+    setFormData({
+      ...formData,
+      initialStock: e.target.value,
+    })
+  }
+  className="input-field"
+  placeholder="0,00"
+/>
+            {month !== 1 && (
+  <p className="text-xs text-gray-500 mt-1">
+    Valor herdado automaticamente do mês anterior
+  </p>
+)}
           </div>
 
           <div>

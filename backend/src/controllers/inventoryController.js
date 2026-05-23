@@ -1,6 +1,18 @@
 const InventoryBalance = require('../models/InventoryBalance');
 const Entry = require('../models/Entry');
 
+const getPreviousMonth = (year, month) => {
+  let previousMonth = month - 1;
+  let previousYear = year;
+
+  if (previousMonth <= 0) {
+    previousMonth = 12;
+    previousYear -= 1;
+  }
+
+  return { previousYear, previousMonth };
+};
+
 // @desc    Get inventory balance by month/year
 // @route   GET /api/inventory/:year/:month
 const getInventoryBalance = async (req, res) => {
@@ -11,13 +23,8 @@ const getInventoryBalance = async (req, res) => {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59, 999);
 
-    // Busca estoque salvo
-    let inventory = await InventoryBalance.findOne({
-      year,
-      month,
-    });
+    let inventory = await InventoryBalance.findOne({ year, month });
 
-    // Compras automáticas
     const purchasesResult = await Entry.aggregate([
       {
         $match: {
@@ -38,7 +45,6 @@ const getInventoryBalance = async (req, res) => {
       },
     ]);
 
-    // CMV automático
     const cmvResult = await Entry.aggregate([
       {
         $match: {
@@ -60,20 +66,12 @@ const getInventoryBalance = async (req, res) => {
 
     const purchases = purchasesResult[0]?.total || 0;
     const cmv = cmvResult[0]?.total || 0;
+    const stockBalance = purchases - cmv;
 
-    // Estoque inicial
     let initialStock = inventory?.initialStock || 0;
 
-    // Se não existir cadastro do mês,
-    // tenta buscar o estoque final do mês anterior
-    if (!inventory) {
-      let previousMonth = month - 1;
-      let previousYear = year;
-
-      if (previousMonth <= 0) {
-        previousMonth = 12;
-        previousYear -= 1;
-      }
+    if (month !== 1) {
+      const { previousYear, previousMonth } = getPreviousMonth(year, month);
 
       const previousInventory = await InventoryBalance.findOne({
         year: previousYear,
@@ -85,10 +83,8 @@ const getInventoryBalance = async (req, res) => {
       }
     }
 
-    const finalStock =
-      initialStock + purchases - cmv;
+    const finalStock = initialStock + stockBalance;
 
-    // Se não existir, cria automaticamente
     if (!inventory) {
       inventory = await InventoryBalance.create({
         year,
@@ -97,9 +93,11 @@ const getInventoryBalance = async (req, res) => {
         purchases,
         cmv,
         finalStock,
+        notes: '',
         createdBy: req.user?._id,
       });
     } else {
+      inventory.initialStock = initialStock;
       inventory.purchases = purchases;
       inventory.cmv = cmv;
       inventory.finalStock = finalStock;
@@ -113,6 +111,7 @@ const getInventoryBalance = async (req, res) => {
         initialStock,
         purchases,
         cmv,
+        stockBalance,
         finalStock,
       },
     });
@@ -132,15 +131,9 @@ const saveInventoryBalance = async (req, res) => {
     const year = Number(req.params.year);
     const month = Number(req.params.month);
 
-    const {
-      initialStock,
-      notes,
-    } = req.body;
+    const { initialStock, notes } = req.body;
 
-    let inventory = await InventoryBalance.findOne({
-      year,
-      month,
-    });
+    let inventory = await InventoryBalance.findOne({ year, month });
 
     if (!inventory) {
       inventory = new InventoryBalance({
@@ -150,21 +143,30 @@ const saveInventoryBalance = async (req, res) => {
       });
     }
 
-    inventory.initialStock = Number(initialStock || 0);
+    if (month === 1) {
+      inventory.initialStock = Number(initialStock || 0);
+    }
+
     inventory.notes = notes || '';
 
-    const finalStock =
-      inventory.initialStock +
-      (inventory.purchases || 0) -
-      (inventory.cmv || 0);
+    const purchases = inventory.purchases || 0;
+    const cmv = inventory.cmv || 0;
+    const stockBalance = purchases - cmv;
 
-    inventory.finalStock = finalStock;
+    inventory.finalStock = inventory.initialStock + stockBalance;
 
     await inventory.save();
 
     return res.json({
       message: 'Estoque salvo com sucesso',
       inventory,
+      totals: {
+        initialStock: inventory.initialStock,
+        purchases,
+        cmv,
+        stockBalance,
+        finalStock: inventory.finalStock,
+      },
     });
   } catch (error) {
     console.error('Erro ao salvar estoque:', error);

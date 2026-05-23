@@ -11,6 +11,7 @@ import {
   LogOut,
   Beer,
   X,
+  Boxes,
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, onClose, isMobile }) => {
@@ -28,6 +29,7 @@ const Sidebar = ({ isOpen, onClose, isMobile }) => {
     { path: '/dre', icon: FileText, label: 'DRE Mensal' },
     { path: '/annual-dashboard', icon: BarChart3, label: 'Dashboard Anual' },
     { path: '/balance-sheet', icon: Scale, label: 'Balanço Patrimonial' },
+    { path: '/inventory', icon: Boxes, label: 'Estoque' },
   ];
 
   const handleNavClick = () => {

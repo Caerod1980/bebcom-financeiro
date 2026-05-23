@@ -9,6 +9,7 @@ import Entries from './pages/Entries';
 import DreMonthly from './pages/DreMonthly';
 import AnnualDashboard from './pages/AnnualDashboard';
 import BalanceSheet from './pages/BalanceSheet';
+import Inventory from './pages/Inventory';
 import Accounts from './pages/Accounts';
 
 import PrivateRoute from './components/PrivateRoute';
@@ -154,6 +155,17 @@ function App() {
             </PrivateRoute>
           }
         />
+
+        <Route
+           path="/inventory"
+           element={
+             <PrivateRoute>
+               <AuthenticatedLayout>
+                 <Inventory />
+               </AuthenticatedLayout>
+             </PrivateRoute>
+           }
+         />
 
         <Route
           path="/accounts"

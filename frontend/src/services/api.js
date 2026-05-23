@@ -234,6 +234,17 @@ getRealizedCashFlow: (month, year) =>
 };
 
 // ============================================
+// INVENTORY SERVICES
+// ============================================
+export const inventoryService = {
+  getInventory: (year, month) =>
+    api.get(`/inventory/${year}/${month}`),
+
+  saveInventory: (year, month, data) =>
+    api.put(`/inventory/${year}/${month}`, data),
+};
+
+// ============================================
 // HEALTH CHECK SERVICE
 // ============================================
 export const healthService = {

@@ -65,8 +65,44 @@ const getInventoryBalance = async (req, res) => {
     ]);
 
     const purchases = purchasesResult[0]?.total || 0;
-    const cmv = cmvResult[0]?.total || 0;
-    const stockBalance = purchases - cmv;
+    const cmv = 0;    
+
+// Receita líquida do mês
+const revenueResult = await Entry.aggregate([
+  {
+    $match: {
+      deleted: { $ne: true },
+      type: 'income',
+      date: {
+        $gte: startDate,
+        $lte: endDate,
+      },
+    },
+  },
+  {
+    $group: {
+      _id: null,
+      total: { $sum: '$amount' },
+    },
+  },
+]);
+
+const netRevenue = revenueResult[0]?.total || 0;
+
+// Base financeira
+const baseStock = netRevenue - purchases;
+
+// Margem bruta estimada
+let grossMarginPercent = 0;
+
+if (netRevenue > 0) {
+  grossMarginPercent =
+    baseStock / netRevenue;
+}
+
+// Saldo gerencial do estoque
+const stockBalance =
+  baseStock + (baseStock * grossMarginPercent);
 
     let initialStock = inventory?.initialStock || 0;
 
@@ -108,12 +144,14 @@ const getInventoryBalance = async (req, res) => {
     return res.json({
       inventory,
       totals: {
-        initialStock,
-        purchases,
-        cmv,
-        stockBalance,
-        finalStock,
-      },
+      initialStock,
+      purchases,
+      cmv,
+      netRevenue,
+      grossMarginPercent,
+      stockBalance,
+      finalStock,
+  },
     });
   } catch (error) {
     console.error('Erro ao buscar estoque:', error);
@@ -149,11 +187,75 @@ const saveInventoryBalance = async (req, res) => {
 
     inventory.notes = notes || '';
 
-    const purchases = inventory.purchases || 0;
-    const cmv = inventory.cmv || 0;
-    const stockBalance = purchases - cmv;
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59, 999);
 
-    inventory.finalStock = inventory.initialStock + stockBalance;
+    const purchasesResult = await Entry.aggregate([
+      {
+        $match: {
+          deleted: { $ne: true },
+          type: 'expense',
+          category: 'compras_mercadorias',
+          date: {
+            $gte: startDate,
+            $lte: endDate,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$amount' },
+        },
+      },
+    ]);
+
+    const revenueResult = await Entry.aggregate([
+      {
+        $match: {
+          deleted: { $ne: true },
+          type: 'income',
+          date: {
+            $gte: startDate,
+            $lte: endDate,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$amount' },
+        },
+      },
+    ]);
+
+    const purchases = purchasesResult[0]?.total || 0;
+    const netRevenue = revenueResult[0]?.total || 0;
+
+    const baseStock = netRevenue - purchases;
+
+    const grossMarginPercent =
+      netRevenue > 0 ? baseStock / netRevenue : 0;
+
+    const stockBalance =
+      baseStock + (baseStock * grossMarginPercent);
+
+    inventory.purchases = purchases;
+    inventory.cmv = 0;
+    if (month !== 1) {
+  const { previousYear, previousMonth } = getPreviousMonth(year, month);
+
+  const previousInventory = await InventoryBalance.findOne({
+    year: previousYear,
+    month: previousMonth,
+  });
+
+  if (previousInventory) {
+    inventory.initialStock = previousInventory.finalStock || 0;
+  }
+}
+    inventory.finalStock =
+      inventory.initialStock + stockBalance;
 
     await inventory.save();
 
@@ -163,7 +265,9 @@ const saveInventoryBalance = async (req, res) => {
       totals: {
         initialStock: inventory.initialStock,
         purchases,
-        cmv,
+        cmv: 0,
+        netRevenue,
+        grossMarginPercent,
         stockBalance,
         finalStock: inventory.finalStock,
       },
@@ -176,7 +280,6 @@ const saveInventoryBalance = async (req, res) => {
     });
   }
 };
-
 module.exports = {
   getInventoryBalance,
   saveInventoryBalance,

@@ -23,7 +23,7 @@ const getInventoryBalance = async (req, res) => {
         $match: {
           deleted: { $ne: true },
           type: 'expense',
-          category: 'compras',
+          category: 'compras_mercadorias',
           date: {
             $gte: startDate,
             $lte: endDate,

@@ -34,11 +34,12 @@ const Inventory = () => {
   });
 
   const [totals, setTotals] = useState({
-    initialStock: 0,
-    purchases: 0,
-    cmv: 0,
-    finalStock: 0,
-  });
+  initialStock: 0,
+  purchases: 0,
+  cmv: 0,
+  stockBalance: 0,
+  finalStock: 0,
+});
 
   useEffect(() => {
     loadInventory();
@@ -253,13 +254,27 @@ const Inventory = () => {
           tone="green"
         />
 
-        <SummaryCard
-          title="CMV"
-          value={totals.cmv}
-          icon={TrendingDown}
-          tone="red"
-        />
+        <div className="bg-white rounded-2xl p-5 shadow-sm border">
+  <div className="flex items-center justify-between">
+    <div>
+      <p className="text-sm text-gray-500">
+        Saldo Estoque
+      </p>
 
+      <h3 className="text-2xl font-bold text-gray-900 mt-2">
+        {formatCurrency(totals.stockBalance || 0)}
+      </h3>
+
+      <p className="text-xs text-gray-500 mt-2">
+        CMV apurado: {formatCurrency(totals.cmv || 0)}
+      </p>
+    </div>
+
+    <div className="bg-red-100 text-red-600 p-3 rounded-xl">
+      <TrendingDown className="w-6 h-6" />
+    </div>
+  </div>
+</div>
         <SummaryCard
           title="Estoque Final"
           value={totals.finalStock}

@@ -173,8 +173,111 @@ const getAnnualAnalytics = async (req, res) => {
   }
 };
 
+// ============================================
+// HISTORICAL COMPARISON
+// ============================================
+
+// @desc    Historical management comparison
+// @route   GET /api/management-report/historical
+const getHistoricalComparison = async (req, res) => {
+  try {
+    const reports = await ManagementReport.find({});
+
+    const groupedByYear = {};
+
+    reports.forEach((report) => {
+      if (!groupedByYear[report.year]) {
+        groupedByYear[report.year] = {
+          totalRevenue: 0,
+          totalTickets: 0,
+        };
+      }
+
+      groupedByYear[report.year].totalRevenue +=
+        report.netRevenue || 0;
+
+      groupedByYear[report.year].totalTickets +=
+        report.totalTickets || 0;
+    });
+
+    const years = Object.keys(groupedByYear)
+      .map(Number)
+      .sort((a, b) => a - b);
+
+    const comparison = years.map((year, index) => {
+      const current = groupedByYear[year];
+
+      const averageTicket =
+        current.totalTickets > 0
+          ? current.totalRevenue / current.totalTickets
+          : 0;
+
+      const previousYear = years[index - 1];
+
+      let revenueGrowth = 0;
+      let ticketGrowth = 0;
+      let ticketIncrease = 0;
+
+      if (previousYear) {
+        const previous = groupedByYear[previousYear];
+
+        const previousAverageTicket =
+          previous.totalTickets > 0
+            ? previous.totalRevenue / previous.totalTickets
+            : 0;
+
+        if (previous.totalRevenue > 0) {
+          revenueGrowth =
+            (
+              (current.totalRevenue - previous.totalRevenue) /
+              previous.totalRevenue
+            ) * 100;
+        }
+
+        if (previousAverageTicket > 0) {
+          ticketGrowth =
+            (
+              (averageTicket - previousAverageTicket) /
+              previousAverageTicket
+            ) * 100;
+        }
+
+        ticketIncrease =
+          averageTicket - previousAverageTicket;
+      }
+
+      return {
+        year,
+
+        totalRevenue: current.totalRevenue,
+
+        averageTicket,
+
+        revenueGrowth,
+
+        ticketGrowth,
+
+        ticketIncrease,
+      };
+    });
+
+    return res.json({
+      comparison,
+    });
+  } catch (error) {
+    console.error(
+      'Erro comparativo histórico:',
+      error
+    );
+
+    return res.status(500).json({
+      error: 'Erro ao gerar comparativo histórico',
+    });
+  }
+};
 module.exports = {
   saveManagementReport,
   getManagementReport,
   getAnnualAnalytics,
+  getHistoricalComparison,
 };

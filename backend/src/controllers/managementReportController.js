@@ -181,7 +181,20 @@ const getAnnualAnalytics = async (req, res) => {
 // @route   GET /api/management-report/historical
 const getHistoricalComparison = async (req, res) => {
   try {
-    const reports = await ManagementReport.find({});
+    const currentYear = new Date().getFullYear();
+
+const currentYearReports = await ManagementReport.find({
+  year: currentYear,
+}).sort({ month: 1 });
+
+const comparisonLimitMonth =
+  currentYearReports.length > 0
+    ? Math.max(...currentYearReports.map((item) => item.month))
+    : new Date().getMonth() + 1;
+
+const reports = await ManagementReport.find({
+  month: { $lte: comparisonLimitMonth },
+});
 
     const groupedByYear = {};
 
@@ -261,9 +274,10 @@ const getHistoricalComparison = async (req, res) => {
       };
     });
 
-    return res.json({
-      comparison,
-    });
+   return res.json({
+  comparison,
+  comparisonLimitMonth,
+});
   } catch (error) {
     console.error(
       'Erro comparativo histórico:',

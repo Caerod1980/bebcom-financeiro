@@ -9,6 +9,9 @@ import {
   CartesianGrid,
   LineChart,
   Line,
+  AreaChart,
+  Area,
+  Legend,
 } from 'recharts';
 import {
   Save,

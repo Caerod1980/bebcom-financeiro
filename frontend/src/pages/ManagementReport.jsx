@@ -44,6 +44,8 @@ const ManagementReport = () => {
     indicators: {},
   });
 
+  const [historicalComparison, setHistoricalComparison] = useState([]);
+
   const monthsNames = [
     'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
     'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez',
@@ -57,9 +59,14 @@ const ManagementReport = () => {
     try {
       setLoading(true);
 
-      const [reportResponse, analyticsResponse] = await Promise.all([
+      const [
+  reportResponse,
+  analyticsResponse,
+  historicalResponse,
+] = await Promise.all([
         managementReportService.getReport(year, month),
         managementReportService.getAnnualAnalytics(year),
+        managementReportService.getHistoricalComparison(),
       ]);
 
       const report = reportResponse.data.report;
@@ -74,6 +81,10 @@ const ManagementReport = () => {
         reports: [],
         indicators: {},
       });
+
+      setHistoricalComparison(
+  historicalResponse.data?.comparison || []
+);
     } catch (error) {
       toast.error('Erro ao carregar relatório gerencial');
       console.error(error);
@@ -367,7 +378,7 @@ const ManagementReport = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <SummaryCard
           title="Receita Anual"
           value={indicators.totalRevenue || 0}
@@ -383,49 +394,92 @@ const ManagementReport = () => {
           isCurrency={false}
         />
 
-       <div className="bg-white rounded-2xl p-5 shadow-sm border">
-  <div className="flex items-center justify-between">
-    <div>
-      <p className="text-sm text-gray-500">
-        Melhor Ticket
-      </p>
+        <div className="bg-white rounded-2xl p-5 shadow-sm border">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500">Melhor Ticket</p>
+              <h3 className="text-2xl font-bold text-gray-900 mt-2">
+                {formatCurrency(indicators.bestMonth?.averageTicket || 0)}
+              </h3>
+              <p className="text-xs text-gray-500 mt-2">
+                Mês: {getMonthName(indicators.bestMonth?.month)}
+              </p>
+            </div>
 
-      <h3 className="text-2xl font-bold text-gray-900 mt-2">
-        {formatCurrency(indicators.bestMonth?.averageTicket || 0)}
-      </h3>
+            <div className="bg-amber-100 text-amber-600 p-3 rounded-xl">
+              <Trophy className="w-6 h-6" />
+            </div>
+          </div>
+        </div>
 
-      <p className="text-xs text-gray-500 mt-2">
-        Mês: {getMonthName(indicators.bestMonth?.month)}
-      </p>
-    </div>
+        <div className="bg-white rounded-2xl p-5 shadow-sm border">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500">Pior Ticket</p>
+              <h3 className="text-2xl font-bold text-gray-900 mt-2">
+                {formatCurrency(indicators.worstMonth?.averageTicket || 0)}
+              </h3>
+              <p className="text-xs text-gray-500 mt-2">
+                Mês: {getMonthName(indicators.worstMonth?.month)}
+              </p>
+            </div>
 
-    <div className="bg-amber-100 text-amber-600 p-3 rounded-xl">
-      <Trophy className="w-6 h-6" />
-    </div>
-  </div>
-</div>
+            <div className="bg-red-100 text-red-600 p-3 rounded-xl">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+          </div>
+        </div>
+      </div>
 
-<div className="bg-white rounded-2xl p-5 shadow-sm border">
-  <div className="flex items-center justify-between">
-    <div>
-      <p className="text-sm text-gray-500">
-        Pior Ticket
-      </p>
+      <div className="bg-white rounded-2xl shadow-sm border p-5 mt-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          Comparativo Histórico
+        </h2>
 
-      <h3 className="text-2xl font-bold text-gray-900 mt-2">
-        {formatCurrency(indicators.worstMonth?.averageTicket || 0)}
-      </h3>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="border-b bg-gray-50">
+                <th className="px-4 py-3 text-left">Ano</th>
+                <th className="px-4 py-3 text-left">Receita Líquida</th>
+                <th className="px-4 py-3 text-left">% Receita</th>
+                <th className="px-4 py-3 text-left">Ticket Médio</th>
+                <th className="px-4 py-3 text-left">% Ticket</th>
+                <th className="px-4 py-3 text-left">Acréscimo Ticket</th>
+              </tr>
+            </thead>
 
-      <p className="text-xs text-gray-500 mt-2">
-        Mês: {getMonthName(indicators.worstMonth?.month)}
-      </p>
-    </div>
+            <tbody>
+              {historicalComparison.map((item) => (
+                <tr key={item.year} className="border-b hover:bg-gray-50">
+                  <td className="px-4 py-3 font-semibold">
+                    {item.year}
+                  </td>
 
-    <div className="bg-red-100 text-red-600 p-3 rounded-xl">
-      <AlertTriangle className="w-6 h-6" />
-    </div>
-  </div>
-</div>
+                  <td className="px-4 py-3">
+                    {formatCurrency(item.totalRevenue || 0)}
+                  </td>
+
+                  <td className="px-4 py-3">
+                    {item.revenueGrowth?.toFixed(1) || 0}%
+                  </td>
+
+                  <td className="px-4 py-3">
+                    {formatCurrency(item.averageTicket || 0)}
+                  </td>
+
+                  <td className="px-4 py-3">
+                    {item.ticketGrowth?.toFixed(1) || 0}%
+                  </td>
+
+                  <td className="px-4 py-3">
+                    {formatCurrency(item.ticketIncrease || 0)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

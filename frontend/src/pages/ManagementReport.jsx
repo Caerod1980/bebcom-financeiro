@@ -48,6 +48,7 @@ const ManagementReport = () => {
   });
 
   const [historicalComparison, setHistoricalComparison] = useState([]);
+  const [monthlyComparison, setMonthlyComparison] = useState([]);
 
   const monthsNames = [
     'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
@@ -62,14 +63,16 @@ const ManagementReport = () => {
     try {
       setLoading(true);
 
-      const [
+     const [
   reportResponse,
   analyticsResponse,
   historicalResponse,
+  monthlyComparisonResponse,
 ] = await Promise.all([
         managementReportService.getReport(year, month),
         managementReportService.getAnnualAnalytics(year),
         managementReportService.getHistoricalComparison(),
+       managementReportService.getMonthlyComparison(year),
       ]);
 
       const report = reportResponse.data.report;
@@ -87,6 +90,9 @@ const ManagementReport = () => {
 
       setHistoricalComparison(
   historicalResponse.data?.comparison || []
+);
+      setMonthlyComparison(
+  monthlyComparisonResponse.data?.monthlyComparison || []
 );
     } catch (error) {
       toast.error('Erro ao carregar relatório gerencial');
@@ -568,6 +574,65 @@ const ManagementReport = () => {
           </ResponsiveContainer>
         </div>
       </div>
+
+      <div className="bg-white rounded-2xl shadow-sm border p-5 mt-6">
+  <h2 className="text-lg font-semibold text-gray-900 mb-4">
+    Comparativo Mensal
+  </h2>
+
+  <div className="overflow-x-auto">
+    <table className="min-w-full text-sm">
+      <thead>
+        <tr className="border-b bg-gray-50">
+          <th className="px-4 py-3 text-left">
+            Mês
+          </th>
+
+          <th className="px-4 py-3 text-left">
+            % Receita vs {year - 1}
+          </th>
+
+          <th className="px-4 py-3 text-left">
+            % Receita vs {year - 2}
+          </th>
+
+          <th className="px-4 py-3 text-left">
+            % Receita vs {year - 3}
+          </th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {monthlyComparison.map((item) => (
+          <tr
+            key={item.month}
+            className={`border-b hover:bg-gray-50 ${
+              item.month === 'TOTAL'
+                ? 'bg-gray-100 font-bold'
+                : ''
+            }`}
+          >
+            <td className="px-4 py-3">
+              {item.month}
+            </td>
+
+            <td className="px-4 py-3">
+              {item[year - 1]?.toFixed(1) || 0}%
+            </td>
+
+            <td className="px-4 py-3">
+              {item[year - 2]?.toFixed(1) || 0}%
+            </td>
+
+            <td className="px-4 py-3">
+              {item[year - 3]?.toFixed(1) || 0}%
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</div>
     </div>
   );
 };

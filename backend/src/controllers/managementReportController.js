@@ -419,10 +419,97 @@ const getMonthlyComparison = async (req, res) => {
     });
   }
 };
+
+// ============================================
+// GROWTH CURVE
+// ============================================
+
+// @desc    Growth curve current year vs previous year
+// @route   GET /api/management-report/growth-curve/:year
+const getGrowthCurve = async (req, res) => {
+  try {
+    const currentYear = Number(req.params.year);
+    const previousYear = currentYear - 1;
+
+    const currentReports = await ManagementReport.find({
+      year: currentYear,
+    });
+
+    const previousReports = await ManagementReport.find({
+      year: previousYear,
+    });
+
+    const months = [
+      'Jan',
+      'Fev',
+      'Mar',
+      'Abr',
+      'Mai',
+      'Jun',
+      'Jul',
+      'Ago',
+      'Set',
+      'Out',
+      'Nov',
+      'Dez',
+    ];
+
+    const growthCurve = months.map((monthName, index) => {
+      const monthNumber = index + 1;
+
+      const currentMonth = currentReports.find(
+        (item) => item.month === monthNumber
+      );
+
+      const previousMonth = previousReports.find(
+        (item) => item.month === monthNumber
+      );
+
+      const currentRevenue =
+        currentMonth?.netRevenue || 0;
+
+      const previousRevenue =
+        previousMonth?.netRevenue || 0;
+
+      let growthPercent = 0;
+
+      if (previousRevenue > 0) {
+        growthPercent =
+          (
+            (currentRevenue - previousRevenue) /
+            previousRevenue
+          ) * 100;
+      }
+
+      return {
+        month: monthName,
+        currentRevenue,
+        previousRevenue,
+        growthPercent,
+      };
+    });
+
+    return res.json({
+      currentYear,
+      previousYear,
+      growthCurve,
+    });
+  } catch (error) {
+    console.error(
+      'Erro curva de crescimento:',
+      error
+    );
+
+    return res.status(500).json({
+      error: 'Erro ao gerar curva de crescimento',
+    });
+  }
+};
 module.exports = {
   saveManagementReport,
   getManagementReport,
   getAnnualAnalytics,
   getHistoricalComparison,
   getMonthlyComparison,
+  getGrowthCurve,
 };

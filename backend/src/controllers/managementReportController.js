@@ -518,12 +518,13 @@ Object.entries(revenueByYear).forEach(
           ) * 100;
       }
 
-      return {
+     return {
   month: monthName,
   currentRevenue,
   previousRevenue,
   bestYearRevenue,
   growthPercent,
+  bestYear,
 };
     });
 

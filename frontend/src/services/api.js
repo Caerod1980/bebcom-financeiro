@@ -259,6 +259,9 @@ export const managementReportService = {
 
   getHistoricalComparison: () =>
     api.get('/management-report/historical'),
+
+  getMonthlyComparison: (year) =>
+    api.get(`/management-report/monthly-comparison/${year}`),
 };
 
 // ============================================

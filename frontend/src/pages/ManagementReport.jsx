@@ -678,6 +678,14 @@ const ManagementReport = () => {
         name={`Receita ${year - 1}`}
         strokeWidth={4}
       />
+
+      <Line
+       type="monotone"
+       dataKey="bestYearRevenue"
+       name="Melhor Ano"
+       stroke="#22c55e"
+       strokeWidth={4}
+      />
     </LineChart>
   </ResponsiveContainer>
 </div>

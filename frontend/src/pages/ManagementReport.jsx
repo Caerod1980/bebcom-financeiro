@@ -484,6 +484,90 @@ const ManagementReport = () => {
           </table>
         </div>
       </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
+        <div className="bg-white rounded-2xl shadow-sm border p-5">
+          <h2 className="text-lg font-semibold mb-4">
+            Evolução Histórica da Receita
+          </h2>
+
+          <ResponsiveContainer width="100%" height={320}>
+            <AreaChart data={historicalComparison}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="year" />
+              <YAxis tickFormatter={(value) => formatCurrency(value)} />
+              <Tooltip formatter={(value) => formatCurrency(value)} />
+              <Area
+                type="monotone"
+                dataKey="totalRevenue"
+                name="Receita Líquida"
+                strokeWidth={3}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm border p-5">
+          <h2 className="text-lg font-semibold mb-4">
+            Evolução Histórica do Ticket Médio
+          </h2>
+
+          <ResponsiveContainer width="100%" height={320}>
+            <LineChart data={historicalComparison}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="year" />
+              <YAxis tickFormatter={(value) => formatCurrency(value)} />
+              <Tooltip formatter={(value) => formatCurrency(value)} />
+              <Line
+                type="monotone"
+                dataKey="averageTicket"
+                name="Ticket Médio"
+                strokeWidth={3}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm border p-5">
+          <h2 className="text-lg font-semibold mb-4">
+            Variação Percentual da Receita
+          </h2>
+
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={historicalComparison}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="year" />
+              <YAxis tickFormatter={(value) => `${value.toFixed(0)}%`} />
+              <Tooltip formatter={(value) => `${Number(value).toFixed(1)}%`} />
+              <Bar
+                dataKey="revenueGrowth"
+                name="% Receita"
+                radius={[8, 8, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm border p-5">
+          <h2 className="text-lg font-semibold mb-4">
+            Variação Percentual do Ticket
+          </h2>
+
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={historicalComparison}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="year" />
+              <YAxis tickFormatter={(value) => `${value.toFixed(0)}%`} />
+              <Tooltip formatter={(value) => `${Number(value).toFixed(1)}%`} />
+              <Bar
+                dataKey="ticketGrowth"
+                name="% Ticket"
+                radius={[8, 8, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
     </div>
   );
 };

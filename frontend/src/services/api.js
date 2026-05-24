@@ -262,6 +262,9 @@ export const managementReportService = {
 
   getMonthlyComparison: (year) =>
     api.get(`/management-report/monthly-comparison/${year}`),
+
+  getGrowthCurve: (year) =>
+    api.get(`/management-report/growth-curve/${year}`),
 };
 
 // ============================================

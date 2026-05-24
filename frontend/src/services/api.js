@@ -245,6 +245,20 @@ export const inventoryService = {
 };
 
 // ============================================
+// MANAGEMENT REPORT SERVICES
+// ============================================
+export const managementReportService = {
+  saveReport: (data) =>
+    api.post('/management-report', data),
+
+  getReport: (year, month) =>
+    api.get(`/management-report/${year}/${month}`),
+
+  getAnnualAnalytics: (year) =>
+    api.get(`/management-report/analytics/${year}`),
+};
+
+// ============================================
 // HEALTH CHECK SERVICE
 // ============================================
 export const healthService = {

@@ -14,8 +14,8 @@ router.use(protect);
 
 router.post('/', saveManagementReport);
 
-router.get('/:year/:month', getManagementReport);
-
 router.get('/analytics/:year', getAnnualAnalytics);
+
+router.get('/:year/:month', getManagementReport);
 
 module.exports = router;

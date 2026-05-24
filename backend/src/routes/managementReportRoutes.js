@@ -4,6 +4,7 @@ const {
   saveManagementReport,
   getManagementReport,
   getAnnualAnalytics,
+  getHistoricalComparison,
 } = require('../controllers/managementReportController');
 
 const { protect } = require('../middleware/authMiddleware');
@@ -13,6 +14,8 @@ const router = express.Router();
 router.use(protect);
 
 router.post('/', saveManagementReport);
+
+router.get('/historical', getHistoricalComparison);
 
 router.get('/analytics/:year', getAnnualAnalytics);
 

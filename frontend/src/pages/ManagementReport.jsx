@@ -682,7 +682,7 @@ const ManagementReport = () => {
       <Line
        type="monotone"
        dataKey="bestYearRevenue"
-       name="Melhor Ano"
+       name={`Melhor Ano ${growthCurve[0]?.bestYear || ''}`}
        stroke="#22c55e"
        strokeWidth={4}
       />

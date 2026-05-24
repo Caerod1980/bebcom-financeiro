@@ -11,6 +11,7 @@ import AnnualDashboard from './pages/AnnualDashboard';
 import BalanceSheet from './pages/BalanceSheet';
 import Inventory from './pages/Inventory';
 import Accounts from './pages/Accounts';
+import ManagementReport from './pages/ManagementReport';
 
 import PrivateRoute from './components/PrivateRoute';
 import Sidebar from './components/Sidebar';
@@ -176,6 +177,17 @@ function App() {
               </AuthenticatedLayout>
             </PrivateRoute>
           }
+        />
+
+        <Route
+          path="/management-report"
+          element={
+             <PrivateRoute>
+               <AuthenticatedLayout>
+                 <ManagementReport />
+               </AuthenticatedLayout>
+             </PrivateRoute>
+         }
         />
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

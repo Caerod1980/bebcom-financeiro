@@ -49,6 +49,7 @@ const ManagementReport = () => {
 
   const [historicalComparison, setHistoricalComparison] = useState([]);
   const [monthlyComparison, setMonthlyComparison] = useState([]);
+  const [growthCurve, setGrowthCurve] = useState([]);
 
   const monthsNames = [
     'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
@@ -63,16 +64,18 @@ const ManagementReport = () => {
     try {
       setLoading(true);
 
-     const [
+    const [
   reportResponse,
   analyticsResponse,
   historicalResponse,
   monthlyComparisonResponse,
+  growthCurveResponse,
 ] = await Promise.all([
         managementReportService.getReport(year, month),
         managementReportService.getAnnualAnalytics(year),
         managementReportService.getHistoricalComparison(),
        managementReportService.getMonthlyComparison(year),
+      managementReportService.getGrowthCurve(year),
       ]);
 
       const report = reportResponse.data.report;
@@ -93,6 +96,9 @@ const ManagementReport = () => {
 );
       setMonthlyComparison(
   monthlyComparisonResponse.data?.monthlyComparison || []
+);
+      setGrowthCurve(
+  growthCurveResponse.data?.growthCurve || []
 );
     } catch (error) {
       toast.error('Erro ao carregar relatório gerencial');
@@ -632,6 +638,48 @@ const ManagementReport = () => {
       </tbody>
     </table>
   </div>
+</div>
+
+      <div className="bg-white rounded-2xl shadow-sm border p-5 mt-6">
+  <h2 className="text-lg font-semibold text-gray-900 mb-4">
+    Curva de Crescimento {year} vs {year - 1}
+  </h2>
+
+  <ResponsiveContainer width="100%" height={420}>
+    <LineChart data={growthCurve}>
+      <CartesianGrid strokeDasharray="3 3" />
+
+      <XAxis dataKey="month" />
+
+      <YAxis
+        tickFormatter={(value) =>
+          formatCurrency(value)
+        }
+      />
+
+      <Tooltip
+        formatter={(value) =>
+          formatCurrency(value)
+        }
+      />
+
+      <Legend />
+
+      <Line
+        type="monotone"
+        dataKey="currentRevenue"
+        name={`Receita ${year}`}
+        strokeWidth={4}
+      />
+
+      <Line
+        type="monotone"
+        dataKey="previousRevenue"
+        name={`Receita ${year - 1}`}
+        strokeWidth={4}
+      />
+    </LineChart>
+  </ResponsiveContainer>
 </div>
     </div>
   );

@@ -6,7 +6,6 @@ import {
   List,
   FileText,
   BarChart3,
-  ChartNoAxesCombined,
   Scale,
   Receipt,
   LogOut,
@@ -31,7 +30,7 @@ const Sidebar = ({ isOpen, onClose, isMobile }) => {
     { path: '/annual-dashboard', icon: BarChart3, label: 'Dashboard Anual' },
     { path: '/balance-sheet', icon: Scale, label: 'Balanço Patrimonial' },
     { path: '/inventory', icon: Boxes, label: 'Estoque' },
-    { path: '/management-report', icon: ChartNoAxesCombined, label: 'Relatório Gerencial' },
+    { path: '/management-report', icon: BarChart3, label: 'Relatório Gerencial' },
   ];
 
   const handleNavClick = () => {

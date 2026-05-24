@@ -289,9 +289,140 @@ const reports = await ManagementReport.find({
     });
   }
 };
+
+// ============================================
+// MONTHLY COMPARISON
+// ============================================
+
+// @desc    Monthly comparison by year
+// @route   GET /api/management-report/monthly-comparison/:year
+const getMonthlyComparison = async (req, res) => {
+  try {
+    const currentYear = Number(req.params.year);
+
+    const comparisonYears = [
+      currentYear - 1,
+      currentYear - 2,
+      currentYear - 3,
+    ];
+
+    const currentReports = await ManagementReport.find({
+      year: currentYear,
+    });
+
+    const previousReports = await ManagementReport.find({
+      year: { $in: comparisonYears },
+    });
+
+    const months = [
+      'Janeiro',
+      'Fevereiro',
+      'Março',
+      'Abril',
+      'Maio',
+      'Junho',
+      'Julho',
+      'Agosto',
+      'Setembro',
+      'Outubro',
+      'Novembro',
+      'Dezembro',
+    ];
+
+    const monthlyComparison = months.map((monthName, index) => {
+      const monthNumber = index + 1;
+
+      const currentMonth = currentReports.find(
+        (item) => item.month === monthNumber
+      );
+
+      const currentRevenue =
+        currentMonth?.netRevenue || 0;
+
+      const comparisons = {};
+
+      comparisonYears.forEach((year) => {
+        const previousMonth = previousReports.find(
+          (item) =>
+            item.year === year &&
+            item.month === monthNumber
+        );
+
+        const previousRevenue =
+          previousMonth?.netRevenue || 0;
+
+        let growth = 0;
+
+        if (previousRevenue > 0) {
+          growth =
+            (
+              (currentRevenue - previousRevenue) /
+              previousRevenue
+            ) * 100;
+        }
+
+        comparisons[year] = growth;
+      });
+
+      return {
+        month: monthName,
+        ...comparisons,
+      };
+    });
+
+    // TOTAL CONSOLIDADO
+    const currentTotal = currentReports.reduce(
+      (acc, item) => acc + (item.netRevenue || 0),
+      0
+    );
+
+    const totalRow = {
+      month: 'TOTAL',
+    };
+
+    comparisonYears.forEach((year) => {
+      const previousTotal = previousReports
+        .filter((item) => item.year === year)
+        .reduce(
+          (acc, item) => acc + (item.netRevenue || 0),
+          0
+        );
+
+      let growth = 0;
+
+      if (previousTotal > 0) {
+        growth =
+          (
+            (currentTotal - previousTotal) /
+            previousTotal
+          ) * 100;
+      }
+
+      totalRow[year] = growth;
+    });
+
+    monthlyComparison.push(totalRow);
+
+    return res.json({
+      currentYear,
+      comparisonYears,
+      monthlyComparison,
+    });
+  } catch (error) {
+    console.error(
+      'Erro comparativo mensal:',
+      error
+    );
+
+    return res.status(500).json({
+      error: 'Erro ao gerar comparativo mensal',
+    });
+  }
+};
 module.exports = {
   saveManagementReport,
   getManagementReport,
   getAnnualAnalytics,
   getHistoricalComparison,
+  getMonthlyComparison,
 };

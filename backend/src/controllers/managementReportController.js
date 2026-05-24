@@ -430,6 +430,33 @@ const getGrowthCurve = async (req, res) => {
   try {
     const currentYear = Number(req.params.year);
     const previousYear = currentYear - 1;
+    // Buscar todos os relatórios históricos
+const allReports = await ManagementReport.find({});
+
+// Agrupar receita por ano
+const revenueByYear = {};
+
+allReports.forEach((report) => {
+  if (!revenueByYear[report.year]) {
+    revenueByYear[report.year] = 0;
+  }
+
+  revenueByYear[report.year] +=
+    report.netRevenue || 0;
+});
+
+// Descobrir melhor ano
+let bestYear = null;
+let bestRevenue = 0;
+
+Object.entries(revenueByYear).forEach(
+  ([year, revenue]) => {
+    if (revenue > bestRevenue) {
+      bestRevenue = revenue;
+      bestYear = Number(year);
+    }
+  }
+);
 
     const currentReports = await ManagementReport.find({
       year: currentYear,
@@ -438,6 +465,10 @@ const getGrowthCurve = async (req, res) => {
     const previousReports = await ManagementReport.find({
       year: previousYear,
     });
+
+    const bestYearReports = await ManagementReport.find({
+  year: bestYear,
+});
 
     const months = [
       'Jan',
@@ -464,12 +495,18 @@ const getGrowthCurve = async (req, res) => {
       const previousMonth = previousReports.find(
         (item) => item.month === monthNumber
       );
+      const bestYearMonth = bestYearReports.find(
+        (item) => item.month === monthNumber
+      );
 
       const currentRevenue =
         currentMonth?.netRevenue || 0;
 
       const previousRevenue =
         previousMonth?.netRevenue || 0;
+
+      const bestYearRevenue =
+        bestYearMonth?.netRevenue || 0;
 
       let growthPercent = 0;
 
@@ -482,18 +519,21 @@ const getGrowthCurve = async (req, res) => {
       }
 
       return {
-        month: monthName,
-        currentRevenue,
-        previousRevenue,
-        growthPercent,
-      };
+  month: monthName,
+  currentRevenue,
+  previousRevenue,
+  bestYearRevenue,
+  growthPercent,
+};
     });
 
-    return res.json({
-      currentYear,
-      previousYear,
-      growthCurve,
-    });
+   return res.json({
+  currentYear,
+  previousYear,
+  bestYear,
+  bestRevenue,
+  growthCurve,
+});
   } catch (error) {
     console.error(
       'Erro curva de crescimento:',

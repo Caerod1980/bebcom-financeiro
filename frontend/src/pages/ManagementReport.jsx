@@ -218,7 +218,7 @@ const ManagementReport = () => {
             onChange={(e) => setYear(Number(e.target.value))}
             className="input-field"
           >
-            {[2024, 2025, 2026, 2027, 2028].map((yearValue) => (
+            {[2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028].map((yearValue) => (
               <option key={yearValue} value={yearValue}>
                 {yearValue}
               </option>

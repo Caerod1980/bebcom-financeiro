@@ -163,6 +163,16 @@ const ManagementReport = () => {
   }
 
   const indicators = analytics.indicators || {};
+  const getMonthName = (monthNumber) => {
+  if (!monthNumber) return '-';
+
+  const fullMonths = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+  ];
+
+  return fullMonths[monthNumber - 1] || '-';
+};
 
   return (
     <div className="p-3 sm:p-4 md:p-6">
@@ -373,19 +383,49 @@ const ManagementReport = () => {
           isCurrency={false}
         />
 
-        <SummaryCard
-          title="Melhor Ticket"
-          value={indicators.bestMonth?.averageTicket || 0}
-          icon={Trophy}
-          tone="amber"
-        />
+       <div className="bg-white rounded-2xl p-5 shadow-sm border">
+  <div className="flex items-center justify-between">
+    <div>
+      <p className="text-sm text-gray-500">
+        Melhor Ticket
+      </p>
 
-        <SummaryCard
-          title="Pior Ticket"
-          value={indicators.worstMonth?.averageTicket || 0}
-          icon={AlertTriangle}
-          tone="red"
-        />
+      <h3 className="text-2xl font-bold text-gray-900 mt-2">
+        {formatCurrency(indicators.bestMonth?.averageTicket || 0)}
+      </h3>
+
+      <p className="text-xs text-gray-500 mt-2">
+        Mês: {getMonthName(indicators.bestMonth?.month)}
+      </p>
+    </div>
+
+    <div className="bg-amber-100 text-amber-600 p-3 rounded-xl">
+      <Trophy className="w-6 h-6" />
+    </div>
+  </div>
+</div>
+
+<div className="bg-white rounded-2xl p-5 shadow-sm border">
+  <div className="flex items-center justify-between">
+    <div>
+      <p className="text-sm text-gray-500">
+        Pior Ticket
+      </p>
+
+      <h3 className="text-2xl font-bold text-gray-900 mt-2">
+        {formatCurrency(indicators.worstMonth?.averageTicket || 0)}
+      </h3>
+
+      <p className="text-xs text-gray-500 mt-2">
+        Mês: {getMonthName(indicators.worstMonth?.month)}
+      </p>
+    </div>
+
+    <div className="bg-red-100 text-red-600 p-3 rounded-xl">
+      <AlertTriangle className="w-6 h-6" />
+    </div>
+  </div>
+</div>
       </div>
     </div>
   );

@@ -51,6 +51,82 @@ const getPeriodFromQuestion = (question) => {
   return { month, year, start, end };
 };
 
+const getComparisonPeriods = (question) => {
+  const lower = question.toLowerCase();
+
+  const detectedMonths = [];
+
+  monthNames.forEach((item) => {
+    item.names.forEach((name) => {
+      const index = lower.indexOf(name);
+
+      if (index !== -1) {
+        detectedMonths.push({
+          month: item.number,
+          index,
+        });
+      }
+    });
+  });
+
+  detectedMonths.sort((a, b) => a.index - b.index);
+
+  const uniqueMonths = [];
+
+  detectedMonths.forEach((item) => {
+    if (!uniqueMonths.find((m) => m.month === item.month)) {
+      uniqueMonths.push(item);
+    }
+  });
+
+  const now = new Date();
+
+  const yearMatch = lower.match(/\b(20\d{2})\b/);
+
+  const year = yearMatch
+    ? Number(yearMatch[1])
+    : now.getFullYear();
+
+  if (uniqueMonths.length >= 2) {
+    const currentMonth = uniqueMonths[0].month;
+    const compareMonth = uniqueMonths[1].month;
+
+    return {
+      current: {
+        month: currentMonth,
+        year,
+        start: new Date(year, currentMonth - 1, 1),
+        end: new Date(
+          year,
+          currentMonth,
+          0,
+          23,
+          59,
+          59,
+          999
+        ),
+      },
+
+      compare: {
+        month: compareMonth,
+        year,
+        start: new Date(year, compareMonth - 1, 1),
+        end: new Date(
+          year,
+          compareMonth,
+          0,
+          23,
+          59,
+          59,
+          999
+        ),
+      },
+    };
+  }
+
+  return null;
+};
+
 const getMonthLabel = (month, year) => {
   const fullMonths = [
     'Janeiro',
@@ -414,32 +490,50 @@ const askIABebcom = async (req, res) => {
       });
     }
 
-    const period = getPeriodFromQuestion(question);
-    const ctx = await buildContext(period);
-    const previousMonth =
-  period.month === 1 ? 12 : period.month - 1;
+    const comparisonPeriods = getComparisonPeriods(question);
 
-const previousYear =
-  period.month === 1
-    ? period.year - 1
-    : period.year;
+let period;
+let ctx;
+let previousCtx;
 
-const previousPeriod = {
-  month: previousMonth,
-  year: previousYear,
-  start: new Date(previousYear, previousMonth - 1, 1),
-  end: new Date(
-    previousYear,
-    previousMonth,
-    0,
-    23,
-    59,
-    59,
-    999
-  ),
-};
+if (comparisonPeriods) {
+  period = comparisonPeriods.current;
 
-const previousCtx = await buildContext(previousPeriod);
+  ctx = await buildContext(comparisonPeriods.current);
+
+  previousCtx = await buildContext(
+    comparisonPeriods.compare
+  );
+} else {
+  period = getPeriodFromQuestion(question);
+
+  ctx = await buildContext(period);
+
+  const previousMonth =
+    period.month === 1 ? 12 : period.month - 1;
+
+  const previousYear =
+    period.month === 1
+      ? period.year - 1
+      : period.year;
+
+  const previousPeriod = {
+    month: previousMonth,
+    year: previousYear,
+    start: new Date(previousYear, previousMonth - 1, 1),
+    end: new Date(
+      previousYear,
+      previousMonth,
+      0,
+      23,
+      59,
+      59,
+      999
+    ),
+  };
+
+  previousCtx = await buildContext(previousPeriod);
+}
 
 const analyticalInsights = buildAnalyticalInsights(
   ctx,

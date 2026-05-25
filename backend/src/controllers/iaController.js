@@ -51,6 +51,168 @@ const getPeriodFromQuestion = (question) => {
   return { month, year, start, end };
 };
 
+const getRelativePeriod = (question) => {
+  const lower = question.toLowerCase();
+
+  const now = new Date();
+
+  const startOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    0,
+    0,
+    0,
+    0
+  );
+
+  const endOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    23,
+    59,
+    59,
+    999
+  );
+
+  // Hoje
+  if (lower.includes('hoje')) {
+    return {
+      label: 'Hoje',
+      start: startOfToday,
+      end: endOfToday,
+    };
+  }
+
+  // Ontem
+  if (lower.includes('ontem')) {
+    const yesterdayStart = new Date(startOfToday);
+    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+
+    const yesterdayEnd = new Date(endOfToday);
+    yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
+
+    return {
+      label: 'Ontem',
+      start: yesterdayStart,
+      end: yesterdayEnd,
+    };
+  }
+
+  // Últimos 7 dias
+  if (
+    lower.includes('últimos 7 dias') ||
+    lower.includes('ultimos 7 dias')
+  ) {
+    const start = new Date(startOfToday);
+    start.setDate(start.getDate() - 6);
+
+    return {
+      label: 'Últimos 7 dias',
+      start,
+      end: endOfToday,
+    };
+  }
+
+  // Últimos 15 dias
+  if (
+    lower.includes('últimos 15 dias') ||
+    lower.includes('ultimos 15 dias')
+  ) {
+    const start = new Date(startOfToday);
+    start.setDate(start.getDate() - 14);
+
+    return {
+      label: 'Últimos 15 dias',
+      start,
+      end: endOfToday,
+    };
+  }
+
+  // Últimos 30 dias
+  if (
+    lower.includes('últimos 30 dias') ||
+    lower.includes('ultimos 30 dias')
+  ) {
+    const start = new Date(startOfToday);
+    start.setDate(start.getDate() - 29);
+
+    return {
+      label: 'Últimos 30 dias',
+      start,
+      end: endOfToday,
+    };
+  }
+
+  // Semana passada
+  if (lower.includes('semana passada')) {
+    const day = now.getDay();
+
+    const currentWeekStart = new Date(startOfToday);
+    currentWeekStart.setDate(currentWeekStart.getDate() - day);
+
+    const lastWeekStart = new Date(currentWeekStart);
+    lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+
+    const lastWeekEnd = new Date(currentWeekStart);
+    lastWeekEnd.setMilliseconds(-1);
+
+    return {
+      label: 'Semana passada',
+      start: lastWeekStart,
+      end: lastWeekEnd,
+    };
+  }
+
+  // Esta semana
+  if (
+    lower.includes('esta semana') ||
+    lower.includes('essa semana')
+  ) {
+    const day = now.getDay();
+
+    const weekStart = new Date(startOfToday);
+    weekStart.setDate(weekStart.getDate() - day);
+
+    return {
+      label: 'Esta semana',
+      start: weekStart,
+      end: endOfToday,
+    };
+  }
+
+  // Mês passado
+  if (
+    lower.includes('mês passado') ||
+    lower.includes('mes passado')
+  ) {
+    const start = new Date(
+      now.getFullYear(),
+      now.getMonth() - 1,
+      1
+    );
+
+    const end = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      0,
+      23,
+      59,
+      59,
+      999
+    );
+
+    return {
+      label: 'Mês passado',
+      start,
+      end,
+    };
+  }
+
+  return null;
+};
+
 const getComparisonPeriods = (question) => {
   const lower = question.toLowerCase();
 
@@ -221,7 +383,10 @@ const buildContext = async ({ month, year, start, end }) => {
   return {
     month,
     year,
-    periodLabel: getMonthLabel(month, year),
+    periodLabel:
+  month && year
+    ? getMonthLabel(month, year)
+    : 'Período personalizado',
     totalIncome,
     totalExpenses,
     balance,
@@ -545,106 +710,99 @@ const askIABebcom = async (req, res) => {
     }
 
     const comparisonPeriods = getComparisonPeriods(question);
+    const relativePeriod = getRelativePeriod(question);
 
-let period;
-let ctx;
-let previousCtx;
+    let period;
+    let ctx;
+    let previousCtx;
 
-if (comparisonPeriods) {
-  period = comparisonPeriods.current;
+    if (comparisonPeriods) {
+      period = comparisonPeriods.current;
+      ctx = await buildContext(comparisonPeriods.current);
+      previousCtx = await buildContext(comparisonPeriods.compare);
+    } else if (relativePeriod) {
+      period = {
+        month: null,
+        year: null,
+        start: relativePeriod.start,
+        end: relativePeriod.end,
+      };
 
-  ctx = await buildContext(comparisonPeriods.current);
+      ctx = await buildContext(period);
+      ctx.periodLabel = relativePeriod.label;
 
-  previousCtx = await buildContext(
-    comparisonPeriods.compare
-  );
-} else {
-  period = getPeriodFromQuestion(question);
+      previousCtx = { ...ctx };
+    } else {
+      period = getPeriodFromQuestion(question);
+      ctx = await buildContext(period);
 
-  ctx = await buildContext(period);
+      const previousMonth = period.month === 1 ? 12 : period.month - 1;
+      const previousYear = period.month === 1 ? period.year - 1 : period.year;
 
-  const previousMonth =
-    period.month === 1 ? 12 : period.month - 1;
+      const previousPeriod = {
+        month: previousMonth,
+        year: previousYear,
+        start: new Date(previousYear, previousMonth - 1, 1),
+        end: new Date(previousYear, previousMonth, 0, 23, 59, 59, 999),
+      };
 
-  const previousYear =
-    period.month === 1
-      ? period.year - 1
-      : period.year;
+      previousCtx = await buildContext(previousPeriod);
+    }
 
-  const previousPeriod = {
-    month: previousMonth,
-    year: previousYear,
-    start: new Date(previousYear, previousMonth - 1, 1),
-    end: new Date(
-      previousYear,
-      previousMonth,
-      0,
-      23,
-      59,
-      59,
-      999
-    ),
-  };
-
-  previousCtx = await buildContext(previousPeriod);
-}
-
-const analyticalInsights = buildAnalyticalInsights(
-  ctx,
-  previousCtx
-);
+    const analyticalInsights = buildAnalyticalInsights(ctx, previousCtx);
 
     const lowerQuestion = question.toLowerCase();
+
     const isComparisonQuestion =
-  lowerQuestion.includes('compare') ||
-  lowerQuestion.includes('compar') ||
-  lowerQuestion.includes('versus') ||
-  lowerQuestion.includes('vs');
+      lowerQuestion.includes('compare') ||
+      lowerQuestion.includes('compar') ||
+      lowerQuestion.includes('versus') ||
+      lowerQuestion.includes('vs');
 
     let answer = '';
 
-  if (
-  isComparisonQuestion &&
-  (
-    lowerQuestion.includes('ticket') ||
-    lowerQuestion.includes('médio') ||
-    lowerQuestion.includes('medio') ||
-    lowerQuestion.includes('comanda')
-  )
-) {
-  answer = buildTicketComparisonAnswer(ctx, previousCtx);
-} else if (isComparisonQuestion) {
-  answer = buildComparisonAnswer(ctx, previousCtx);
-} else if (lowerQuestion.includes('fluxo') || lowerQuestion.includes('caixa')) {
-  answer = buildFlowAnswer(ctx);
-} else if (
-  lowerQuestion.includes('ticket') ||
-  lowerQuestion.includes('médio') ||
-  lowerQuestion.includes('medio') ||
-  lowerQuestion.includes('comanda')
-) {
-  answer = buildTicketAnswer(ctx);
-} else if (
-  lowerQuestion.includes('despesa') ||
-  lowerQuestion.includes('reduzir') ||
-  lowerQuestion.includes('custo') ||
-  lowerQuestion.includes('gasto')
-) {
-  answer = buildExpenseAnswer(ctx);
-} else if (
-  lowerQuestion.includes('estoque') ||
-  lowerQuestion.includes('mercadoria') ||
-  lowerQuestion.includes('compra')
-) {
-  answer = buildInventoryAnswer(ctx);
-} else if (
-  lowerQuestion.includes('operação') ||
-  lowerQuestion.includes('operacao') ||
-  lowerQuestion.includes('atenção') ||
-  lowerQuestion.includes('atencao') ||
-  lowerQuestion.includes('ponto')
-) {
-  answer = buildOperationAnswer(ctx);
+    if (
+      isComparisonQuestion &&
+      (
+        lowerQuestion.includes('ticket') ||
+        lowerQuestion.includes('médio') ||
+        lowerQuestion.includes('medio') ||
+        lowerQuestion.includes('comanda')
+      )
+    ) {
+      answer = buildTicketComparisonAnswer(ctx, previousCtx);
+    } else if (isComparisonQuestion) {
+      answer = buildComparisonAnswer(ctx, previousCtx);
+    } else if (lowerQuestion.includes('fluxo') || lowerQuestion.includes('caixa')) {
+      answer = buildFlowAnswer(ctx);
+    } else if (
+      lowerQuestion.includes('ticket') ||
+      lowerQuestion.includes('médio') ||
+      lowerQuestion.includes('medio') ||
+      lowerQuestion.includes('comanda')
+    ) {
+      answer = buildTicketAnswer(ctx);
+    } else if (
+      lowerQuestion.includes('despesa') ||
+      lowerQuestion.includes('reduzir') ||
+      lowerQuestion.includes('custo') ||
+      lowerQuestion.includes('gasto')
+    ) {
+      answer = buildExpenseAnswer(ctx);
+    } else if (
+      lowerQuestion.includes('estoque') ||
+      lowerQuestion.includes('mercadoria') ||
+      lowerQuestion.includes('compra')
+    ) {
+      answer = buildInventoryAnswer(ctx);
+    } else if (
+      lowerQuestion.includes('operação') ||
+      lowerQuestion.includes('operacao') ||
+      lowerQuestion.includes('atenção') ||
+      lowerQuestion.includes('atencao') ||
+      lowerQuestion.includes('ponto')
+    ) {
+      answer = buildOperationAnswer(ctx);
     } else {
       answer = `
 Entendi sua pergunta: "${question}".
@@ -670,7 +828,7 @@ Você pode perguntar de forma mais específica, por exemplo:
 “Como estava meu fluxo em abril de 2026?”
 “Quais despesas pesaram em maio?”
 “Como melhorar o ticket médio?”
-“Quais pontos merecem atenção na operação?”
+“Como foi a semana passada?”
       `.trim();
     }
 
@@ -696,7 +854,6 @@ Você pode perguntar de forma mais específica, por exemplo:
     });
   }
 };
-
 module.exports = {
   askIABebcom,
 };

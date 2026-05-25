@@ -485,6 +485,53 @@ O ideal é acompanhar crescimento de receita junto com margem, despesas e geraç
   `.trim();
 };
 
+const buildTicketComparisonAnswer = (currentCtx, compareCtx) => {
+  const currentTicket = currentCtx.managementReport?.averageTicket || 0;
+  const compareTicket = compareCtx.managementReport?.averageTicket || 0;
+
+  const currentRevenue = currentCtx.managementReport?.netRevenue || 0;
+  const compareRevenue = compareCtx.managementReport?.netRevenue || 0;
+
+  const currentTickets = currentCtx.managementReport?.totalTickets || 0;
+  const compareTickets = compareCtx.managementReport?.totalTickets || 0;
+
+  const ticketVariation = calculateVariation(currentTicket, compareTicket);
+  const revenueVariation = calculateVariation(currentRevenue, compareRevenue);
+  const volumeVariation = calculateVariation(currentTickets, compareTickets);
+
+  return `
+Comparativo de Ticket Médio: ${currentCtx.periodLabel} vs ${compareCtx.periodLabel}
+
+Ticket médio:
+${compareCtx.periodLabel}: ${formatCurrency(compareTicket)}
+${currentCtx.periodLabel}: ${formatCurrency(currentTicket)}
+Variação: ${ticketVariation.toFixed(1)}%
+
+Receita líquida gerencial:
+${compareCtx.periodLabel}: ${formatCurrency(compareRevenue)}
+${currentCtx.periodLabel}: ${formatCurrency(currentRevenue)}
+Variação: ${revenueVariation.toFixed(1)}%
+
+Total de comandas:
+${compareCtx.periodLabel}: ${compareTickets}
+${currentCtx.periodLabel}: ${currentTickets}
+Variação: ${volumeVariation.toFixed(1)}%
+
+Leitura gerencial:
+${
+  currentTicket > compareTicket && currentTickets < compareTickets
+    ? 'O ticket médio subiu, mas o volume de comandas caiu. Isso indica vendas de maior valor, porém para menos clientes.'
+    : currentTicket > compareTicket
+    ? 'O ticket médio melhorou em relação ao período comparado, indicando aumento no valor médio por venda.'
+    : currentTicket < compareTicket
+    ? 'O ticket médio caiu em relação ao período comparado. Vale revisar mix de produtos, combos e estratégias de venda.'
+    : 'O ticket médio ficou estável no comparativo.'
+}
+
+Minha sugestão:
+Use esse comparativo para entender se a empresa está crescendo por volume de clientes, por aumento do valor médio de compra, ou por uma combinação dos dois.
+  `.trim();
+};
 // @desc    Ask IA Bebcom
 // @route   POST /api/ia/ask
 const askIABebcom = async (req, res) => {
@@ -556,39 +603,48 @@ const analyticalInsights = buildAnalyticalInsights(
 
     let answer = '';
 
-    if (isComparisonQuestion) {
+  if (
+  isComparisonQuestion &&
+  (
+    lowerQuestion.includes('ticket') ||
+    lowerQuestion.includes('médio') ||
+    lowerQuestion.includes('medio') ||
+    lowerQuestion.includes('comanda')
+  )
+) {
+  answer = buildTicketComparisonAnswer(ctx, previousCtx);
+} else if (isComparisonQuestion) {
   answer = buildComparisonAnswer(ctx, previousCtx);
-}
-else if (lowerQuestion.includes('fluxo') || lowerQuestion.includes('caixa')) {
-      answer = buildFlowAnswer(ctx);
-    } else if (
-      lowerQuestion.includes('ticket') ||
-      lowerQuestion.includes('médio') ||
-      lowerQuestion.includes('medio') ||
-      lowerQuestion.includes('comanda')
-    ) {
-      answer = buildTicketAnswer(ctx);
-    } else if (
-      lowerQuestion.includes('despesa') ||
-      lowerQuestion.includes('reduzir') ||
-      lowerQuestion.includes('custo') ||
-      lowerQuestion.includes('gasto')
-    ) {
-      answer = buildExpenseAnswer(ctx);
-    } else if (
-      lowerQuestion.includes('estoque') ||
-      lowerQuestion.includes('mercadoria') ||
-      lowerQuestion.includes('compra')
-    ) {
-      answer = buildInventoryAnswer(ctx);
-    } else if (
-      lowerQuestion.includes('operação') ||
-      lowerQuestion.includes('operacao') ||
-      lowerQuestion.includes('atenção') ||
-      lowerQuestion.includes('atencao') ||
-      lowerQuestion.includes('ponto')
-    ) {
-      answer = buildOperationAnswer(ctx);
+} else if (lowerQuestion.includes('fluxo') || lowerQuestion.includes('caixa')) {
+  answer = buildFlowAnswer(ctx);
+} else if (
+  lowerQuestion.includes('ticket') ||
+  lowerQuestion.includes('médio') ||
+  lowerQuestion.includes('medio') ||
+  lowerQuestion.includes('comanda')
+) {
+  answer = buildTicketAnswer(ctx);
+} else if (
+  lowerQuestion.includes('despesa') ||
+  lowerQuestion.includes('reduzir') ||
+  lowerQuestion.includes('custo') ||
+  lowerQuestion.includes('gasto')
+) {
+  answer = buildExpenseAnswer(ctx);
+} else if (
+  lowerQuestion.includes('estoque') ||
+  lowerQuestion.includes('mercadoria') ||
+  lowerQuestion.includes('compra')
+) {
+  answer = buildInventoryAnswer(ctx);
+} else if (
+  lowerQuestion.includes('operação') ||
+  lowerQuestion.includes('operacao') ||
+  lowerQuestion.includes('atenção') ||
+  lowerQuestion.includes('atencao') ||
+  lowerQuestion.includes('ponto')
+) {
+  answer = buildOperationAnswer(ctx);
     } else {
       answer = `
 Entendi sua pergunta: "${question}".

@@ -12,6 +12,7 @@ import BalanceSheet from './pages/BalanceSheet';
 import Inventory from './pages/Inventory';
 import Accounts from './pages/Accounts';
 import ManagementReport from './pages/ManagementReport';
+import IABebcom from './pages/IABebcom';
 
 import PrivateRoute from './components/PrivateRoute';
 import Sidebar from './components/Sidebar';
@@ -190,6 +191,16 @@ function App() {
          }
         />
 
+        <Route
+           path="/ia-bebcom"
+           element={
+             <PrivateRoute>
+                <AuthenticatedLayout>
+                  <IABebcom />
+                </AuthenticatedLayout>
+             </PrivateRoute>
+           }
+        />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Router>

@@ -532,9 +532,10 @@ const limitedEndDate = endDate;
     });
 
   const accounts = await Account.find({
-  deleted: { $ne: true },
+  deleted: false,
   status: { $in: ['pending', 'overdue'] },
   dueDate: {
+    $gte: startDate,
     $lte: limitedEndDate,
   },
 });

@@ -12,6 +12,7 @@ import {
   Beer,
   X,
   Boxes,
+  Bot,
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, onClose, isMobile }) => {
@@ -31,6 +32,7 @@ const Sidebar = ({ isOpen, onClose, isMobile }) => {
     { path: '/balance-sheet', icon: Scale, label: 'Balanço Patrimonial' },
     { path: '/inventory', icon: Boxes, label: 'Estoque' },
     { path: '/management-report', icon: BarChart3, label: 'Relatório Gerencial' },
+    { path: '/ia-bebcom', icon: Bot, label: 'IA Bebcom' },
   ];
 
   const handleNavClick = () => {

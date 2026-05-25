@@ -529,9 +529,12 @@ const limitedEndDate = endDate;
       paidExpenses += Math.abs(Number(entry.amount || 0));
     });
 
-    const accounts = await Account.find({
-  deleted: false,
+   const accounts = await Account.find({
+  deleted: { $ne: true },
+  type: { $in: ['payable', 'receivable'] },
   status: { $in: ['pending', 'overdue'] },
+  generatedEntry: { $exists: false },
+  entryGenerated: { $ne: true },
   dueDate: {
     $lte: limitedEndDate,
   },

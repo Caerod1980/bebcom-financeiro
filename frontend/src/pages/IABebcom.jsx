@@ -1,3 +1,4 @@
+import { iaService } from '../services/api';
 import React, { useState } from 'react';
 import {
   Bot,
@@ -47,27 +48,9 @@ const IABebcom = () => {
   setLoading(true);
 
   try {
-    const token = localStorage.getItem('token');
+    const response = await iaService.ask(currentQuestion);
 
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/api/ia/ask`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          question: currentQuestion,
-        }),
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || 'Erro ao consultar IA.');
-    }
+    const data = response.data;
 
     const aiMessage = {
       role: 'assistant',

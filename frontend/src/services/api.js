@@ -275,4 +275,9 @@ export const healthService = {
   getApiUrl: () => getApiUrl(),
 };
 
+export const iaService = {
+  ask: (question) =>
+    api.post('/ia/ask', { question }),
+};
+
 export default api;

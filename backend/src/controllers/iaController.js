@@ -433,6 +433,41 @@ Acompanhe o fluxo previsto junto com o fluxo realizado. Se as contas a pagar for
   `.trim();
 };
 
+const buildRelativePeriodAnswer = (ctx) => {
+  const topExpenses = ctx.expenseCategories
+    .slice(0, 3)
+    .map(
+      (item, index) =>
+        `${index + 1}. ${item.category}: ${formatCurrency(item.amount)}`
+    )
+    .join('\n');
+
+  return `
+Análise de ${ctx.periodLabel}:
+
+Entradas realizadas: ${formatCurrency(ctx.totalIncome)}
+Saídas realizadas: ${formatCurrency(ctx.totalExpenses)}
+Saldo realizado: ${formatCurrency(ctx.balance)}
+
+Contas pendentes/vencidas:
+Pagar: ${formatCurrency(ctx.pendingPayable)}
+Receber: ${formatCurrency(ctx.pendingReceivable)}
+
+Principais despesas identificadas:
+${topExpenses || 'Ainda não há despesas suficientes classificadas neste período.'}
+
+Leitura gerencial:
+${
+  ctx.balance >= 0
+    ? 'O período apresentou resultado positivo, indicando equilíbrio operacional nas movimentações registradas.'
+    : 'O período apresentou resultado negativo, exigindo atenção ao caixa e ao controle de despesas.'
+}
+
+Minha leitura:
+Períodos curtos ajudam a identificar comportamento operacional recente, pressão de caixa e tendência imediata da operação.
+  `.trim();
+};
+
 const buildTicketAnswer = (ctx) => {
   const averageTicket = ctx.managementReport?.averageTicket || 0;
   const netRevenue = ctx.managementReport?.netRevenue || 0;
@@ -760,9 +795,13 @@ const askIABebcom = async (req, res) => {
       lowerQuestion.includes('vs');
 
     let answer = '';
+    const isRelativeQuestion = !!relativePeriod;
 
-    if (
-      isComparisonQuestion &&
+    if (isRelativeQuestion) {
+  answer = buildRelativePeriodAnswer(ctx);
+}
+else if (
+  isComparisonQuestion &&
       (
         lowerQuestion.includes('ticket') ||
         lowerQuestion.includes('médio') ||

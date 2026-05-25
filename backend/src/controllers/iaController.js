@@ -353,6 +353,55 @@ const buildAnalyticalInsights = (currentCtx, previousCtx) => {
   return insights;
 };
 
+const buildComparisonAnswer = (currentCtx, compareCtx) => {
+  const revenueVariation = calculateVariation(
+    currentCtx.totalIncome,
+    compareCtx.totalIncome
+  );
+
+  const expenseVariation = calculateVariation(
+    currentCtx.totalExpenses,
+    compareCtx.totalExpenses
+  );
+
+  const balanceVariation = calculateVariation(
+    currentCtx.balance,
+    compareCtx.balance
+  );
+
+  return `
+Comparativo: ${currentCtx.periodLabel} vs ${compareCtx.periodLabel}
+
+Receita:
+${compareCtx.periodLabel}: ${formatCurrency(compareCtx.totalIncome)}
+${currentCtx.periodLabel}: ${formatCurrency(currentCtx.totalIncome)}
+Variação: ${revenueVariation.toFixed(1)}%
+
+Despesas:
+${compareCtx.periodLabel}: ${formatCurrency(compareCtx.totalExpenses)}
+${currentCtx.periodLabel}: ${formatCurrency(currentCtx.totalExpenses)}
+Variação: ${expenseVariation.toFixed(1)}%
+
+Resultado:
+${compareCtx.periodLabel}: ${formatCurrency(compareCtx.balance)}
+${currentCtx.periodLabel}: ${formatCurrency(currentCtx.balance)}
+Variação: ${balanceVariation.toFixed(1)}%
+
+Leitura gerencial:
+${
+  currentCtx.totalIncome > compareCtx.totalIncome &&
+  currentCtx.balance < compareCtx.balance
+    ? 'A receita cresceu, porém o resultado piorou. Isso indica aumento relevante das despesas ou perda de margem.'
+    : currentCtx.balance > compareCtx.balance
+    ? 'O resultado operacional melhorou em relação ao período comparado.'
+    : 'O período atual apresentou pior desempenho operacional em relação ao comparativo.'
+}
+
+Minha leitura:
+O ideal é acompanhar crescimento de receita junto com margem, despesas e geração de caixa. Crescimento sem controle operacional pode pressionar o financeiro.
+  `.trim();
+};
+
 // @desc    Ask IA Bebcom
 // @route   POST /api/ia/ask
 const askIABebcom = async (req, res) => {
@@ -398,10 +447,18 @@ const analyticalInsights = buildAnalyticalInsights(
 );
 
     const lowerQuestion = question.toLowerCase();
+    const isComparisonQuestion =
+  lowerQuestion.includes('compare') ||
+  lowerQuestion.includes('compar') ||
+  lowerQuestion.includes('versus') ||
+  lowerQuestion.includes('vs');
 
     let answer = '';
 
-    if (lowerQuestion.includes('fluxo') || lowerQuestion.includes('caixa')) {
+    if (isComparisonQuestion) {
+  answer = buildComparisonAnswer(ctx, previousCtx);
+}
+else if (lowerQuestion.includes('fluxo') || lowerQuestion.includes('caixa')) {
       answer = buildFlowAnswer(ctx);
     } else if (
       lowerQuestion.includes('ticket') ||

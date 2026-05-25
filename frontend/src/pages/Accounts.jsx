@@ -271,7 +271,8 @@ useEffect(() => {
       }
 
       resetForm();
-      loadAccounts();
+      await loadAccounts();
+      await loadCashFlow();
     } catch (error) {
       toast.error(error.response?.data?.error || 'Erro ao salvar conta');
       console.error(error);
@@ -298,7 +299,8 @@ useEffect(() => {
     try {
       await accountService.settle(account._id, getTodayLocalDate());
       toast.success(`Conta marcada como ${label}!`);
-      loadAccounts();
+      await loadAccounts();
+      await loadCashFlow();
     } catch (error) {
       toast.error(error.response?.data?.error || 'Erro ao baixar conta');
     }
@@ -310,7 +312,8 @@ useEffect(() => {
     try {
       await accountService.cancel(account._id);
       toast.success('Conta cancelada com sucesso!');
-      loadAccounts();
+      await loadAccounts();
+      await loadCashFlow();
     } catch (error) {
       toast.error(error.response?.data?.error || 'Erro ao cancelar conta');
     }
@@ -322,7 +325,8 @@ useEffect(() => {
     try {
       await accountService.delete(account._id);
       toast.success('Conta excluída com sucesso!');
-      loadAccounts();
+      await loadAccounts();
+      await loadCashFlow();
     } catch (error) {
       toast.error(error.response?.data?.error || 'Erro ao excluir conta');
     }

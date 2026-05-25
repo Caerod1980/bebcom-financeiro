@@ -29,40 +29,62 @@ const IABebcom = () => {
     'Como posso reduzir despesas sem prejudicar a loja?',
   ];
 
-  const handleAsk = async () => {
-    if (!question.trim()) {
-      toast.error('Digite uma pergunta para a IA Bebcom.');
-      return;
+ const handleAsk = async () => {
+  if (!question.trim()) {
+    toast.error('Digite uma pergunta para a IA Bebcom.');
+    return;
+  }
+
+  const currentQuestion = question;
+
+  const userMessage = {
+    role: 'user',
+    content: currentQuestion,
+  };
+
+  setMessages((prev) => [...prev, userMessage]);
+  setQuestion('');
+  setLoading(true);
+
+  try {
+    const token = localStorage.getItem('token');
+
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/ia/ask`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          question: currentQuestion,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Erro ao consultar IA.');
     }
 
-    const userMessage = {
-      role: 'user',
-      content: question,
+    const aiMessage = {
+      role: 'assistant',
+      content: data.answer,
     };
 
-    setMessages((prev) => [...prev, userMessage]);
-    setQuestion('');
-    setLoading(true);
+    setMessages((prev) => [...prev, aiMessage]);
+  } catch (error) {
+    console.error(error);
 
-    try {
-      // Resposta inicial simulada.
-      // Na próxima etapa conectaremos ao backend e aos dados reais.
-      const aiMessage = {
-        role: 'assistant',
-        content:
-          'Análise inicial: nesta primeira fase, estou pronta para atuar como consultora gerencial. Na próxima etapa vou me conectar aos dados reais do Bebcom Financeiro para analisar DRE, fluxo de caixa, contas, estoque e relatório gerencial com segurança, apenas em modo leitura.',
-      };
-
-      setTimeout(() => {
-        setMessages((prev) => [...prev, aiMessage]);
-        setLoading(false);
-      }, 700);
-    } catch (error) {
-      toast.error('Erro ao consultar a IA Bebcom.');
-      console.error(error);
-      setLoading(false);
-    }
-  };
+    toast.error(
+      error.message || 'Erro ao consultar a IA Bebcom.'
+    );
+  } finally {
+    setLoading(false);
+  }
+}; 
 
   const handleSuggestion = (text) => {
     setQuestion(text);

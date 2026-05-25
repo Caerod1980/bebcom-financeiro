@@ -12,6 +12,7 @@ const balanceSheetRoutes = require('./src/routes/balanceSheetRoutes');
 const accountRoutes = require('./src/routes/accountRoutes');
 const inventoryRoutes = require('./src/routes/inventoryRoutes');
 const managementReportRoutes = require('./src/routes/managementReportRoutes');
+const iaRoutes = require('./src/routes/iaRoutes');
 
 const app = express();
 
@@ -78,6 +79,7 @@ app.use('/api/balance-sheet', balanceSheetRoutes);
 app.use('/api/accounts', accountRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/management-report', managementReportRoutes);
+app.use('/api/ia', iaRoutes);
 
 // Not found handler
 app.use((req, res) => {

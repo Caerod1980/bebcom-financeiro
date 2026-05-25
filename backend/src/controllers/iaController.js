@@ -293,6 +293,66 @@ Sugestão:
 Use essa informação para equilibrar compra, giro e disponibilidade dos produtos mais importantes.
 `.trim();
 
+const calculateVariation = (current, previous) => {
+  if (!previous || previous === 0) return 0;
+
+  return ((current - previous) / previous) * 100;
+};
+
+const buildAnalyticalInsights = (currentCtx, previousCtx) => {
+  const insights = [];
+
+  const revenueVariation = calculateVariation(
+    currentCtx.totalIncome,
+    previousCtx.totalIncome
+  );
+
+  const expenseVariation = calculateVariation(
+    currentCtx.totalExpenses,
+    previousCtx.totalExpenses
+  );
+
+  const currentTicket = currentCtx.managementReport?.averageTicket || 0;
+  const previousTicket = previousCtx.managementReport?.averageTicket || 0;
+
+  const ticketVariation = calculateVariation(currentTicket, previousTicket);
+
+  const currentTickets = currentCtx.managementReport?.totalTickets || 0;
+  const previousTickets = previousCtx.managementReport?.totalTickets || 0;
+
+  if (revenueVariation > 0 && currentCtx.balance < previousCtx.balance) {
+    insights.push(
+      'Apesar do crescimento da receita, o lucro caiu. Isso pode indicar aumento de despesas operacionais ou redução de margem.'
+    );
+  }
+
+  if (expenseVariation > revenueVariation && expenseVariation > 0) {
+    insights.push(
+      'As despesas cresceram proporcionalmente mais que a receita. Isso merece atenção para evitar pressão no caixa.'
+    );
+  }
+
+  if (ticketVariation > 0 && currentTickets < previousTickets) {
+    insights.push(
+      'O ticket médio aumentou, porém o volume de comandas caiu. Isso indica vendas mais qualificadas, mas para menos clientes.'
+    );
+  }
+
+  if (currentCtx.balance < 0) {
+    insights.push(
+      'O saldo realizado do período está negativo. É importante preservar caixa e acompanhar vencimentos próximos.'
+    );
+  }
+
+  if (currentTicket === 0) {
+    insights.push(
+      'O Relatório Gerencial deste período ainda não possui ticket médio lançado.'
+    );
+  }
+
+  return insights;
+};
+
 // @desc    Ask IA Bebcom
 // @route   POST /api/ia/ask
 const askIABebcom = async (req, res) => {
@@ -307,6 +367,35 @@ const askIABebcom = async (req, res) => {
 
     const period = getPeriodFromQuestion(question);
     const ctx = await buildContext(period);
+    const previousMonth =
+  period.month === 1 ? 12 : period.month - 1;
+
+const previousYear =
+  period.month === 1
+    ? period.year - 1
+    : period.year;
+
+const previousPeriod = {
+  month: previousMonth,
+  year: previousYear,
+  start: new Date(previousYear, previousMonth - 1, 1),
+  end: new Date(
+    previousYear,
+    previousMonth,
+    0,
+    23,
+    59,
+    59,
+    999
+  ),
+};
+
+const previousCtx = await buildContext(previousPeriod);
+
+const analyticalInsights = buildAnalyticalInsights(
+  ctx,
+  previousCtx
+);
 
     const lowerQuestion = question.toLowerCase();
 
@@ -355,6 +444,13 @@ Saldo realizado: ${formatCurrency(ctx.balance)}
 Contas a pagar pendentes/vencidas: ${formatCurrency(ctx.pendingPayable)}
 Ticket médio: ${formatCurrency(ctx.managementReport?.averageTicket || 0)}
 Estoque estimado: ${formatCurrency(ctx.inventory?.finalStock || 0)}
+
+Insights automáticos identificados:
+${
+  analyticalInsights.length > 0
+    ? analyticalInsights.map((i) => `• ${i}`).join('\n')
+    : 'Nenhum insight crítico identificado no comparativo atual.'
+}
 
 Você pode perguntar de forma mais específica, por exemplo:
 “Como estava meu fluxo em abril de 2026?”

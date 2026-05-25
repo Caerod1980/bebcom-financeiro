@@ -54,51 +54,59 @@ const getPeriodFromQuestion = (question) => {
 const getComparisonPeriods = (question) => {
   const lower = question.toLowerCase();
 
-  const detectedMonths = [];
+  const now = new Date();
+
+  const detected = [];
 
   monthNames.forEach((item) => {
     item.names.forEach((name) => {
-      const index = lower.indexOf(name);
+      const regex = new RegExp(
+        `${name}\\s*(20\\d{2})?`,
+        'gi'
+      );
 
-      if (index !== -1) {
-        detectedMonths.push({
+      let match;
+
+      while ((match = regex.exec(lower)) !== null) {
+        detected.push({
           month: item.number,
-          index,
+          year: match[1]
+            ? Number(match[1])
+            : now.getFullYear(),
+          index: match.index,
         });
       }
     });
   });
 
-  detectedMonths.sort((a, b) => a.index - b.index);
+  detected.sort((a, b) => a.index - b.index);
 
-  const uniqueMonths = [];
+  const uniqueDetected = [];
 
-  detectedMonths.forEach((item) => {
-    if (!uniqueMonths.find((m) => m.month === item.month)) {
-      uniqueMonths.push(item);
+  detected.forEach((item) => {
+    const alreadyExists = uniqueDetected.find(
+      (d) =>
+        d.month === item.month &&
+        d.year === item.year
+    );
+
+    if (!alreadyExists) {
+      uniqueDetected.push(item);
     }
   });
 
-  const now = new Date();
-
-  const yearMatch = lower.match(/\b(20\d{2})\b/);
-
-  const year = yearMatch
-    ? Number(yearMatch[1])
-    : now.getFullYear();
-
-  if (uniqueMonths.length >= 2) {
-    const currentMonth = uniqueMonths[0].month;
-    const compareMonth = uniqueMonths[1].month;
+  if (uniqueDetected.length >= 2) {
+    const current = uniqueDetected[0];
+    const compare = uniqueDetected[1];
 
     return {
       current: {
-        month: currentMonth,
-        year,
-        start: new Date(year, currentMonth - 1, 1),
+        month: current.month,
+        year: current.year,
+        start: new Date(current.year, current.month - 1, 1),
         end: new Date(
-          year,
-          currentMonth,
+          current.year,
+          current.month,
           0,
           23,
           59,
@@ -108,12 +116,12 @@ const getComparisonPeriods = (question) => {
       },
 
       compare: {
-        month: compareMonth,
-        year,
-        start: new Date(year, compareMonth - 1, 1),
+        month: compare.month,
+        year: compare.year,
+        start: new Date(compare.year, compare.month - 1, 1),
         end: new Date(
-          year,
-          compareMonth,
+          compare.year,
+          compare.month,
           0,
           23,
           59,
@@ -126,7 +134,6 @@ const getComparisonPeriods = (question) => {
 
   return null;
 };
-
 const getMonthLabel = (month, year) => {
   const fullMonths = [
     'Janeiro',

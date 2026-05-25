@@ -565,9 +565,7 @@ const receivable =
 const shouldIncludePaidExpenses =
   period.startOffset === 0 && period.endOffset === 0;
 
-const totalPayable = shouldIncludePaidExpenses
-  ? paidExpenses + pendingPayable
-  : pendingPayable;
+const totalPayable = pendingPayable;
 
 projection.push({
   label: period.label,

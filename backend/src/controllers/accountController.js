@@ -2,6 +2,8 @@ const Account = require('../models/Account');
 const Entry = require('../models/Entry');
 const dreService = require('../services/dreService');
 
+// Redeploy marker: cash-flow-projection-fix-2026-05-25
+
 const toNumber = (value) => {
   const number = Number(value || 0);
   return Number.isFinite(number) ? number : 0;

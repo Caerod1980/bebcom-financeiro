@@ -733,6 +733,92 @@ const buildOperationalTrend = (currentCtx, previousCtx) => {
 
   return trends;
 };
+const buildOperationalPriorities = (currentCtx, previousCtx) => {
+  const priorities = [];
+
+  const currentTicket =
+    currentCtx.managementReport?.averageTicket || 0;
+
+  const previousTicket =
+    previousCtx.managementReport?.averageTicket || 0;
+
+  const expenseVariation = calculateVariation(
+    currentCtx.totalExpenses,
+    previousCtx.totalExpenses
+  );
+
+  const revenueVariation = calculateVariation(
+    currentCtx.totalIncome,
+    previousCtx.totalIncome
+  );
+
+  // Caixa negativo
+  if (currentCtx.balance < 0) {
+    priorities.push({
+      level: 1,
+      message:
+        'Atenção imediata ao caixa: o período está operando com saldo negativo.',
+    });
+  }
+
+  // Despesas maiores que receita
+  if (currentCtx.totalExpenses > currentCtx.totalIncome) {
+    priorities.push({
+      level: 2,
+      message:
+        'As despesas estão maiores que as entradas no período analisado.',
+    });
+  }
+
+  // Crescimento descontrolado de despesas
+  if (expenseVariation > revenueVariation && expenseVariation > 10) {
+    priorities.push({
+      level: 3,
+      message:
+        'As despesas cresceram proporcionalmente mais que a receita.',
+    });
+  }
+
+  // Ticket médio caiu
+  if (
+    previousTicket > 0 &&
+    currentTicket < previousTicket
+  ) {
+    priorities.push({
+      level: 4,
+      message:
+        'O ticket médio apresentou queda em relação ao período anterior.',
+    });
+  }
+
+  // Contas elevadas
+  if (currentCtx.pendingPayable > currentCtx.totalIncome * 0.5) {
+    priorities.push({
+      level: 5,
+      message:
+        'As contas pendentes representam pressão relevante sobre o caixa.',
+    });
+  }
+
+  // Compras muito altas
+  const topExpense = currentCtx.expenseCategories?.[0];
+
+  if (
+    topExpense &&
+    topExpense.category === 'compras_mercadorias'
+  ) {
+    priorities.push({
+      level: 6,
+      message:
+        'Compras de mercadorias seguem como principal pressão financeira da operação.',
+    });
+  }
+
+  // Ordena prioridades
+  priorities.sort((a, b) => a.level - b.level);
+
+  return priorities;
+};
 
 const buildAutomaticRecommendations = (ctx) => {
   const recommendations = [];
@@ -1429,6 +1515,8 @@ const askIABebcom = async (req, res) => {
 
     const operationalTrends = buildOperationalTrend(ctx, previousCtx);
 
+    const operationalPriorities = buildOperationalPriorities(ctx, previousCtx);
+
     const lowerQuestion = question.toLowerCase();
 
     const isComparisonQuestion =
@@ -1526,6 +1614,17 @@ ${
   operationalTrends.length > 0
     ? operationalTrends.map((i) => `• ${i}`).join('\n')
     : 'Ainda não identifiquei tendência operacional relevante no comparativo atual.'
+}
+Prioridades operacionais:
+${
+  operationalPriorities.length > 0
+    ? operationalPriorities
+        .map(
+          (item, index) =>
+            `${index + 1}. ${item.message}`
+        )
+        .join('\n')
+    : 'Nenhuma prioridade crítica identificada no período atual.'
 }
 Você pode perguntar de forma mais específica, por exemplo:
 “Como estava meu fluxo em abril de 2026?”

@@ -213,6 +213,29 @@ const getRelativePeriod = (question) => {
   return null;
 };
 
+const getSpecificDatePeriod = (question) => {
+  const lower = question.toLowerCase();
+
+  const dateMatch = lower.match(/\b(\d{1,2})\/(\d{1,2})\/(20\d{2})\b/);
+
+  if (!dateMatch) {
+    return null;
+  }
+
+  const day = Number(dateMatch[1]);
+  const month = Number(dateMatch[2]);
+  const year = Number(dateMatch[3]);
+
+  const start = new Date(year, month - 1, day, 0, 0, 0, 0);
+  const end = new Date(year, month - 1, day, 23, 59, 59, 999);
+
+  return {
+    label: `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`,
+    start,
+    end,
+  };
+};
+
 const getComparisonPeriods = (question) => {
   const lower = question.toLowerCase();
 
@@ -792,6 +815,7 @@ const askIABebcom = async (req, res) => {
 
     const comparisonPeriods = getComparisonPeriods(question);
     const relativePeriod = getRelativePeriod(question);
+    const specificDatePeriod = getSpecificDatePeriod(question);
 
     let period;
     let ctx;
@@ -801,16 +825,16 @@ const askIABebcom = async (req, res) => {
       period = comparisonPeriods.current;
       ctx = await buildContext(comparisonPeriods.current);
       previousCtx = await buildContext(comparisonPeriods.compare);
-    } else if (relativePeriod) {
-      period = {
-        month: null,
-        year: null,
-        start: relativePeriod.start,
-        end: relativePeriod.end,
-      };
+    } else if (specificDatePeriod) {
+  period = {
+    month: null,
+    year: null,
+    start: specificDatePeriod.start,
+    end: specificDatePeriod.end,
+  };
 
       ctx = await buildContext(period);
-      ctx.periodLabel = relativePeriod.label;
+      ctx.periodLabel = specificDatePeriod.label;
 
       previousCtx = { ...ctx };
     } else {
@@ -841,7 +865,7 @@ const askIABebcom = async (req, res) => {
       lowerQuestion.includes('vs');
 
     let answer = '';
-    const isRelativeQuestion = !!relativePeriod;
+    const isRelativeQuestion = !!relativePeriod || !!specificDatePeriod;
 
     if (isRelativeQuestion) {
   answer = buildRelativePeriodAnswer(ctx);

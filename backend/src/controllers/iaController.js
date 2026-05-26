@@ -1046,64 +1046,221 @@ const getKnowledgeBaseAnswer = (question, ctx) => {
       );
     }
 
-    let strategicReading = '';
+let strategicReading = '';
+let nextAction = '';
 
-    if (bestMatch.id.includes('fluxo')) {
-      strategicReading = `
+if (bestMatch.id.includes('fluxo')) {
+  strategicReading = `
 Minha leitura aplicada:
-Para melhorar o fluxo de caixa, o Bebcom deve olhar primeiro para o equilíbrio entre entradas, compras e vencimentos. Se as compras estiverem concentradas antes das entradas, o caixa fica pressionado mesmo quando a loja vende bem.
-      `;
-    } else if (bestMatch.id.includes('ticket')) {
-      strategicReading = `
+O fluxo de caixa do Bebcom mostra que o principal ponto de atenção está no equilíbrio entre compras, vencimentos e entradas da operação.
+
+Quando compras acontecem antes da entrada do caixa, mesmo uma operação que vende bem pode ficar pressionada financeiramente.
+
+O ideal é acompanhar diariamente:
+• saldo disponível;
+• contas próximas do vencimento;
+• ritmo das compras;
+• velocidade de entrada do caixa.
+  `;
+
+  nextAction = `
+Próxima ação sugerida:
+Revise os vencimentos dos próximos 7 dias e avalie se as compras atuais estão proporcionais ao ritmo de entrada do caixa.
+  `;
+}
+
+else if (bestMatch.id.includes('ticket')) {
+  strategicReading = `
 Minha leitura aplicada:
-Para aumentar ticket médio, o foco deve ser elevar o valor por pedido sem depender apenas de aumento de clientes. Combos, kits e produtos complementares ajudam a melhorar receita com a mesma base de atendimento.
-      `;
-    } else if (bestMatch.id.includes('lucro')) {
-      strategicReading = `
+O ticket médio melhora quando cada cliente compra mais na mesma visita ou pedido.
+
+No Bebcom, isso pode ser trabalhado com:
+• combos;
+• kits;
+• produtos complementares;
+• upgrades;
+• sugestões rápidas no delivery.
+
+Pequenos aumentos no ticket médio geram impacto forte no faturamento total.
+  `;
+
+  nextAction = `
+Próxima ação sugerida:
+Escolha 3 produtos complementares e monte ofertas simples para estimular aumento do valor por pedido.
+  `;
+}
+
+else if (bestMatch.id.includes('lucro')) {
+  strategicReading = `
 Minha leitura aplicada:
-Para aumentar lucro, o ponto principal é melhorar margem e reduzir desperdícios. Nem sempre vender mais resolve: às vezes o resultado melhora comprando melhor, controlando perdas e priorizando produtos mais rentáveis.
-      `;
-    } else if (bestMatch.id.includes('fornecedores')) {
-      strategicReading = `
+O lucro do Bebcom depende mais de margem, controle operacional e desperdício do que apenas de aumento de faturamento.
+
+Hoje, o maior ponto de pressão está concentrado nas despesas operacionais e nas compras.
+
+Melhorar resultado significa:
+• comprar melhor;
+• reduzir perdas;
+• evitar desperdícios;
+• fortalecer produtos mais rentáveis.
+  `;
+
+  nextAction = `
+Próxima ação sugerida:
+Analise os produtos com maior saída e identifique quais possuem melhor margem para aumentar foco comercial.
+  `;
+}
+
+else if (bestMatch.id.includes('estoque')) {
+  strategicReading = `
 Minha leitura aplicada:
-A negociação com fornecedores deve buscar equilíbrio entre preço, prazo e giro. Prazo bom ajuda o caixa, mas compra excessiva pode virar estoque parado e comprometer capital de giro.
-      `;
-    } else if (bestMatch.id.includes('compras')) {
-      strategicReading = `
+Estoque parado deve ser tratado como dinheiro parado.
+
+Quando a empresa compra acima do giro real, o caixa perde força e a operação fica mais pressionada.
+
+O ideal é:
+• reduzir recompra de baixo giro;
+• acelerar saída dos produtos parados;
+• trabalhar promoções;
+• revisar compras semanalmente.
+  `;
+
+  nextAction = `
+Próxima ação sugerida:
+Liste os produtos com menor saída e crie ações simples para transformar estoque parado em caixa.
+  `;
+}
+
+else if (bestMatch.id.includes('delivery')) {
+  strategicReading = `
 Minha leitura aplicada:
-Compras devem ser feitas com base em giro, caixa e necessidade real. Comprar bem não é apenas comprar barato; é comprar o produto certo, na quantidade certa e no momento certo.
-      `;
-    } else if (bestMatch.id.includes('estoque')) {
-      strategicReading = `
+No delivery, velocidade, praticidade e conveniência possuem grande impacto na recompra.
+
+A operação do Bebcom pode crescer fortalecendo:
+• combos;
+• divulgação;
+• rapidez;
+• presença digital;
+• facilidade de pedido.
+
+Delivery forte é construído com recorrência e experiência.
+  `;
+
+  nextAction = `
+Próxima ação sugerida:
+Escolha um combo estratégico e trabalhe divulgação forte nos horários de maior movimento.
+  `;
+}
+
+else if (bestMatch.id.includes('marketing')) {
+  strategicReading = `
 Minha leitura aplicada:
-Estoque parado precisa ser tratado como dinheiro parado. A prioridade deve ser transformar produtos de baixo giro em caixa e evitar recompra antes de entender a saída real.
-      `;
-    } else if (bestMatch.id.includes('delivery')) {
-      strategicReading = `
+O marketing do Bebcom deve gerar desejo imediato e lembrança constante da marca.
+
+O mais importante para o segmento é:
+• presença nas redes sociais;
+• ofertas frequentes;
+• divulgação visual forte;
+• campanhas simples;
+• constância.
+
+Marketing eficiente transforma conveniência em hábito de compra.
+  `;
+
+  nextAction = `
+Próxima ação sugerida:
+Defina uma campanha simples da semana com foco em giro, ticket médio ou delivery.
+  `;
+}
+
+else if (bestMatch.id.includes('concorrencia')) {
+  strategicReading = `
 Minha leitura aplicada:
-No delivery, velocidade, apresentação e facilidade de compra pesam muito. A operação precisa vender conveniência, não apenas produto.
-      `;
-    } else if (bestMatch.id.includes('marketing')) {
-      strategicReading = `
+A melhor forma de enfrentar concorrência não é apenas baixar preço.
+
+O Bebcom deve fortalecer:
+• atendimento;
+• rapidez;
+• confiança;
+• variedade;
+• presença digital;
+• conveniência.
+
+Preço chama atenção. Experiência faz o cliente voltar.
+  `;
+
+  nextAction = `
+Próxima ação sugerida:
+Observe quais diferenciais o cliente mais percebe hoje e fortaleça isso na divulgação e operação.
+  `;
+}
+
+else if (bestMatch.id.includes('compras')) {
+  strategicReading = `
 Minha leitura aplicada:
-O marketing deve transformar produtos e ocasiões em desejo imediato. Para o Bebcom, redes sociais, delivery, combos e datas de consumo são pontos fortes para ativar venda rápida.
-      `;
-    } else if (bestMatch.id.includes('concorrencia')) {
-      strategicReading = `
+Compras organizadas ajudam diretamente o caixa, o estoque e a margem.
+
+O principal erro operacional normalmente é comprar baseado em impulso e não em giro real.
+
+Comprar melhor significa:
+• acompanhar saída;
+• evitar excesso;
+• reforçar produtos fortes;
+• preservar capital de giro.
+  `;
+
+  nextAction = `
+Próxima ação sugerida:
+Revise os produtos comprados recentemente e compare com o ritmo real de saída.
+  `;
+}
+
+else if (bestMatch.id.includes('fornecedores')) {
+  strategicReading = `
 Minha leitura aplicada:
-A melhor resposta à concorrência não é apenas preço baixo. O Bebcom deve reforçar conveniência, variedade, rapidez, confiança e presença digital.
-      `;
-    } else if (bestMatch.id.includes('crescimento')) {
-      strategicReading = `
+Negociação com fornecedores impacta diretamente fluxo de caixa e capacidade operacional.
+
+Preço é importante, mas prazo e equilíbrio de compra também possuem grande peso financeiro.
+
+A operação saudável compra com estratégia e não apenas por oportunidade.
+  `;
+
+  nextAction = `
+Próxima ação sugerida:
+Revise fornecedores com maior volume financeiro e avalie possibilidade de melhoria de prazo ou condição.
+  `;
+}
+
+else if (bestMatch.id.includes('crescimento')) {
+  strategicReading = `
 Minha leitura aplicada:
-Crescimento saudável exige vender mais sem perder controle de caixa, compras e despesas. O ideal é crescer com margem, recorrência e operação organizada.
-      `;
-    } else {
-      strategicReading = `
+Crescimento sustentável exige equilíbrio entre vendas, operação, margem e caixa.
+
+Crescer sem controle pode aumentar faturamento e piorar resultado.
+
+O ideal é:
+• crescer mantendo margem;
+• fortalecer recorrência;
+• organizar operação;
+• preservar caixa.
+  `;
+
+  nextAction = `
+Próxima ação sugerida:
+Escolha um único indicador principal para melhorar nos próximos 30 dias e acompanhe diariamente.
+  `;
+}
+
+else {
+  strategicReading = `
 Minha leitura aplicada:
-A decisão deve considerar o momento financeiro, a pressão de caixa, o comportamento das despesas e a realidade operacional da loja.
-      `;
-    }
+A decisão deve considerar caixa, comportamento das despesas, operação e momento financeiro da empresa.
+  `;
+
+  nextAction = `
+Próxima ação sugerida:
+Escolha uma melhoria prática e acompanhe o impacto nos números da operação.
+  `;
+}
 
     appliedContext = `
 
@@ -1124,8 +1281,7 @@ ${
 
 ${strategicReading.trim()}
 
-Próxima ação sugerida:
-Escolha uma ação prática para os próximos 7 dias e acompanhe o impacto no caixa, nas despesas e no resultado.
+${nextAction.trim()}
     `;
   }
 

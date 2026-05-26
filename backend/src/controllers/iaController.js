@@ -668,6 +668,72 @@ const buildAnalyticalInsights = (currentCtx, previousCtx) => {
   return insights;
 };
 
+const buildOperationalTrend = (currentCtx, previousCtx) => {
+  const trends = [];
+
+  if (!previousCtx) return trends;
+
+  const incomeVariation = calculateVariation(
+    currentCtx.totalIncome,
+    previousCtx.totalIncome
+  );
+
+  const expenseVariation = calculateVariation(
+    currentCtx.totalExpenses,
+    previousCtx.totalExpenses
+  );
+
+  const balanceVariation = calculateVariation(
+    currentCtx.balance,
+    previousCtx.balance
+  );
+
+  const currentTicket = currentCtx.managementReport?.averageTicket || 0;
+  const previousTicket = previousCtx.managementReport?.averageTicket || 0;
+
+  const ticketVariation = calculateVariation(currentTicket, previousTicket);
+
+  if (currentCtx.balance < 0 && previousCtx.balance < 0) {
+    trends.push('O caixa vem pressionado nos períodos analisados.');
+  }
+
+  if (expenseVariation > incomeVariation && currentCtx.totalExpenses > 0) {
+    trends.push('As despesas cresceram mais que as entradas, indicando pressão operacional.');
+  }
+
+  if (currentCtx.balance < previousCtx.balance) {
+    trends.push('O resultado piorou em relação ao período anterior.');
+  }
+
+  if (currentCtx.balance > previousCtx.balance) {
+    trends.push('O resultado melhorou em relação ao período anterior.');
+  }
+
+  if (ticketVariation > 0 && currentTicket > 0) {
+    trends.push('O ticket médio apresenta tendência de melhora.');
+  }
+
+  if (ticketVariation < 0 && previousTicket > 0) {
+    trends.push('O ticket médio apresenta queda em relação ao período anterior.');
+  }
+
+  const currentTopExpense = currentCtx.expenseCategories?.[0];
+  const previousTopExpense = previousCtx.expenseCategories?.[0];
+
+  if (
+    currentTopExpense &&
+    previousTopExpense &&
+    currentTopExpense.category === previousTopExpense.category &&
+    currentTopExpense.amount > previousTopExpense.amount
+  ) {
+    trends.push(
+      `A categoria ${currentTopExpense.category} segue como principal saída e aumentou no período atual.`
+    );
+  }
+
+  return trends;
+};
+
 const buildAutomaticRecommendations = (ctx) => {
   const recommendations = [];
 
@@ -1361,6 +1427,8 @@ const askIABebcom = async (req, res) => {
 
     const analyticalInsights = buildAnalyticalInsights(ctx, previousCtx);
 
+    const operationalTrends = buildOperationalTrend(ctx, previousCtx);
+
     const lowerQuestion = question.toLowerCase();
 
     const isComparisonQuestion =
@@ -1453,7 +1521,12 @@ ${
     ? analyticalInsights.map((i) => `• ${i}`).join('\n')
     : 'Nenhum insight crítico identificado no comparativo atual.'
 }
-
+Tendências operacionais:
+${
+  operationalTrends.length > 0
+    ? operationalTrends.map((i) => `• ${i}`).join('\n')
+    : 'Ainda não identifiquei tendência operacional relevante no comparativo atual.'
+}
 Você pode perguntar de forma mais específica, por exemplo:
 “Como estava meu fluxo em abril de 2026?”
 “Quais despesas pesaram em maio?”

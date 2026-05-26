@@ -801,6 +801,45 @@ Minha sugestão:
 Use esse comparativo para entender se a empresa está crescendo por volume de clientes, por aumento do valor médio de compra, ou por uma combinação dos dois.
   `.trim();
 };
+
+const buildDailyBriefingAnswer = (ctx) => {
+  const recommendations = buildAutomaticRecommendations(ctx);
+
+  return `
+Bom dia, Rodrigo.
+
+Panorama inteligente de hoje:
+
+Financeiro:
+Entradas registradas hoje: ${formatCurrency(ctx.totalIncome)}
+Saídas registradas hoje: ${formatCurrency(ctx.totalExpenses)}
+Saldo do dia: ${formatCurrency(ctx.balance)}
+
+Contas:
+Contas a pagar pendentes/vencidas: ${formatCurrency(ctx.pendingPayable)}
+Contas a receber pendentes/vencidas: ${formatCurrency(ctx.pendingReceivable)}
+
+Leitura gerencial:
+${
+  ctx.totalIncome === 0 && ctx.totalExpenses === 0
+    ? 'Ainda não há movimentações registradas hoje. Isso é normal se o caixa/PDV ainda será fechado ou lançado posteriormente.'
+    : ctx.balance >= 0
+    ? 'O dia está positivo até o momento, mas vale acompanhar os vencimentos e preservar caixa.'
+    : 'O dia está negativo até o momento. Atenção especial para despesas, compras e vencimentos.'
+}
+
+Recomendações para hoje:
+${
+  recommendations.length > 0
+    ? recommendations.map((item) => `• ${item}`).join('\n')
+    : '• Acompanhar entradas do dia.\n• Conferir contas com vencimento próximo.\n• Observar compras antes de assumir novos compromissos.'
+}
+
+Resumo:
+Use este painel como ponto de partida diário para decidir compras, pagamentos, caixa e prioridades operacionais.
+  `.trim();
+};
+
 // @desc    Ask IA Bebcom
 // @route   POST /api/ia/ask
 const askIABebcom = async (req, res) => {
@@ -876,13 +915,21 @@ const askIABebcom = async (req, res) => {
       lowerQuestion.includes('versus') ||
       lowerQuestion.includes('vs');
 
+    const isDailyBriefing =
+  lowerQuestion.includes('bom dia') ||
+  lowerQuestion.includes('panorama') ||
+  lowerQuestion.includes('resumo do dia') ||
+  lowerQuestion.includes('o que posso saber') ||
+  lowerQuestion.includes('como estamos hoje');
+
     let answer = '';
     const isRelativeQuestion = !!relativePeriod || !!specificDatePeriod;
 
-    if (isRelativeQuestion) {
+    if (isDailyBriefing) {
+  answer = buildDailyBriefingAnswer(ctx);
+} else if (isRelativeQuestion) {
   answer = buildRelativePeriodAnswer(ctx);
-}
-else if (
+} else if (
   isComparisonQuestion &&
       (
         lowerQuestion.includes('ticket') ||

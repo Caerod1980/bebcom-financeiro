@@ -858,6 +858,57 @@ const buildAutomaticRecommendations = (ctx) => {
   return recommendations;
 };
 
+const buildManagerCopilot = (
+  currentCtx,
+  previousCtx,
+  operationalPriorities,
+  operationalTrends
+) => {
+  const currentMonth =
+    currentCtx.periodLabel || 'Período atual';
+
+  return `
+Prioridades do Bebcom em ${currentMonth}:
+
+${
+  operationalPriorities.length > 0
+    ? operationalPriorities
+        .map(
+          (item, index) =>
+            `${index + 1}. ${item.message}`
+        )
+        .join('\n')
+    : 'Nenhuma prioridade crítica identificada.'
+}
+
+Tendências identificadas:
+${
+  operationalTrends.length > 0
+    ? operationalTrends
+        .map((item) => `• ${item}`)
+        .join('\n')
+    : 'Ainda não identifiquei tendência operacional relevante.'
+}
+
+Leitura gerencial:
+
+A operação deve concentrar atenção nos pontos que mais pressionam caixa, margem e resultado operacional.
+
+O objetivo principal é:
+• preservar caixa;
+• controlar compras;
+• melhorar margem;
+• acompanhar ticket médio;
+• manter equilíbrio operacional.
+
+Minha percepção:
+O Bebcom já possui movimentação e volume relevantes, mas o crescimento precisa acontecer junto com controle operacional e financeiro.
+
+Próxima ação sugerida:
+Escolha uma prioridade operacional para atacar primeiro nos próximos dias e acompanhe o impacto nos resultados.
+  `.trim();
+};
+
 const buildComparisonAnswer = (currentCtx, compareCtx) => {
   const revenueVariation = calculateVariation(
     currentCtx.totalIncome,
@@ -1517,7 +1568,18 @@ const askIABebcom = async (req, res) => {
 
     const operationalPriorities = buildOperationalPriorities(ctx, previousCtx);
 
+    const managerCopilot = buildManagerCopilot(ctx, previousCtx, operationalPriorities, operationalTrends);
+
     const lowerQuestion = question.toLowerCase();
+
+    const isCopilotQuestion =
+      lowerQuestion.includes('como está o mês') ||
+      lowerQuestion.includes('como está a operação') ||
+      lowerQuestion.includes('o que merece atenção') ||
+      lowerQuestion.includes('bom dia') ||
+      lowerQuestion.includes('como estamos') ||
+      lowerQuestion.includes('panorama') ||
+      lowerQuestion.includes('resumo do mês');
 
     const isComparisonQuestion =
       lowerQuestion.includes('compare') ||
@@ -1539,7 +1601,9 @@ const askIABebcom = async (req, res) => {
     let answer = '';
     const isRelativeQuestion = !!relativePeriod || !!specificDatePeriod;
     
-    if (educationalAnswer) {
+    if (isCopilotQuestion) {
+        answer = managerCopilot;
+      } else if (educationalAnswer) {
         answer = educationalAnswer;
       } else if (knowledgeBaseAnswer) {
         answer = knowledgeBaseAnswer;

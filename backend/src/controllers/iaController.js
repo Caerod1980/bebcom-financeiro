@@ -837,7 +837,19 @@ const askIABebcom = async (req, res) => {
       ctx.periodLabel = specificDatePeriod.label;
 
       previousCtx = { ...ctx };
-    } else {
+    } else if (relativePeriod) {
+  period = {
+    month: null,
+    year: null,
+    start: relativePeriod.start,
+    end: relativePeriod.end,
+  };
+
+  ctx = await buildContext(period);
+  ctx.periodLabel = relativePeriod.label;
+
+  previousCtx = { ...ctx };
+} else {
       period = getPeriodFromQuestion(question);
       ctx = await buildContext(period);
 

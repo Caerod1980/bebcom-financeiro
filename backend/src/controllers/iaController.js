@@ -2,6 +2,7 @@ const Entry = require('../models/Entry');
 const Account = require('../models/Account');
 const ManagementReport = require('../models/ManagementReport');
 const InventoryBalance = require('../models/InventoryBalance');
+const iaKnowledgeBase = require('../data/iaKnowledgeBase');
 
 const formatCurrency = (value) =>
   Number(value || 0).toLocaleString('pt-BR', {
@@ -978,6 +979,62 @@ Ela mostra quanto sobra após os custos operacionais da atividade.
 
   return null;
 };
+const getKnowledgeBaseAnswer = (question, ctx) => {
+  const lower = question.toLowerCase();
+
+  let bestMatch = null;
+  let highestScore = 0;
+
+  iaKnowledgeBase.forEach((item) => {
+    let score = 0;
+
+    item.keywords.forEach((keyword) => {
+      if (lower.includes(keyword.toLowerCase())) {
+        score += 1;
+      }
+    });
+
+    if (score > highestScore) {
+      highestScore = score;
+      bestMatch = item;
+    }
+  });
+
+  if (!bestMatch || highestScore === 0) {
+    return null;
+  }
+
+  const topExpense = ctx.expenseCategories?.[0];
+
+  let appliedContext = '';
+
+  if (bestMatch.aplicacaoComDados) {
+    appliedContext = `
+
+Aplicação prática no Bebcom:
+
+Saldo atual analisado: ${formatCurrency(ctx.balance)}
+Despesas do período: ${formatCurrency(ctx.totalExpenses)}
+
+${
+  topExpense
+    ? `Maior grupo de despesa identificado: ${topExpense.category} (${formatCurrency(topExpense.amount)}).`
+    : ''
+}
+
+Minha leitura:
+As orientações acima devem sempre ser avaliadas junto com o caixa, margem e comportamento operacional atual da empresa.
+    `;
+  }
+
+  return `
+${bestMatch.titulo}
+
+${bestMatch.respostaBase}
+
+${appliedContext}
+  `.trim();
+};
 
 // @desc    Ask IA Bebcom
 // @route   POST /api/ia/ask
@@ -1063,11 +1120,15 @@ const askIABebcom = async (req, res) => {
 
     const educationalAnswer = getEducationalAnswer(question);
 
+    const knowledgeBaseAnswer = getKnowledgeBaseAnswer(question, ctx);
+
     let answer = '';
     const isRelativeQuestion = !!relativePeriod || !!specificDatePeriod;
     
-      if (educationalAnswer) {
+    if (educationalAnswer) {
         answer = educationalAnswer;
+      } else if (knowledgeBaseAnswer) {
+        answer = knowledgeBaseAnswer;
       } else if (isDailyBriefing) {
         answer = buildDailyBriefingAnswer(ctx);
       } else if (isRelativeQuestion) {

@@ -840,6 +840,145 @@ Use este painel como ponto de partida diário para decidir compras, pagamentos, 
   `.trim();
 };
 
+const getEducationalAnswer = (question) => {
+  const lower = question.toLowerCase();
+
+  // COMO FUNCIONA
+  if (
+    lower.includes('como funciona o site') ||
+    lower.includes('como funciona')
+  ) {
+    return `
+O Bebcom Financeiro funciona como uma central de gestão financeira, operacional e estratégica.
+
+Você pode:
+• lançar entradas e saídas
+• controlar contas a pagar e receber
+• acompanhar fluxo de caixa
+• analisar DRE mensal
+• visualizar dashboards
+• acompanhar indicadores
+• utilizar a IA Bebcom para análises e decisões gerenciais
+
+O objetivo do sistema é ajudar na tomada de decisão e no controle inteligente da operação.
+    `.trim();
+  }
+
+  // LANÇAMENTOS
+  if (
+    lower.includes('como faço os lançamentos') ||
+    lower.includes('como lançar')
+  ) {
+    return `
+Os lançamentos representam entradas e saídas financeiras da operação.
+
+Exemplos:
+• vendas
+• compras
+• despesas
+• pagamentos
+• recebimentos
+
+Cada lançamento ajuda a compor:
+• fluxo de caixa
+• DRE
+• dashboards
+• análises da IA Bebcom
+
+O ideal é manter os lançamentos sempre organizados por:
+• categoria
+• centro de custo
+• canal de venda
+• data correta da competência.
+    `.trim();
+  }
+
+  // CENTRO DE CUSTO
+  if (lower.includes('centro de custo')) {
+    return `
+Centro de custo é a área responsável por determinada despesa ou operação.
+
+Exemplos:
+• Operação Loja
+• Administrativo
+• Financeiro
+• Estrutura
+
+Isso ajuda a identificar onde o dinheiro está sendo gasto e quais áreas consomem mais recursos.
+    `.trim();
+  }
+
+  // CANAL DE VENDA
+  if (lower.includes('canal de venda')) {
+    return `
+Canal de venda é a origem da venda realizada.
+
+Exemplos:
+• Loja Física
+• Delivery
+• iFood
+• WhatsApp
+• Bebcom Delivery
+
+Isso ajuda a entender quais canais vendem mais e geram melhor resultado.
+    `.trim();
+  }
+
+  // LUCRO LIQUIDO
+  if (lower.includes('lucro líquido')) {
+    return `
+Lucro líquido é o valor que sobra após descontar todas as despesas da empresa.
+
+Exemplo:
+
+Receita: R$ 10.000
+Despesas: R$ 8.000
+
+Lucro líquido:
+R$ 2.000
+
+Esse indicador mostra se a operação realmente está gerando resultado positivo.
+    `.trim();
+  }
+
+  // MARGEM LIQUIDA
+  if (lower.includes('margem líquida')) {
+    return `
+Margem líquida mostra quanto da receita realmente virou lucro.
+
+Exemplo:
+
+Receita: R$ 10.000
+Lucro líquido: R$ 2.000
+
+Margem líquida:
+20%
+
+Quanto maior a margem líquida, maior a eficiência financeira da operação.
+    `.trim();
+  }
+
+  // MARGEM BRUTA
+  if (lower.includes('margem bruta')) {
+    return `
+Margem bruta mede o lucro da operação antes das despesas administrativas, financeiras e operacionais.
+
+Ela ajuda a entender se os produtos vendidos possuem boa rentabilidade.
+    `.trim();
+  }
+
+  // MARGEM OPERACIONAL
+  if (lower.includes('margem operacional')) {
+    return `
+Margem operacional mede a eficiência da operação principal da empresa.
+
+Ela mostra quanto sobra após os custos operacionais da atividade.
+    `.trim();
+  }
+
+  return null;
+};
+
 // @desc    Ask IA Bebcom
 // @route   POST /api/ia/ask
 const askIABebcom = async (req, res) => {
@@ -916,21 +1055,25 @@ const askIABebcom = async (req, res) => {
       lowerQuestion.includes('vs');
 
     const isDailyBriefing =
-  lowerQuestion.includes('bom dia') ||
-  lowerQuestion.includes('panorama') ||
-  lowerQuestion.includes('resumo do dia') ||
-  lowerQuestion.includes('o que posso saber') ||
-  lowerQuestion.includes('como estamos hoje');
+      lowerQuestion.includes('bom dia') ||
+      lowerQuestion.includes('panorama') ||
+      lowerQuestion.includes('resumo do dia') ||
+      lowerQuestion.includes('o que posso saber') ||
+      lowerQuestion.includes('como estamos hoje');
+
+    const educationalAnswer = getEducationalAnswer(question);
 
     let answer = '';
     const isRelativeQuestion = !!relativePeriod || !!specificDatePeriod;
-
-    if (isDailyBriefing) {
-  answer = buildDailyBriefingAnswer(ctx);
-} else if (isRelativeQuestion) {
-  answer = buildRelativePeriodAnswer(ctx);
-} else if (
-  isComparisonQuestion &&
+    
+      if (educationalAnswer) {
+        answer = educationalAnswer;
+      } else if (isDailyBriefing) {
+        answer = buildDailyBriefingAnswer(ctx);
+      } else if (isRelativeQuestion) {
+        answer = buildRelativePeriodAnswer(ctx);
+      } else if (
+        isComparisonQuestion &&
       (
         lowerQuestion.includes('ticket') ||
         lowerQuestion.includes('médio') ||

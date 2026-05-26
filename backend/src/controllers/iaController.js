@@ -979,6 +979,7 @@ Ela mostra quanto sobra após os custos operacionais da atividade.
 
   return null;
 };
+
 const getKnowledgeBaseAnswer = (question, ctx) => {
   const lower = question.toLowerCase();
 
@@ -1005,25 +1006,126 @@ const getKnowledgeBaseAnswer = (question, ctx) => {
   }
 
   const topExpense = ctx.expenseCategories?.[0];
+  const secondExpense = ctx.expenseCategories?.[1];
+  const hasNegativeBalance = ctx.balance < 0;
+  const hasHighExpenses = ctx.totalExpenses > ctx.totalIncome && ctx.totalIncome > 0;
+  const hasNoIncome = ctx.totalIncome === 0 && ctx.totalExpenses > 0;
 
   let appliedContext = '';
 
   if (bestMatch.aplicacaoComDados) {
+    const contextualAlerts = [];
+
+    if (hasNegativeBalance) {
+      contextualAlerts.push(
+        `o saldo analisado está negativo em ${formatCurrency(ctx.balance)}`
+      );
+    }
+
+    if (hasHighExpenses) {
+      contextualAlerts.push(
+        'as despesas estão maiores que as entradas no período analisado'
+      );
+    }
+
+    if (hasNoIncome) {
+      contextualAlerts.push(
+        'existem saídas registradas sem entradas no período analisado'
+      );
+    }
+
+    if (topExpense) {
+      contextualAlerts.push(
+        `o maior grupo de saída é ${topExpense.category}, com ${formatCurrency(topExpense.amount)}`
+      );
+    }
+
+    if (secondExpense) {
+      contextualAlerts.push(
+        `o segundo maior grupo de saída é ${secondExpense.category}, com ${formatCurrency(secondExpense.amount)}`
+      );
+    }
+
+    let strategicReading = '';
+
+    if (bestMatch.id.includes('fluxo')) {
+      strategicReading = `
+Minha leitura aplicada:
+Para melhorar o fluxo de caixa, o Bebcom deve olhar primeiro para o equilíbrio entre entradas, compras e vencimentos. Se as compras estiverem concentradas antes das entradas, o caixa fica pressionado mesmo quando a loja vende bem.
+      `;
+    } else if (bestMatch.id.includes('ticket')) {
+      strategicReading = `
+Minha leitura aplicada:
+Para aumentar ticket médio, o foco deve ser elevar o valor por pedido sem depender apenas de aumento de clientes. Combos, kits e produtos complementares ajudam a melhorar receita com a mesma base de atendimento.
+      `;
+    } else if (bestMatch.id.includes('lucro')) {
+      strategicReading = `
+Minha leitura aplicada:
+Para aumentar lucro, o ponto principal é melhorar margem e reduzir desperdícios. Nem sempre vender mais resolve: às vezes o resultado melhora comprando melhor, controlando perdas e priorizando produtos mais rentáveis.
+      `;
+    } else if (bestMatch.id.includes('fornecedores')) {
+      strategicReading = `
+Minha leitura aplicada:
+A negociação com fornecedores deve buscar equilíbrio entre preço, prazo e giro. Prazo bom ajuda o caixa, mas compra excessiva pode virar estoque parado e comprometer capital de giro.
+      `;
+    } else if (bestMatch.id.includes('compras')) {
+      strategicReading = `
+Minha leitura aplicada:
+Compras devem ser feitas com base em giro, caixa e necessidade real. Comprar bem não é apenas comprar barato; é comprar o produto certo, na quantidade certa e no momento certo.
+      `;
+    } else if (bestMatch.id.includes('estoque')) {
+      strategicReading = `
+Minha leitura aplicada:
+Estoque parado precisa ser tratado como dinheiro parado. A prioridade deve ser transformar produtos de baixo giro em caixa e evitar recompra antes de entender a saída real.
+      `;
+    } else if (bestMatch.id.includes('delivery')) {
+      strategicReading = `
+Minha leitura aplicada:
+No delivery, velocidade, apresentação e facilidade de compra pesam muito. A operação precisa vender conveniência, não apenas produto.
+      `;
+    } else if (bestMatch.id.includes('marketing')) {
+      strategicReading = `
+Minha leitura aplicada:
+O marketing deve transformar produtos e ocasiões em desejo imediato. Para o Bebcom, redes sociais, delivery, combos e datas de consumo são pontos fortes para ativar venda rápida.
+      `;
+    } else if (bestMatch.id.includes('concorrencia')) {
+      strategicReading = `
+Minha leitura aplicada:
+A melhor resposta à concorrência não é apenas preço baixo. O Bebcom deve reforçar conveniência, variedade, rapidez, confiança e presença digital.
+      `;
+    } else if (bestMatch.id.includes('crescimento')) {
+      strategicReading = `
+Minha leitura aplicada:
+Crescimento saudável exige vender mais sem perder controle de caixa, compras e despesas. O ideal é crescer com margem, recorrência e operação organizada.
+      `;
+    } else {
+      strategicReading = `
+Minha leitura aplicada:
+A decisão deve considerar o momento financeiro, a pressão de caixa, o comportamento das despesas e a realidade operacional da loja.
+      `;
+    }
+
     appliedContext = `
 
 Aplicação prática no Bebcom:
 
-Saldo atual analisado: ${formatCurrency(ctx.balance)}
-Despesas do período: ${formatCurrency(ctx.totalExpenses)}
+No período analisado:
+• Entradas: ${formatCurrency(ctx.totalIncome)}
+• Saídas: ${formatCurrency(ctx.totalExpenses)}
+• Saldo: ${formatCurrency(ctx.balance)}
+• Contas a pagar pendentes/vencidas: ${formatCurrency(ctx.pendingPayable)}
 
+Pontos que merecem atenção:
 ${
-  topExpense
-    ? `Maior grupo de despesa identificado: ${topExpense.category} (${formatCurrency(topExpense.amount)}).`
-    : ''
+  contextualAlerts.length > 0
+    ? contextualAlerts.map((item) => `• ${item}`).join('\n')
+    : '• Não identifiquei alerta crítico nos dados atuais, mas vale acompanhar caixa, compras e vencimentos.'
 }
 
-Minha leitura:
-As orientações acima devem sempre ser avaliadas junto com o caixa, margem e comportamento operacional atual da empresa.
+${strategicReading.trim()}
+
+Próxima ação sugerida:
+Escolha uma ação prática para os próximos 7 dias e acompanhe o impacto no caixa, nas despesas e no resultado.
     `;
   }
 

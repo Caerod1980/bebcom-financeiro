@@ -1647,28 +1647,18 @@ const askIABebcom = async (req, res) => {
       previousCtx = await buildContext(previousPeriod);
     }
 
-    const analyticalInsights = buildAnalyticalInsights(ctx, previousCtx);
+    const analyticalInsights =
+  buildAnalyticalInsights(ctx, previousCtx);
 
-    const operationalTrends = buildOperationalTrend(ctx, previousCtx);
+const operationalTrends =
+  buildOperationalTrend(ctx, previousCtx);
 
-    const operationalPriorities = buildOperationalPriorities(ctx, previousCtx);
+const operationalPriorities =
+  buildOperationalPriorities(ctx, previousCtx);
 
-    let copilotType = 'default';
+const lowerQuestion = question.toLowerCase();
 
-if (isMorningQuestion) {
-  copilotType = 'morning';
-} else if (isOperationQuestion) {
-  copilotType = 'operation';
-} else if (isAttentionQuestion) {
-  copilotType = 'attention';
-} else if (isPanoramaQuestion) {
-  copilotType = 'panorama';
-} else if (isMonthQuestion) {
-  copilotType = 'month';
-}
- const lowerQuestion = question.toLowerCase();
-
-    const isMorningQuestion =
+const isMorningQuestion =
   lowerQuestion.includes('bom dia');
 
 const isOperationQuestion =
@@ -1690,6 +1680,21 @@ const isCopilotQuestion =
   isAttentionQuestion ||
   isPanoramaQuestion ||
   lowerQuestion.includes('como estamos');
+
+let copilotType = 'default';
+
+if (isMorningQuestion) {
+  copilotType = 'morning';
+} else if (isOperationQuestion) {
+  copilotType = 'operation';
+} else if (isAttentionQuestion) {
+  copilotType = 'attention';
+} else if (isPanoramaQuestion) {
+  copilotType = 'panorama';
+} else if (isMonthQuestion) {
+  copilotType = 'month';
+}
+
 const managerCopilot =
   buildManagerCopilot({
     type: copilotType,
@@ -1697,7 +1702,6 @@ const managerCopilot =
     operationalPriorities,
     operationalTrends,
   });
-
        const isComparisonQuestion =
       lowerQuestion.includes('compare') ||
       lowerQuestion.includes('compar') ||

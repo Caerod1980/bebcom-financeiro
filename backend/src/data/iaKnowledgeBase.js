@@ -30,6 +30,42 @@ O corte correto é aquele que melhora o caixa sem enfraquecer a operação.
     aplicacaoComDados: true,
   },
 
+   {
+    id: 'concorrencia',
+    categoria: 'Estratégia',
+    titulo: 'Como lidar com a concorrência',
+   keywords: [
+     'concorrência',
+     'concorrencia',
+     'concorrente',
+     'concorrentes',
+     'competição',
+     'competicao',
+     'mercado',
+     'preço',
+     'preco',
+     'diferencial',
+     'cliente',
+     'como lidar com concorrência',
+     'o que você acha da concorrência',
+     'meus concorrentes',
+  ],
+    respostaBase: `
+Lidar com a concorrência não significa apenas baixar preço.
+
+O mais importante é criar diferenciais:
+1. atendimento melhor;
+2. entrega rápida;
+3. variedade;
+4. disponibilidade de produtos;
+5. presença digital;
+6. confiança do cliente.
+
+Preço atrai, mas experiência, conveniência e constância fazem o cliente voltar.
+    `.trim(),
+    aplicacaoComDados: true,
+  },
+
   {
     id: 'marketing-comercio-local',
     categoria: 'Marketing e Vendas',
@@ -61,36 +97,7 @@ O marketing deve mostrar preço, conveniência, variedade e facilidade de compra
     `.trim(),
     aplicacaoComDados: true,
   },
-
-  {
-    id: 'concorrencia',
-    categoria: 'Estratégia',
-    titulo: 'Como lidar com a concorrência',
-    keywords: [
-      'concorrência',
-      'concorrente',
-      'preço',
-      'diferencial',
-      'mercado',
-      'competição',
-      'cliente',
-    ],
-    respostaBase: `
-Lidar com a concorrência não significa apenas baixar preço.
-
-O mais importante é criar diferenciais:
-1. atendimento melhor;
-2. entrega rápida;
-3. variedade;
-4. disponibilidade de produtos;
-5. presença digital;
-6. confiança do cliente.
-
-Preço atrai, mas experiência, conveniência e constância fazem o cliente voltar.
-    `.trim(),
-    aplicacaoComDados: true,
-  },
-
+  
   {
     id: 'organizacao-operacional',
     categoria: 'Operação',
@@ -121,15 +128,13 @@ Uma operação organizada reduz erro, melhora caixa e aumenta a capacidade de cr
     aplicacaoComDados: true,
   },
 
-  {
+   {
     id: 'quando-investir',
     categoria: 'Gestão Financeira',
     titulo: 'Quando investir na empresa',
     keywords: [
       'investir',
       'investimento',
-      'crescer',
-      'expandir',
       'comprar equipamento',
       'melhorar loja',
       'aplicar dinheiro',
@@ -145,6 +150,38 @@ Antes de investir, observe:
 5. se não compromete o capital de giro.
 
 O melhor investimento é aquele que fortalece a operação sem colocar o caixa em risco.
+    `.trim(),
+    aplicacaoComDados: true,
+  },
+
+  {
+    id: 'crescimento-sustentavel',
+    categoria: 'Estratégia',
+    titulo: 'Como fazer a empresa crescer de forma sustentável',
+    keywords: [
+      'crescer',
+      'empresa crescer',
+      'fazer minha empresa crescer',
+      'crescimento',
+      'crescimento sustentável',
+      'expandir negócio',
+      'aumentar vendas',
+      'melhorar resultado',
+      'desenvolver empresa',
+    ],
+    respostaBase: `
+Crescer não significa apenas vender mais. Crescer de forma sustentável é aumentar vendas, manter controle financeiro, preservar caixa e melhorar a operação.
+
+Para uma conveniência e loja de bebidas, o crescimento deve passar por:
+1. aumentar recorrência dos clientes;
+2. fortalecer canais de venda;
+3. melhorar ticket médio;
+4. controlar compras e estoque;
+5. reduzir desperdícios;
+6. investir somente quando o caixa permitir;
+7. acompanhar margem e lucro, não apenas faturamento.
+
+Uma empresa cresce melhor quando vende mais, gasta melhor e mantém controle sobre a operação.
     `.trim(),
     aplicacaoComDados: true,
   },

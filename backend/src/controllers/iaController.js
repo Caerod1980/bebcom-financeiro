@@ -858,57 +858,142 @@ const buildAutomaticRecommendations = (ctx) => {
   return recommendations;
 };
 
-const buildManagerCopilot = (
+const buildManagerCopilot = ({
+  type,
   currentCtx,
-  previousCtx,
   operationalPriorities,
-  operationalTrends
-) => {
+  operationalTrends,
+}) => {
   const currentMonth =
     currentCtx.periodLabel || 'Período atual';
 
-  return `
-Prioridades do Bebcom em ${currentMonth}:
+  const prioritiesText =
+    operationalPriorities.length > 0
+      ? operationalPriorities
+          .map(
+            (item, index) =>
+              `${index + 1}. ${item.message}`
+          )
+          .join('\n')
+      : 'Nenhuma prioridade crítica identificada.';
 
-${
-  operationalPriorities.length > 0
-    ? operationalPriorities
-        .map(
-          (item, index) =>
-            `${index + 1}. ${item.message}`
-        )
-        .join('\n')
-    : 'Nenhuma prioridade crítica identificada.'
-}
+  const trendsText =
+    operationalTrends.length > 0
+      ? operationalTrends
+          .map((item) => `• ${item}`)
+          .join('\n')
+      : 'Ainda não identifiquei tendência operacional relevante.';
 
-Tendências identificadas:
-${
-  operationalTrends.length > 0
-    ? operationalTrends
-        .map((item) => `• ${item}`)
-        .join('\n')
-    : 'Ainda não identifiquei tendência operacional relevante.'
-}
+  // BOM DIA
+  if (type === 'morning') {
+    return `
+Bom dia, Rodrigo.
 
-Leitura gerencial:
+Panorama do Bebcom hoje:
 
-A operação deve concentrar atenção nos pontos que mais pressionam caixa, margem e resultado operacional.
+${trendsText}
 
-O objetivo principal é:
-• preservar caixa;
-• controlar compras;
-• melhorar margem;
-• acompanhar ticket médio;
-• manter equilíbrio operacional.
+Prioridades do dia:
+${prioritiesText}
 
 Minha percepção:
-O Bebcom já possui movimentação e volume relevantes, mas o crescimento precisa acontecer junto com controle operacional e financeiro.
+Hoje o principal foco deve ser preservar caixa, controlar compras e acompanhar o ritmo operacional da loja.
+
+Sugestão prática:
+Defina uma prioridade operacional para acompanhar ao longo do dia.
+    `.trim();
+  }
+
+  // OPERAÇÃO
+  if (type === 'operation') {
+    return `
+Análise operacional do Bebcom em ${currentMonth}:
+
+Prioridades identificadas:
+${prioritiesText}
+
+Tendências operacionais:
+${trendsText}
+
+Leitura gerencial:
+A operação apresenta pontos que exigem atenção principalmente em caixa, despesas e equilíbrio operacional.
+
+Minha percepção:
+O crescimento precisa acontecer com controle financeiro e operacional para preservar margem e saúde do caixa.
 
 Próxima ação sugerida:
-Escolha uma prioridade operacional para atacar primeiro nos próximos dias e acompanhe o impacto nos resultados.
+Concentre atenção primeiro no ponto que mais pressiona resultado e fluxo financeiro.
+    `.trim();
+  }
+
+  // ATENÇÃO
+  if (type === 'attention') {
+    return `
+Pontos que merecem atenção no Bebcom:
+
+${prioritiesText}
+
+Tendências observadas:
+${trendsText}
+
+Minha leitura:
+Os principais riscos atuais estão relacionados à pressão financeira da operação e ao equilíbrio entre compras, despesas e entradas.
+
+Sugestão prática:
+Acompanhe diariamente os indicadores mais críticos até estabilizar o cenário operacional.
+    `.trim();
+  }
+
+  // PANORAMA
+  if (type === 'panorama') {
+    return `
+Panorama executivo do Bebcom — ${currentMonth}
+
+Tendências:
+${trendsText}
+
+Prioridades:
+${prioritiesText}
+
+Visão gerencial:
+O Bebcom já possui operação relevante e movimentação consistente, mas os números mostram necessidade de equilíbrio entre crescimento, despesas e geração de caixa.
+
+Percepção estratégica:
+O foco agora deve ser eficiência operacional, controle de compras e fortalecimento da margem.
+    `.trim();
+  }
+
+  // MÊS
+  if (type === 'month') {
+    return `
+Resumo gerencial de ${currentMonth}:
+
+Prioridades do período:
+${prioritiesText}
+
+Tendências identificadas:
+${trendsText}
+
+Leitura do mês:
+O período mostra comportamento operacional que exige atenção principalmente sobre caixa, despesas e desempenho financeiro.
+
+Minha percepção:
+A operação precisa crescer mantendo controle sobre margem, compras e capital de giro.
+
+Próxima ação sugerida:
+Escolha um indicador principal para acompanhar até o fechamento do mês.
+    `.trim();
+  }
+
+  // FALLBACK
+  return `
+Resumo operacional do Bebcom:
+
+${prioritiesText}
+
+${trendsText}
   `.trim();
 };
-
 const buildComparisonAnswer = (currentCtx, compareCtx) => {
   const revenueVariation = calculateVariation(
     currentCtx.totalIncome,
@@ -1568,27 +1653,58 @@ const askIABebcom = async (req, res) => {
 
     const operationalPriorities = buildOperationalPriorities(ctx, previousCtx);
 
-    const managerCopilot = buildManagerCopilot(ctx, previousCtx, operationalPriorities, operationalTrends);
+    let copilotType = 'default';
 
-    const lowerQuestion = question.toLowerCase();
+if (isMorningQuestion) {
+  copilotType = 'morning';
+} else if (isOperationQuestion) {
+  copilotType = 'operation';
+} else if (isAttentionQuestion) {
+  copilotType = 'attention';
+} else if (isPanoramaQuestion) {
+  copilotType = 'panorama';
+} else if (isMonthQuestion) {
+  copilotType = 'month';
+}
+ const lowerQuestion = question.toLowerCase();
 
-    const isCopilotQuestion =
-      lowerQuestion.includes('como está o mês') ||
-      lowerQuestion.includes('como está a operação') ||
-      lowerQuestion.includes('o que merece atenção') ||
-      lowerQuestion.includes('bom dia') ||
-      lowerQuestion.includes('como estamos') ||
-      lowerQuestion.includes('panorama') ||
-      lowerQuestion.includes('resumo do mês');
+    const isMorningQuestion =
+  lowerQuestion.includes('bom dia');
 
-    const isComparisonQuestion =
+const isOperationQuestion =
+  lowerQuestion.includes('como está a operação');
+
+const isAttentionQuestion =
+  lowerQuestion.includes('o que merece atenção');
+
+const isPanoramaQuestion =
+  lowerQuestion.includes('panorama');
+
+const isMonthQuestion =
+  lowerQuestion.includes('como está o mês') ||
+  lowerQuestion.includes('resumo do mês');
+
+const isCopilotQuestion =
+  isMorningQuestion ||
+  isOperationQuestion ||
+  isAttentionQuestion ||
+  isPanoramaQuestion ||
+  lowerQuestion.includes('como estamos');
+const managerCopilot =
+  buildManagerCopilot({
+    type: copilotType,
+    currentCtx: ctx,
+    operationalPriorities,
+    operationalTrends,
+  });
+
+       const isComparisonQuestion =
       lowerQuestion.includes('compare') ||
       lowerQuestion.includes('compar') ||
       lowerQuestion.includes('versus') ||
       lowerQuestion.includes('vs');
 
     const isDailyBriefing =
-      lowerQuestion.includes('bom dia') ||
       lowerQuestion.includes('panorama') ||
       lowerQuestion.includes('resumo do dia') ||
       lowerQuestion.includes('o que posso saber') ||

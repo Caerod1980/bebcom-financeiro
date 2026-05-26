@@ -442,6 +442,8 @@ const buildRelativePeriodAnswer = (ctx) => {
     )
     .join('\n');
 
+  const recommendations = buildAutomaticRecommendations(ctx);
+
   return `
 Análise de ${ctx.periodLabel}:
 
@@ -465,6 +467,12 @@ ${
 
 Minha leitura:
 Períodos curtos ajudam a identificar comportamento operacional recente, pressão de caixa e tendência imediata da operação.
+Recomendações automáticas:
+${
+  recommendations.length > 0
+    ? recommendations.map((item) => `• ${item}`).join('\n')
+    : 'Nenhuma recomendação crítica identificada para este período.'
+}
   `.trim();
 };
 
@@ -634,6 +642,44 @@ const buildAnalyticalInsights = (currentCtx, previousCtx) => {
   }
 
   return insights;
+};
+
+const buildAutomaticRecommendations = (ctx) => {
+  const recommendations = [];
+
+  const topExpense = ctx.expenseCategories?.[0];
+
+  if (ctx.balance < 0) {
+    recommendations.push(
+      'Priorizar preservação de caixa: evitar novas despesas não essenciais até equilibrar entradas e saídas.'
+    );
+  }
+
+  if (topExpense) {
+    recommendations.push(
+      `Revisar o maior grupo de saída do período: ${topExpense.category}, que somou ${formatCurrency(topExpense.amount)}.`
+    );
+  }
+
+  if (ctx.pendingPayable > 0) {
+    recommendations.push(
+      `Acompanhar contas a pagar pendentes/vencidas, atualmente em ${formatCurrency(ctx.pendingPayable)}.`
+    );
+  }
+
+  if (ctx.totalIncome === 0 && ctx.totalExpenses > 0) {
+    recommendations.push(
+      'O período teve saídas sem entradas registradas. Verifique se as receitas do dia/período já foram lançadas.'
+    );
+  }
+
+  if (ctx.balance > 0) {
+    recommendations.push(
+      'Manter o controle atual e avaliar se parte do saldo positivo pode reforçar caixa para próximos vencimentos.'
+    );
+  }
+
+  return recommendations;
 };
 
 const buildComparisonAnswer = (currentCtx, compareCtx) => {

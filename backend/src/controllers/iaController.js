@@ -286,6 +286,43 @@ const getComparisonPeriods = (question) => {
   if (uniqueDetected.length >= 2) {
   const first = uniqueDetected[0];
   const second = uniqueDetected[1];
+  const relationExpression =
+  lower.includes('em relação a') ||
+  lower.includes('em relacao a');
+
+if (relationExpression) {
+  return {
+    current: {
+      month: first.month,
+      year: first.year,
+      start: new Date(first.year, first.month - 1, 1),
+      end: new Date(
+        first.year,
+        first.month,
+        0,
+        23,
+        59,
+        59,
+        999
+      ),
+    },
+
+    compare: {
+      month: second.month,
+      year: second.year,
+      start: new Date(second.year, second.month - 1, 1),
+      end: new Date(
+        second.year,
+        second.month,
+        0,
+        23,
+        59,
+        59,
+        999
+      ),
+    },
+  };
+}
 
   return {
     current: {

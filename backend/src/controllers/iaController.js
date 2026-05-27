@@ -1171,7 +1171,7 @@ const buildMainOperationalIndicator = (ctx) => {
   );
 
   if (ctx.balance < 0) {
-    return `O principal indicador do período é o caixa negativo de ${formatCurrency(ctx.balance)}. Isso mostra que as saídas superaram as entradas e exige preservação imediata de caixa.`;
+    return `O principal indicador do período é o saldo negativo de ${formatCurrency(Math.abs(ctx.balance))}. Isso mostra que as saídas superaram as entradas e exige preservação imediata de caixa.`;
   }
 
   if (purchases && ctx.totalIncome > 0) {
@@ -1331,7 +1331,45 @@ ${alertsText}
   `.trim();
 };
 
+const hasReliableComparisonData = (ctx) => {
+  if (!ctx) return false;
+
+  const hasIncome = ctx.totalIncome > 0;
+  const hasExpenses = ctx.totalExpenses > 0;
+  const hasEntries = ctx.entries && ctx.entries.length > 0;
+
+  return hasEntries && (hasIncome || hasExpenses);
+};
+
 const buildComparisonAnswer = (currentCtx, compareCtx) => {
+  const currentReliable = hasReliableComparisonData(currentCtx);
+  const compareReliable = hasReliableComparisonData(compareCtx);
+
+  if (!currentReliable || !compareReliable) {
+    return `
+Comparativo entre ${currentCtx.periodLabel} e ${compareCtx.periodLabel}
+
+Não encontrei dados suficientes em um dos períodos para fazer um comparativo financeiro confiável.
+
+Dados encontrados:
+${currentCtx.periodLabel}:
+• Entradas: ${formatCurrency(currentCtx.totalIncome)}
+• Saídas: ${formatCurrency(currentCtx.totalExpenses)}
+• Saldo: ${formatCurrency(currentCtx.balance)}
+
+${compareCtx.periodLabel}:
+• Entradas: ${formatCurrency(compareCtx.totalIncome)}
+• Saídas: ${formatCurrency(compareCtx.totalExpenses)}
+• Saldo: ${formatCurrency(compareCtx.balance)}
+
+Minha leitura:
+Eu evitaria concluir que o resultado melhorou ou piorou sem lançamentos suficientes nos dois períodos.
+
+Próxima ação sugerida:
+Verifique se entradas, saídas e despesas do período comparado foram lançadas corretamente antes de tomar decisão.
+    `.trim();
+  }
+
   const revenueVariation = calculateVariation(
     currentCtx.totalIncome,
     compareCtx.totalIncome
@@ -1346,6 +1384,22 @@ const buildComparisonAnswer = (currentCtx, compareCtx) => {
     currentCtx.balance,
     compareCtx.balance
   );
+
+  let reading = 'O comparativo mostra mudança operacional entre os períodos.';
+
+  if (
+    currentCtx.totalIncome > compareCtx.totalIncome &&
+    currentCtx.balance < compareCtx.balance
+  ) {
+    reading =
+      'A receita cresceu, porém o resultado piorou. Isso indica aumento relevante das despesas, compras ou perda de margem.';
+  } else if (currentCtx.balance > compareCtx.balance) {
+    reading =
+      'O resultado operacional melhorou em relação ao período comparado.';
+  } else if (currentCtx.balance < compareCtx.balance) {
+    reading =
+      'O resultado operacional piorou em relação ao período comparado.';
+  }
 
   return `
 Comparativo: ${currentCtx.periodLabel} vs ${compareCtx.periodLabel}
@@ -1365,18 +1419,11 @@ ${compareCtx.periodLabel}: ${formatCurrency(compareCtx.balance)}
 ${currentCtx.periodLabel}: ${formatCurrency(currentCtx.balance)}
 Variação: ${balanceVariation.toFixed(1)}%
 
-Leitura gerencial:
-${
-  currentCtx.totalIncome > compareCtx.totalIncome &&
-  currentCtx.balance < compareCtx.balance
-    ? 'A receita cresceu, porém o resultado piorou. Isso indica aumento relevante das despesas ou perda de margem.'
-    : currentCtx.balance > compareCtx.balance
-    ? 'O resultado operacional melhorou em relação ao período comparado.'
-    : 'O período atual apresentou pior desempenho operacional em relação ao comparativo.'
-}
-
 Minha leitura:
-O ideal é acompanhar crescimento de receita junto com margem, despesas e geração de caixa. Crescimento sem controle operacional pode pressionar o financeiro.
+${reading}
+
+Minha posição:
+Eu analisaria esse comparativo junto com compras, contas pendentes e ticket médio para entender se houve crescimento saudável ou apenas maior movimentação financeira.
   `.trim();
 };
 
@@ -1390,9 +1437,52 @@ const buildTicketComparisonAnswer = (currentCtx, compareCtx) => {
   const currentTickets = currentCtx.managementReport?.totalTickets || 0;
   const compareTickets = compareCtx.managementReport?.totalTickets || 0;
 
+  if (
+    currentTicket <= 0 ||
+    compareTicket <= 0 ||
+    currentTickets <= 0 ||
+    compareTickets <= 0
+  ) {
+    return `
+Comparativo de ticket médio entre ${currentCtx.periodLabel} e ${compareCtx.periodLabel}
+
+Não há dados gerenciais suficientes para comparar ticket médio com segurança.
+
+Dados encontrados:
+${currentCtx.periodLabel}:
+• Ticket médio: ${formatCurrency(currentTicket)}
+• Total de comandas: ${currentTickets}
+• Receita líquida gerencial: ${formatCurrency(currentRevenue)}
+
+${compareCtx.periodLabel}:
+• Ticket médio: ${formatCurrency(compareTicket)}
+• Total de comandas: ${compareTickets}
+• Receita líquida gerencial: ${formatCurrency(compareRevenue)}
+
+Minha leitura:
+Antes de concluir melhora ou queda no ticket médio, é necessário ter receita líquida e total de comandas lançados nos dois períodos.
+
+Próxima ação sugerida:
+Alimente o Relatório Gerencial dos dois períodos para permitir uma análise confiável de ticket médio.
+    `.trim();
+  }
+
   const ticketVariation = calculateVariation(currentTicket, compareTicket);
   const revenueVariation = calculateVariation(currentRevenue, compareRevenue);
   const volumeVariation = calculateVariation(currentTickets, compareTickets);
+
+  let reading = 'O ticket médio ficou estável no comparativo.';
+
+  if (currentTicket > compareTicket && currentTickets < compareTickets) {
+    reading =
+      'O ticket médio subiu, mas o volume de comandas caiu. Isso indica vendas de maior valor para menos clientes.';
+  } else if (currentTicket > compareTicket) {
+    reading =
+      'O ticket médio melhorou em relação ao período comparado, indicando aumento no valor médio por venda.';
+  } else if (currentTicket < compareTicket) {
+    reading =
+      'O ticket médio caiu em relação ao período comparado. Vale revisar mix de produtos, combos e estratégias de venda.';
+  }
 
   return `
 Comparativo de Ticket Médio: ${currentCtx.periodLabel} vs ${compareCtx.periodLabel}
@@ -1412,60 +1502,13 @@ ${compareCtx.periodLabel}: ${compareTickets}
 ${currentCtx.periodLabel}: ${currentTickets}
 Variação: ${volumeVariation.toFixed(1)}%
 
-Leitura gerencial:
-${
-  currentTicket > compareTicket && currentTickets < compareTickets
-    ? 'O ticket médio subiu, mas o volume de comandas caiu. Isso indica vendas de maior valor, porém para menos clientes.'
-    : currentTicket > compareTicket
-    ? 'O ticket médio melhorou em relação ao período comparado, indicando aumento no valor médio por venda.'
-    : currentTicket < compareTicket
-    ? 'O ticket médio caiu em relação ao período comparado. Vale revisar mix de produtos, combos e estratégias de venda.'
-    : 'O ticket médio ficou estável no comparativo.'
-}
+Minha leitura:
+${reading}
 
 Minha sugestão:
 Use esse comparativo para entender se a empresa está crescendo por volume de clientes, por aumento do valor médio de compra, ou por uma combinação dos dois.
   `.trim();
 };
-
-const buildDailyBriefingAnswer = (ctx) => {
-  const recommendations = buildAutomaticRecommendations(ctx);
-
-  return `
-Bom dia, Rodrigo.
-
-Panorama inteligente de hoje:
-
-Financeiro:
-Entradas registradas hoje: ${formatCurrency(ctx.totalIncome)}
-Saídas registradas hoje: ${formatCurrency(ctx.totalExpenses)}
-Saldo do dia: ${formatCurrency(ctx.balance)}
-
-Contas:
-Contas a pagar pendentes/vencidas: ${formatCurrency(ctx.pendingPayable)}
-Contas a receber pendentes/vencidas: ${formatCurrency(ctx.pendingReceivable)}
-
-Leitura gerencial:
-${
-  ctx.totalIncome === 0 && ctx.totalExpenses === 0
-    ? 'Ainda não há movimentações registradas hoje. Isso é normal se o caixa/PDV ainda será fechado ou lançado posteriormente.'
-    : ctx.balance >= 0
-    ? 'O dia está positivo até o momento, mas vale acompanhar os vencimentos e preservar caixa.'
-    : 'O dia está negativo até o momento. Atenção especial para despesas, compras e vencimentos.'
-}
-
-Recomendações para hoje:
-${
-  recommendations.length > 0
-    ? recommendations.map((item) => `• ${item}`).join('\n')
-    : '• Acompanhar entradas do dia.\n• Conferir contas com vencimento próximo.\n• Observar compras antes de assumir novos compromissos.'
-}
-
-Resumo:
-Use este painel como ponto de partida diário para decidir compras, pagamentos, caixa e prioridades operacionais.
-  `.trim();
-};
-
 const getEducationalAnswer = (question) => {
   const lower = question.toLowerCase();
 
@@ -2272,10 +2315,10 @@ const askIABebcom = async (req, res) => {
       });
     }
 
-    const specificDatePeriod = getSpecificDatePeriod(question);
-    const relativePeriod = getRelativePeriod(question);
-    const analyticalPeriod = getAnalyticalPeriod(question);
-    const comparisonPeriods = getComparisonPeriods(question);
+   const specificDatePeriod = getSpecificDatePeriod(question);
+   const relativePeriod = getRelativePeriod(question);
+   const comparisonPeriods = getComparisonPeriods(question);
+   const analyticalPeriod = getAnalyticalPeriod(question);
 
     let period;
     let ctx;
@@ -2303,22 +2346,22 @@ const askIABebcom = async (req, res) => {
       ctx = await buildContext(period);
       ctx.periodLabel = relativePeriod.label;
       previousCtx = { ...ctx };
-    } else if (analyticalPeriod) {
-      period = {
-        month: null,
-        year: analyticalPeriod.year,
-        start: analyticalPeriod.start,
-        end: analyticalPeriod.end,
-      };
+   } else if (comparisonPeriods) {
+  period = comparisonPeriods.current;
+  ctx = await buildContext(comparisonPeriods.current);
+  previousCtx = await buildContext(comparisonPeriods.compare);
+} else if (analyticalPeriod) {
+  period = {
+    month: null,
+    year: analyticalPeriod.year,
+    start: analyticalPeriod.start,
+    end: analyticalPeriod.end,
+  };
 
-      ctx = await buildContext(period);
-      ctx.periodLabel = analyticalPeriod.label;
-      previousCtx = { ...ctx };
-    } else if (comparisonPeriods) {
-      period = comparisonPeriods.current;
-      ctx = await buildContext(comparisonPeriods.current);
-      previousCtx = await buildContext(comparisonPeriods.compare);
-    } else {
+  ctx = await buildContext(period);
+  ctx.periodLabel = analyticalPeriod.label;
+  previousCtx = { ...ctx };
+} else {
       period = getPeriodFromQuestion(question);
       ctx = await buildContext(period);
 

@@ -774,12 +774,12 @@ const buildOperationalTrend = (currentCtx, previousCtx) => {
     trends.push('O resultado melhorou em relação ao período anterior.');
   }
 
-  if (ticketVariation > 0 && currentTicket > 0) {
-    trends.push('O ticket médio apresenta tendência de melhora.');
+  if (previousTicket > 0 && currentTicket > 0 && ticketVariation > 0) {
+  trends.push('O ticket médio apresenta tendência de melhora.');
   }
 
-  if (ticketVariation < 0 && previousTicket > 0) {
-    trends.push('O ticket médio apresenta queda em relação ao período anterior.');
+ if (previousTicket > 0 && currentTicket > 0 && ticketVariation < 0) {
+  trends.push('O ticket médio apresenta queda em relação ao período anterior.');
   }
 
   const currentTopExpense = currentCtx.expenseCategories?.[0];
@@ -845,10 +845,11 @@ const buildOperationalPriorities = (currentCtx, previousCtx) => {
   }
 
   // Ticket médio caiu
-  if (
-    previousTicket > 0 &&
-    currentTicket < previousTicket
-  ) {
+ if (
+  previousTicket > 0 &&
+  currentTicket > 0 &&
+  currentTicket < previousTicket
+) {
     priorities.push({
       level: 4,
       message:
@@ -885,10 +886,7 @@ const buildOperationalPriorities = (currentCtx, previousCtx) => {
   return priorities;
 };
 
-const buildOperationalScore = (
-  currentCtx,
-  previousCtx
-) => {
+const buildOperationalScore = (currentCtx, previousCtx) => {
   let score = 100;
 
   const strengths = [];
@@ -927,8 +925,10 @@ const buildOperationalScore = (
   }
 
   // Ticket médio
+  // Ticket médio
   if (
     previousTicket > 0 &&
+    currentTicket > 0 &&
     currentTicket > previousTicket
   ) {
     strengths.push(
@@ -938,6 +938,7 @@ const buildOperationalScore = (
 
   if (
     previousTicket > 0 &&
+    currentTicket > 0 &&
     currentTicket < previousTicket
   ) {
     score -= 10;
@@ -1265,7 +1266,7 @@ ${trendsText}
 Alertas automáticos:
 ${alertsText}
 
-Leitura do mês:
+Minha percepção gerencial:
 O período mostra comportamento operacional que exige atenção principalmente sobre caixa, despesas e desempenho financeiro.
     `.trim();
   }

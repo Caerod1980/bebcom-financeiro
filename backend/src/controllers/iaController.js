@@ -326,39 +326,62 @@ const getComparisonPeriods = (question) => {
 const extractFinancialIntent = (question) => {
   const lower = question.toLowerCase();
 
-  const categories = [
-    'energia',
-    'imposto',
-    'funcionarios',
-    'aluguel',
-    'emprestimos',
-    'compras_mercadorias',
+  const categoryAliases = [
+    { category: 'energia', terms: ['energia', 'cpfl', 'luz'] },
+    { category: 'imposto', terms: ['imposto', 'impostos', 'taxa', 'tributo'] },
+    { category: 'funcionarios', terms: ['funcionario', 'funcionário', 'funcionarios', 'funcionários', 'folha', 'salario', 'salário'] },
+    { category: 'aluguel', terms: ['aluguel'] },
+    { category: 'emprestimos', terms: ['emprestimo', 'empréstimo', 'emprestimos', 'empréstimos'] },
+    { category: 'compras_mercadorias', terms: ['compra de mercadoria', 'compras de mercadorias', 'mercadorias'] },
   ];
 
   let detectedCategory = null;
 
-  categories.forEach((category) => {
-    if (lower.includes(category.replace('_', ' '))) {
-      detectedCategory = category;
+  categoryAliases.forEach((item) => {
+    if (item.terms.some((term) => lower.includes(term))) {
+      detectedCategory = item.category;
     }
   });
 
-  const supplierMatch = lower.match(
-    /(?:fornecedor|com)\s+([a-zA-ZÀ-ÿ0-9\s\-]+)/i
-  );
+  let supplier = null;
+
+  const supplierPatterns = [
+    /(?:fornecedor|com|despesa com|gasto com|gastou com|total de)\s+([a-zA-ZÀ-ÿ0-9\s\-]+)/i,
+    /^total\s+([a-zA-ZÀ-ÿ0-9\s\-]+)/i,
+  ];
+
+  for (const pattern of supplierPatterns) {
+    const match = lower.match(pattern);
+
+    if (match?.[1]) {
+      supplier = match[1]
+        .replace(/esse ano/g, '')
+        .replace(/este ano/g, '')
+        .replace(/ano atual/g, '')
+        .replace(/de janeiro a maio/g, '')
+        .replace(/janeiro a maio/g, '')
+        .replace(/\?/g, '')
+        .trim()
+        .toLowerCase();
+
+      break;
+    }
+  }
+
+  if (detectedCategory) {
+    supplier = null;
+  }
 
   return {
     wantsTotal:
       lower.includes('quanto') ||
       lower.includes('total') ||
-      lower.includes('gastou'),
+      lower.includes('gastou') ||
+      lower.includes('gasto') ||
+      lower.includes('despesa'),
 
     category: detectedCategory,
-
-    supplier:
-      supplierMatch?.[1]
-        ?.trim()
-        ?.toLowerCase() || null,
+    supplier,
   };
 };
 const getMonthLabel = (month, year) => {
@@ -1843,10 +1866,7 @@ Esse ranking mostra quais fornecedores mais impactaram o caixa dentro das compra
   `.trim();
 };
 
-const buildCategoryTotalAnswer = (
-  ctx,
-  category
-) => {
+const buildCategoryTotalAnswer = (ctx, category) => {
   const entries = ctx.entries.filter(
     (entry) =>
       entry.type === 'expense' &&
@@ -1854,8 +1874,7 @@ const buildCategoryTotalAnswer = (
   );
 
   const total = entries.reduce(
-    (acc, entry) =>
-      acc + Math.abs(Number(entry.amount || 0)),
+    (acc, entry) => acc + Math.abs(Number(entry.amount || 0)),
     0
   );
 
@@ -1877,14 +1896,12 @@ const buildSupplierTotalAnswer = (
   supplier
 ) => {
   const entries = ctx.entries.filter(
-    (entry) =>
-      entry.type === 'expense' &&
-      entry.category ===
-        'compras_mercadorias' &&
-      (entry.description || '')
-        .toLowerCase()
-        .includes(supplier)
-  );
+  (entry) =>
+    entry.type === 'expense' &&
+    (entry.description || '')
+      .toLowerCase()
+      .includes(supplier)
+);
 
   const total = entries.reduce(
     (acc, entry) =>

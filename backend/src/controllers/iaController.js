@@ -1971,20 +1971,16 @@ const askIABebcom = async (req, res) => {
       });
     }
 
-    const comparisonPeriods = getComparisonPeriods(question);
-    const relativePeriod = getRelativePeriod(question);
     const specificDatePeriod = getSpecificDatePeriod(question);
+    const relativePeriod = getRelativePeriod(question);
     const analyticalPeriod = getAnalyticalPeriod(question);
+    const comparisonPeriods = getComparisonPeriods(question);
 
     let period;
     let ctx;
     let previousCtx;
 
-    if (comparisonPeriods) {
-      period = comparisonPeriods.current;
-      ctx = await buildContext(comparisonPeriods.current);
-      previousCtx = await buildContext(comparisonPeriods.compare);
-    } else if (specificDatePeriod) {
+    if (specificDatePeriod) {
       period = {
         month: null,
         year: null,
@@ -1996,29 +1992,32 @@ const askIABebcom = async (req, res) => {
       ctx.periodLabel = specificDatePeriod.label;
       previousCtx = { ...ctx };
     } else if (relativePeriod) {
-  period = {
-    month: null,
-    year: null,
-    start: relativePeriod.start,
-    end: relativePeriod.end,
-  };
+      period = {
+        month: null,
+        year: null,
+        start: relativePeriod.start,
+        end: relativePeriod.end,
+      };
 
-  ctx = await buildContext(period);
-  ctx.periodLabel = relativePeriod.label;
-  previousCtx = { ...ctx };
-} else if (analyticalPeriod) {
-  period = {
-    month: null,
-    year: analyticalPeriod.year,
-    start: analyticalPeriod.start,
-    end: analyticalPeriod.end,
-  };
+      ctx = await buildContext(period);
+      ctx.periodLabel = relativePeriod.label;
+      previousCtx = { ...ctx };
+    } else if (analyticalPeriod) {
+      period = {
+        month: null,
+        year: analyticalPeriod.year,
+        start: analyticalPeriod.start,
+        end: analyticalPeriod.end,
+      };
 
-  ctx = await buildContext(period);
-  ctx.periodLabel = analyticalPeriod.label;
-  previousCtx = { ...ctx };
-  
-} else {
+      ctx = await buildContext(period);
+      ctx.periodLabel = analyticalPeriod.label;
+      previousCtx = { ...ctx };
+    } else if (comparisonPeriods) {
+      period = comparisonPeriods.current;
+      ctx = await buildContext(comparisonPeriods.current);
+      previousCtx = await buildContext(comparisonPeriods.compare);
+    } else {
       period = getPeriodFromQuestion(question);
       ctx = await buildContext(period);
 
@@ -2041,16 +2040,18 @@ const askIABebcom = async (req, res) => {
     const operationalPriorities = buildOperationalPriorities(ctx, previousCtx);
 
     const lowerQuestion = question.toLowerCase();
-
     const financialIntent = extractFinancialIntent(question);
 
     const isMorningQuestion = lowerQuestion.includes('bom dia');
 
-    const isOperationQuestion = lowerQuestion.includes('como está a operação');
+    const isOperationQuestion =
+      lowerQuestion.includes('como está a operação');
 
-    const isAttentionQuestion = lowerQuestion.includes('o que merece atenção');
+    const isAttentionQuestion =
+      lowerQuestion.includes('o que merece atenção');
 
-    const isPanoramaQuestion = lowerQuestion.includes('panorama');
+    const isPanoramaQuestion =
+      lowerQuestion.includes('panorama');
 
     const isMonthQuestion =
       lowerQuestion.includes('como está o mês') ||
@@ -2107,7 +2108,8 @@ const askIABebcom = async (req, res) => {
       lowerQuestion.includes('o que posso saber') ||
       lowerQuestion.includes('como estamos hoje');
 
-    const isRelativeQuestion = !!relativePeriod || !!specificDatePeriod;
+    const isRelativeQuestion =
+      !!relativePeriod || !!specificDatePeriod;
 
     const isSupplierImpactQuestion =
       lowerQuestion.includes('fornecedor') ||
@@ -2144,6 +2146,22 @@ const askIABebcom = async (req, res) => {
     if (isCopilotQuestion) {
       answer = managerCopilot;
     } else if (
+      financialIntent.wantsTotal &&
+      financialIntent.category
+    ) {
+      answer = buildCategoryTotalAnswer(
+        ctx,
+        financialIntent.category
+      );
+    } else if (
+      financialIntent.wantsTotal &&
+      financialIntent.supplier
+    ) {
+      answer = buildSupplierTotalAnswer(
+        ctx,
+        financialIntent.supplier
+      );
+    } else if (
       isComparisonQuestion &&
       (
         lowerQuestion.includes('ticket') ||
@@ -2157,22 +2175,6 @@ const askIABebcom = async (req, res) => {
       answer = buildComparisonAnswer(ctx, previousCtx);
     } else if (isRelativeQuestion) {
       answer = buildRelativePeriodAnswer(ctx);
-    } else if (
-      financialIntent.wantsTotal &&
-      financialIntent.category
-    ) {
-      answer = buildCategoryTotalAnswer(
-      ctx,
-      financialIntent.category
-    );
-  } else if (
-    financialIntent.wantsTotal &&
-    financialIntent.supplier
-   ) {
-    answer = buildSupplierTotalAnswer(
-    ctx,
-    financialIntent.supplier
-   );
     } else if (isSupplierImpactQuestion) {
       answer = buildSupplierImpactAnswer(ctx);
     } else if (isTopExpensesQuestion) {
@@ -2208,7 +2210,10 @@ Comece com combos simples, fáceis de entender e com produtos de boa saída.
       `.trim();
     } else if (isDailyBriefing) {
       answer = buildDailyBriefingAnswer(ctx);
-    } else if (lowerQuestion.includes('fluxo') || lowerQuestion.includes('caixa')) {
+    } else if (
+      lowerQuestion.includes('fluxo') ||
+      lowerQuestion.includes('caixa')
+    ) {
       answer = buildFlowAnswer(ctx);
     } else if (
       lowerQuestion.includes('despesa') ||

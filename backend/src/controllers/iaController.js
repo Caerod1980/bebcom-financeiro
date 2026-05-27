@@ -1834,8 +1834,9 @@ const isScoreQuestion =
   lowerQuestion.includes('score') ||
   lowerQuestion.includes('saúde da operação') ||
   lowerQuestion.includes('como está a saúde') ||
-  lowerQuestion.includes('saude operacional');
-
+  lowerQuestion.includes('saude operacional') ||
+  lowerQuestion.includes('saúde operacional');
+    
 const isCopilotQuestion =
   isMorningQuestion ||
   isOperationQuestion ||

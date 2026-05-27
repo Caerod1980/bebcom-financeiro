@@ -290,40 +290,27 @@ const getComparisonPeriods = (question) => {
   lower.includes('em relação a') ||
   lower.includes('em relacao a');
 
-if (relationExpression) {
+const versusExpression =
+  lower.includes(' vs ') ||
+  lower.includes(' versus ');
+
+if (relationExpression || versusExpression) {
   return {
     current: {
       month: first.month,
       year: first.year,
       start: new Date(first.year, first.month - 1, 1),
-      end: new Date(
-        first.year,
-        first.month,
-        0,
-        23,
-        59,
-        59,
-        999
-      ),
+      end: new Date(first.year, first.month, 0, 23, 59, 59, 999),
     },
 
     compare: {
       month: second.month,
       year: second.year,
       start: new Date(second.year, second.month - 1, 1),
-      end: new Date(
-        second.year,
-        second.month,
-        0,
-        23,
-        59,
-        59,
-        999
-      ),
+      end: new Date(second.year, second.month, 0, 23, 59, 59, 999),
     },
   };
 }
-
   return {
     current: {
       month: second.month,

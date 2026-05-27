@@ -32,9 +32,11 @@ const getPeriodFromQuestion = (question) => {
   let month = now.getMonth() + 1;
   let year = now.getFullYear();
 
-  const foundMonth = monthNames.find((item) =>
-    item.names.some((name) => lower.includes(name))
-  );
+ const foundMonth = monthNames.find((item) =>
+  item.names.some((name) =>
+    new RegExp(`\\b${name}\\b`, 'i').test(lower)
+  )
+);
 
   if (foundMonth) {
     month = foundMonth.number;
@@ -319,6 +321,45 @@ const getComparisonPeriods = (question) => {
   }
 
   return null;
+};
+
+const extractFinancialIntent = (question) => {
+  const lower = question.toLowerCase();
+
+  const categories = [
+    'energia',
+    'imposto',
+    'funcionarios',
+    'aluguel',
+    'emprestimos',
+    'compras_mercadorias',
+  ];
+
+  let detectedCategory = null;
+
+  categories.forEach((category) => {
+    if (lower.includes(category.replace('_', ' '))) {
+      detectedCategory = category;
+    }
+  });
+
+  const supplierMatch = lower.match(
+    /(?:fornecedor|com)\s+([a-zA-ZÀ-ÿ0-9\s\-]+)/i
+  );
+
+  return {
+    wantsTotal:
+      lower.includes('quanto') ||
+      lower.includes('total') ||
+      lower.includes('gastou'),
+
+    category: detectedCategory,
+
+    supplier:
+      supplierMatch?.[1]
+        ?.trim()
+        ?.toLowerCase() || null,
+  };
 };
 const getMonthLabel = (month, year) => {
   const fullMonths = [
@@ -1802,6 +1843,122 @@ Esse ranking mostra quais fornecedores mais impactaram o caixa dentro das compra
   `.trim();
 };
 
+const buildCategoryTotalAnswer = (
+  ctx,
+  category
+) => {
+  const entries = ctx.entries.filter(
+    (entry) =>
+      entry.type === 'expense' &&
+      entry.category === category
+  );
+
+  const total = entries.reduce(
+    (acc, entry) =>
+      acc + Math.abs(Number(entry.amount || 0)),
+    0
+  );
+
+  return `
+Total de despesas com ${category.replace('_', ' ')} em ${ctx.periodLabel}:
+
+${formatCurrency(total)}
+
+Quantidade de lançamentos:
+${entries.length}
+
+Minha leitura:
+Esse valor representa o impacto financeiro da categoria ${category.replace('_', ' ')} dentro da operação.
+  `.trim();
+};
+
+const buildSupplierTotalAnswer = (
+  ctx,
+  supplier
+) => {
+  const entries = ctx.entries.filter(
+    (entry) =>
+      entry.type === 'expense' &&
+      entry.category ===
+        'compras_mercadorias' &&
+      (entry.description || '')
+        .toLowerCase()
+        .includes(supplier)
+  );
+
+  const total = entries.reduce(
+    (acc, entry) =>
+      acc + Math.abs(Number(entry.amount || 0)),
+    0
+  );
+
+  return `
+Total gasto com ${supplier} em ${ctx.periodLabel}:
+
+${formatCurrency(total)}
+
+Quantidade de lançamentos:
+${entries.length}
+
+Minha leitura:
+Esse fornecedor possui impacto financeiro relevante dentro das compras de mercadorias.
+  `.trim();
+};
+
+const getAnalyticalPeriod = (question) => {
+  const lower = question.toLowerCase();
+  const now = new Date();
+
+  if (
+    lower.includes('esse ano') ||
+    lower.includes('este ano') ||
+    lower.includes('ano atual')
+  ) {
+    const year = now.getFullYear();
+
+    return {
+      label: `${year}`,
+      month: null,
+      year,
+      start: new Date(year, 0, 1),
+      end: new Date(year, 11, 31, 23, 59, 59, 999),
+    };
+  }
+
+  const detectedMonths = [];
+
+  monthNames.forEach((item) => {
+    item.names.forEach((name) => {
+      const regex = new RegExp(`\\b${name}\\b`, 'i');
+
+      if (regex.test(lower)) {
+        detectedMonths.push(item.number);
+      }
+    });
+  });
+
+  if (
+    detectedMonths.length >= 2 &&
+    (lower.includes(' a ') || lower.includes(' até ') || lower.includes(' ate '))
+  ) {
+    const yearMatch = lower.match(/\b(20\d{2})\b/);
+    const year = yearMatch ? Number(yearMatch[1]) : now.getFullYear();
+
+    const startMonth = Math.min(...detectedMonths);
+    const endMonth = Math.max(...detectedMonths);
+
+    return {
+      label: `${getMonthLabel(startMonth, year)} a ${getMonthLabel(endMonth, year)}`,
+      month: null,
+      year,
+      start: new Date(year, startMonth - 1, 1),
+      end: new Date(year, endMonth, 0, 23, 59, 59, 999),
+    };
+  }
+
+  return null;
+};
+
 // @desc    Ask IA Bebcom
 // @route   POST /api/ia/ask
 const askIABebcom = async (req, res) => {
@@ -1817,6 +1974,7 @@ const askIABebcom = async (req, res) => {
     const comparisonPeriods = getComparisonPeriods(question);
     const relativePeriod = getRelativePeriod(question);
     const specificDatePeriod = getSpecificDatePeriod(question);
+    const analyticalPeriod = getAnalyticalPeriod(question);
 
     let period;
     let ctx;
@@ -1838,17 +1996,29 @@ const askIABebcom = async (req, res) => {
       ctx.periodLabel = specificDatePeriod.label;
       previousCtx = { ...ctx };
     } else if (relativePeriod) {
-      period = {
-        month: null,
-        year: null,
-        start: relativePeriod.start,
-        end: relativePeriod.end,
-      };
+  period = {
+    month: null,
+    year: null,
+    start: relativePeriod.start,
+    end: relativePeriod.end,
+  };
 
-      ctx = await buildContext(period);
-      ctx.periodLabel = relativePeriod.label;
-      previousCtx = { ...ctx };
-    } else {
+  ctx = await buildContext(period);
+  ctx.periodLabel = relativePeriod.label;
+  previousCtx = { ...ctx };
+} else if (analyticalPeriod) {
+  period = {
+    month: null,
+    year: analyticalPeriod.year,
+    start: analyticalPeriod.start,
+    end: analyticalPeriod.end,
+  };
+
+  ctx = await buildContext(period);
+  ctx.periodLabel = analyticalPeriod.label;
+  previousCtx = { ...ctx };
+  
+} else {
       period = getPeriodFromQuestion(question);
       ctx = await buildContext(period);
 
@@ -1872,16 +2042,15 @@ const askIABebcom = async (req, res) => {
 
     const lowerQuestion = question.toLowerCase();
 
+    const financialIntent = extractFinancialIntent(question);
+
     const isMorningQuestion = lowerQuestion.includes('bom dia');
 
-    const isOperationQuestion =
-      lowerQuestion.includes('como está a operação');
+    const isOperationQuestion = lowerQuestion.includes('como está a operação');
 
-    const isAttentionQuestion =
-      lowerQuestion.includes('o que merece atenção');
+    const isAttentionQuestion = lowerQuestion.includes('o que merece atenção');
 
-    const isPanoramaQuestion =
-      lowerQuestion.includes('panorama');
+    const isPanoramaQuestion = lowerQuestion.includes('panorama');
 
     const isMonthQuestion =
       lowerQuestion.includes('como está o mês') ||
@@ -1988,6 +2157,22 @@ const askIABebcom = async (req, res) => {
       answer = buildComparisonAnswer(ctx, previousCtx);
     } else if (isRelativeQuestion) {
       answer = buildRelativePeriodAnswer(ctx);
+    } else if (
+      financialIntent.wantsTotal &&
+      financialIntent.category
+    ) {
+      answer = buildCategoryTotalAnswer(
+      ctx,
+      financialIntent.category
+    );
+  } else if (
+    financialIntent.wantsTotal &&
+    financialIntent.supplier
+   ) {
+    answer = buildSupplierTotalAnswer(
+    ctx,
+    financialIntent.supplier
+   );
     } else if (isSupplierImpactQuestion) {
       answer = buildSupplierImpactAnswer(ctx);
     } else if (isTopExpensesQuestion) {

@@ -1679,6 +1679,7 @@ const isCopilotQuestion =
   isOperationQuestion ||
   isAttentionQuestion ||
   isPanoramaQuestion ||
+  isMonthQuestion ||
   lowerQuestion.includes('como estamos');
 
 let copilotType = 'default';

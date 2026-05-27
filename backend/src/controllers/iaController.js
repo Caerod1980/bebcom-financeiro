@@ -1735,6 +1735,27 @@ ${appliedContext}
   `.trim();
 };
 
+const buildTopExpensesAnswer = (ctx) => {
+  const topExpenses = ctx.expenseCategories
+    .slice(0, 5)
+    .map(
+      (item, index) =>
+        `${index + 1}. ${item.category}: ${formatCurrency(item.amount)}`
+    )
+    .join('\n');
+
+  return `
+Maiores despesas de ${ctx.periodLabel}:
+
+${topExpenses || 'Não encontrei despesas classificadas neste período.'}
+
+Total de saídas: ${formatCurrency(ctx.totalExpenses)}
+
+Minha leitura:
+O maior ponto de atenção deve ser o grupo que mais consome caixa no período.
+  `.trim();
+};
+
 // @desc    Ask IA Bebcom
 // @route   POST /api/ia/ask
 const askIABebcom = async (req, res) => {
@@ -1760,30 +1781,28 @@ const askIABebcom = async (req, res) => {
       ctx = await buildContext(comparisonPeriods.current);
       previousCtx = await buildContext(comparisonPeriods.compare);
     } else if (specificDatePeriod) {
-  period = {
-    month: null,
-    year: null,
-    start: specificDatePeriod.start,
-    end: specificDatePeriod.end,
-  };
+      period = {
+        month: null,
+        year: null,
+        start: specificDatePeriod.start,
+        end: specificDatePeriod.end,
+      };
 
       ctx = await buildContext(period);
       ctx.periodLabel = specificDatePeriod.label;
-
       previousCtx = { ...ctx };
     } else if (relativePeriod) {
-  period = {
-    month: null,
-    year: null,
-    start: relativePeriod.start,
-    end: relativePeriod.end,
-  };
+      period = {
+        month: null,
+        year: null,
+        start: relativePeriod.start,
+        end: relativePeriod.end,
+      };
 
-  ctx = await buildContext(period);
-  ctx.periodLabel = relativePeriod.label;
-
-  previousCtx = { ...ctx };
-} else {
+      ctx = await buildContext(period);
+      ctx.periodLabel = relativePeriod.label;
+      previousCtx = { ...ctx };
+    } else {
       period = getPeriodFromQuestion(question);
       ctx = await buildContext(period);
 
@@ -1800,107 +1819,110 @@ const askIABebcom = async (req, res) => {
       previousCtx = await buildContext(previousPeriod);
     }
 
-    const analyticalInsights =
-  buildAnalyticalInsights(ctx, previousCtx);
+    const analyticalInsights = buildAnalyticalInsights(ctx, previousCtx);
+    const operationalTrends = buildOperationalTrend(ctx, previousCtx);
+    const operationalScore = buildOperationalScore(ctx, previousCtx);
+    const operationalPriorities = buildOperationalPriorities(ctx, previousCtx);
 
-const operationalTrends =
-  buildOperationalTrend(ctx, previousCtx);
+    const lowerQuestion = question.toLowerCase();
 
-const operationalScore =
-  buildOperationalScore(ctx, previousCtx);
+    const isMorningQuestion = lowerQuestion.includes('bom dia');
 
-const operationalPriorities =
-  buildOperationalPriorities(ctx, previousCtx);
+    const isOperationQuestion =
+      lowerQuestion.includes('como está a operação');
 
-const lowerQuestion = question.toLowerCase();
+    const isAttentionQuestion =
+      lowerQuestion.includes('o que merece atenção');
 
-const isMorningQuestion =
-  lowerQuestion.includes('bom dia');
+    const isPanoramaQuestion =
+      lowerQuestion.includes('panorama');
 
-const isOperationQuestion =
-  lowerQuestion.includes('como está a operação');
+    const isMonthQuestion =
+      lowerQuestion.includes('como está o mês') ||
+      lowerQuestion.includes('resumo do mês');
 
-const isAttentionQuestion =
-  lowerQuestion.includes('o que merece atenção');
+    const isScoreQuestion =
+      lowerQuestion.includes('score') ||
+      lowerQuestion.includes('saúde da operação') ||
+      lowerQuestion.includes('como está a saúde') ||
+      lowerQuestion.includes('saude operacional') ||
+      lowerQuestion.includes('saúde operacional');
 
-const isPanoramaQuestion =
-  lowerQuestion.includes('panorama');
+    const isCopilotQuestion =
+      isMorningQuestion ||
+      isOperationQuestion ||
+      isAttentionQuestion ||
+      isPanoramaQuestion ||
+      isMonthQuestion ||
+      isScoreQuestion ||
+      lowerQuestion.includes('como estamos');
 
-const isMonthQuestion =
-  lowerQuestion.includes('como está o mês') ||
-  lowerQuestion.includes('resumo do mês');
+    let copilotType = 'default';
 
-const isScoreQuestion =
-  lowerQuestion.includes('score') ||
-  lowerQuestion.includes('saúde da operação') ||
-  lowerQuestion.includes('como está a saúde') ||
-  lowerQuestion.includes('saude operacional') ||
-  lowerQuestion.includes('saúde operacional');
-    
-const isCopilotQuestion =
-  isMorningQuestion ||
-  isOperationQuestion ||
-  isAttentionQuestion ||
-  isPanoramaQuestion ||
-  isMonthQuestion ||
-  isScoreQuestion ||
-  lowerQuestion.includes('como estamos');
+    if (isMorningQuestion) {
+      copilotType = 'morning';
+    } else if (isOperationQuestion) {
+      copilotType = 'operation';
+    } else if (isAttentionQuestion) {
+      copilotType = 'attention';
+    } else if (isPanoramaQuestion) {
+      copilotType = 'panorama';
+    } else if (isMonthQuestion) {
+      copilotType = 'month';
+    } else if (isScoreQuestion) {
+      copilotType = 'score';
+    }
 
-let copilotType = 'default';
+    const managerCopilot = buildManagerCopilot({
+      type: copilotType,
+      currentCtx: ctx,
+      operationalPriorities,
+      operationalTrends,
+      operationalScore,
+    });
 
-if (isMorningQuestion) {
-  copilotType = 'morning';
-} else if (isOperationQuestion) {
-  copilotType = 'operation';
-} else if (isAttentionQuestion) {
-  copilotType = 'attention';
-} else if (isPanoramaQuestion) {
-  copilotType = 'panorama';
-} else if (isMonthQuestion) {
-  copilotType = 'month';
-} else if (isScoreQuestion) {
-  copilotType = 'score';
-}
-
-const managerCopilot =
-  buildManagerCopilot({
-    type: copilotType,
-    currentCtx: ctx,
-    operationalPriorities,
-    operationalTrends,
-    operationalScore,
-  });
-       const isComparisonQuestion =
+    const isComparisonQuestion =
       lowerQuestion.includes('compare') ||
       lowerQuestion.includes('compar') ||
       lowerQuestion.includes('versus') ||
       lowerQuestion.includes('vs');
 
     const isDailyBriefing =
-      lowerQuestion.includes('panorama') ||
       lowerQuestion.includes('resumo do dia') ||
       lowerQuestion.includes('o que posso saber') ||
       lowerQuestion.includes('como estamos hoje');
 
-    const educationalAnswer = getEducationalAnswer(question);
+    const isRelativeQuestion = !!relativePeriod || !!specificDatePeriod;
 
+    const isTopExpensesQuestion =
+      lowerQuestion.includes('maiores despesas') ||
+      lowerQuestion.includes('maior despesa') ||
+      lowerQuestion.includes('principais despesas') ||
+      lowerQuestion.includes('maiores gastos') ||
+      lowerQuestion.includes('principais gastos');
+
+    const isAccountsPayableQuestion =
+      lowerQuestion.includes('contas a pagar') ||
+      lowerQuestion.includes('total de contas') ||
+      lowerQuestion.includes('pagar da semana') ||
+      lowerQuestion.includes('quanto tenho para pagar');
+
+    const isSuggestionQuestion =
+      lowerQuestion.includes('pode sugerir') ||
+      lowerQuestion.includes('sugere algum') ||
+      lowerQuestion.includes('me sugira') ||
+      lowerQuestion.includes('alguma sugestão') ||
+      lowerQuestion.includes('alguma sugestao');
+
+    const educationalAnswer = getEducationalAnswer(question);
     const knowledgeBaseAnswer = getKnowledgeBaseAnswer(question, ctx);
 
     let answer = '';
-    const isRelativeQuestion = !!relativePeriod || !!specificDatePeriod;
-    
+
     if (isCopilotQuestion) {
-        answer = managerCopilot;
-      } else if (educationalAnswer) {
-        answer = educationalAnswer;
-      } else if (knowledgeBaseAnswer) {
-        answer = knowledgeBaseAnswer;
-      } else if (isDailyBriefing) {
-        answer = buildDailyBriefingAnswer(ctx);
-      } else if (isRelativeQuestion) {
-        answer = buildRelativePeriodAnswer(ctx);
-      } else if (
-        isComparisonQuestion &&
+      answer = managerCopilot;
+    } else if (
+      isComparisonQuestion &&
       (
         lowerQuestion.includes('ticket') ||
         lowerQuestion.includes('médio') ||
@@ -1911,8 +1933,10 @@ const managerCopilot =
       answer = buildTicketComparisonAnswer(ctx, previousCtx);
     } else if (isComparisonQuestion) {
       answer = buildComparisonAnswer(ctx, previousCtx);
-    } else if (lowerQuestion.includes('fluxo') || lowerQuestion.includes('caixa')) {
-      answer = buildFlowAnswer(ctx);
+    } else if (isRelativeQuestion) {
+      answer = buildRelativePeriodAnswer(ctx);
+    } else if (isTopExpensesQuestion) {
+      answer = buildTopExpensesAnswer(ctx);
     } else if (
       lowerQuestion.includes('ticket') ||
       lowerQuestion.includes('médio') ||
@@ -1920,6 +1944,32 @@ const managerCopilot =
       lowerQuestion.includes('comanda')
     ) {
       answer = buildTicketAnswer(ctx);
+    } else if (isAccountsPayableQuestion) {
+      answer = `
+Contas a pagar pendentes/vencidas em ${ctx.periodLabel}:
+
+Total: ${formatCurrency(ctx.pendingPayable)}
+
+Minha leitura:
+Esse valor representa compromissos financeiros em aberto no sistema. Ele deve ser acompanhado junto com o saldo de caixa, entradas previstas e prioridades de pagamento.
+      `.trim();
+    } else if (isSuggestionQuestion) {
+      answer = `
+Sugestões práticas para aumentar o ticket médio:
+
+1. Combo bebida + energético + gelo.
+2. Kit fim de semana com cerveja + gelo + carvão.
+3. Copão + energético adicional.
+4. Oferta “complete seu pedido” no delivery.
+5. Combo de conveniência: bebida + gelo + petisco.
+
+Minha sugestão inicial:
+Comece com combos simples, fáceis de entender e com produtos de boa saída.
+      `.trim();
+    } else if (isDailyBriefing) {
+      answer = buildDailyBriefingAnswer(ctx);
+    } else if (lowerQuestion.includes('fluxo') || lowerQuestion.includes('caixa')) {
+      answer = buildFlowAnswer(ctx);
     } else if (
       lowerQuestion.includes('despesa') ||
       lowerQuestion.includes('reduzir') ||
@@ -1941,6 +1991,10 @@ const managerCopilot =
       lowerQuestion.includes('ponto')
     ) {
       answer = buildOperationAnswer(ctx);
+    } else if (educationalAnswer) {
+      answer = educationalAnswer;
+    } else if (knowledgeBaseAnswer) {
+      answer = knowledgeBaseAnswer;
     } else {
       answer = `
 Entendi sua pergunta: "${question}".
@@ -1961,23 +2015,23 @@ ${
     ? analyticalInsights.map((i) => `• ${i}`).join('\n')
     : 'Nenhum insight crítico identificado no comparativo atual.'
 }
+
 Tendências operacionais:
 ${
   operationalTrends.length > 0
     ? operationalTrends.map((i) => `• ${i}`).join('\n')
     : 'Ainda não identifiquei tendência operacional relevante no comparativo atual.'
 }
+
 Prioridades operacionais:
 ${
   operationalPriorities.length > 0
     ? operationalPriorities
-        .map(
-          (item, index) =>
-            `${index + 1}. ${item.message}`
-        )
+        .map((item, index) => `${index + 1}. ${item.message}`)
         .join('\n')
     : 'Nenhuma prioridade crítica identificada no período atual.'
 }
+
 Você pode perguntar de forma mais específica, por exemplo:
 “Como estava meu fluxo em abril de 2026?”
 “Quais despesas pesaram em maio?”
@@ -2008,6 +2062,7 @@ Você pode perguntar de forma mais específica, por exemplo:
     });
   }
 };
+
 module.exports = {
   askIABebcom,
 };

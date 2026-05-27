@@ -1165,6 +1165,30 @@ const buildAutomaticRecommendations = (ctx) => {
   return recommendations;
 };
 
+const buildMainOperationalIndicator = (ctx) => {
+  const purchases = ctx.expenseCategories.find(
+    (item) => item.category === 'compras_mercadorias'
+  );
+
+  if (ctx.balance < 0) {
+    return `O principal indicador do período é o caixa negativo de ${formatCurrency(ctx.balance)}. Isso mostra que as saídas superaram as entradas e exige preservação imediata de caixa.`;
+  }
+
+  if (purchases && ctx.totalIncome > 0) {
+    const percentage = (purchases.amount / ctx.totalIncome) * 100;
+
+    if (percentage > 60) {
+      return `O principal indicador do período é o peso das compras de mercadorias, que representam ${percentage.toFixed(1)}% das entradas. Isso pode pressionar o caixa se não houver giro suficiente.`;
+    }
+  }
+
+  if (ctx.pendingPayable > ctx.totalIncome * 0.5) {
+    return `O principal indicador do período é o volume de contas pendentes, que representa pressão relevante sobre o caixa.`;
+  }
+
+  return 'O principal indicador do período é manter o equilíbrio entre entradas, saídas, compras e contas pendentes.';
+};
+
 const buildManagerCopilot = ({
   type,
   currentCtx,
@@ -2071,6 +2095,171 @@ const getAnalyticalPeriod = (question) => {
   return null;
 };
 
+const detectAdvancedIntent = (question) => {
+  const lower = question.toLowerCase();
+
+  if (
+    lower.includes('resumo executivo') ||
+    lower.includes('panorama executivo')
+  ) return 'executive_summary';
+
+  if (
+    lower.includes('insight') ||
+    lower.includes('percepção') ||
+    lower.includes('percepcao') ||
+    lower.includes('o que você acha') ||
+    lower.includes('o que acha')
+  ) return 'insights';
+
+  if (
+    lower.includes('tendência') ||
+    lower.includes('tendencia') ||
+    lower.includes('o que mudou') ||
+    lower.includes('melhorou ou piorou') ||
+    lower.includes('resultado piorou') ||
+    lower.includes('resultado melhorou')
+  ) return 'trends';
+
+  if (
+    lower.includes('risco') ||
+    lower.includes('principal problema') ||
+    lower.includes('alerta') ||
+    lower.includes('preocupa')
+  ) return 'risk';
+
+  if (
+    lower.includes('prioridade') ||
+    lower.includes('onde focar') ||
+    lower.includes('focaria') ||
+    lower.includes('o que fazer primeiro')
+  ) return 'priority';
+
+  if (
+    lower.includes('educacional') ||
+    lower.includes('me explique') ||
+    lower.includes('o que significa') ||
+    lower.includes('como funciona')
+  ) return 'educational';
+
+  return 'general';
+};
+
+const buildAdvancedIntentAnswer = ({
+  intent,
+  question,
+  ctx,
+  previousCtx,
+  analyticalInsights,
+  operationalTrends,
+  operationalPriorities,
+  operationalAlerts,
+  operationalScore,
+}) => {
+  const mainIndicator = buildMainOperationalIndicator(ctx);
+
+  if (intent === 'executive_summary') {
+    return `
+Resumo executivo do Bebcom — ${ctx.periodLabel}
+
+Indicador principal:
+${mainIndicator}
+
+Números principais:
+• Entradas: ${formatCurrency(ctx.totalIncome)}
+• Saídas: ${formatCurrency(ctx.totalExpenses)}
+• Saldo: ${formatCurrency(ctx.balance)}
+• Contas pendentes: ${formatCurrency(ctx.pendingPayable)}
+
+Prioridades:
+${
+  operationalPriorities.length > 0
+    ? operationalPriorities.map((item, index) => `${index + 1}. ${item.message}`).join('\n')
+    : 'Nenhuma prioridade crítica identificada.'
+}
+
+Minha percepção estratégica:
+O Bebcom possui movimentação relevante, mas o foco agora deve ser equilibrar compras, caixa e despesas para proteger a margem operacional.
+    `.trim();
+  }
+
+  if (intent === 'insights') {
+    return `
+Minha percepção gerencial sobre ${ctx.periodLabel}:
+
+${mainIndicator}
+
+Insights identificados:
+${
+  analyticalInsights.length > 0
+    ? analyticalInsights.map((item) => `• ${item}`).join('\n')
+    : '• Não identifiquei insight crítico além dos indicadores atuais.'
+}
+
+Minha leitura:
+A operação não parece fraca em volume, mas exige atenção no equilíbrio entre faturamento, compras e geração real de caixa.
+
+Ação sugerida:
+Acompanhar diariamente compras de mercadorias, saldo disponível e contas pendentes.
+    `.trim();
+  }
+
+  if (intent === 'trends') {
+    return `
+Tendências operacionais de ${ctx.periodLabel}:
+
+${
+  operationalTrends.length > 0
+    ? operationalTrends.map((item) => `• ${item}`).join('\n')
+    : 'Ainda não identifiquei tendência operacional relevante no comparativo atual.'
+}
+
+Minha interpretação:
+${mainIndicator}
+
+Conclusão:
+O ponto mais importante é observar se a operação está crescendo com equilíbrio ou apenas movimentando mais dinheiro com pressão no caixa.
+    `.trim();
+  }
+
+  if (intent === 'risk') {
+    return `
+Principais riscos operacionais em ${ctx.periodLabel}:
+
+${
+  operationalAlerts.length > 0
+    ? operationalAlerts.map((alert) => `⚠️ ${alert.message}`).join('\n')
+    : 'Nenhum alerta operacional crítico identificado.'
+}
+
+Risco principal:
+${mainIndicator}
+
+Minha posição:
+Eu trataria esse ponto como prioridade gerencial antes de assumir novas compras, investimentos ou despesas não essenciais.
+    `.trim();
+  }
+
+  if (intent === 'priority') {
+    return `
+Prioridades gerenciais do Bebcom em ${ctx.periodLabel}:
+
+${
+  operationalPriorities.length > 0
+    ? operationalPriorities.map((item, index) => `${index + 1}. ${item.message}`).join('\n')
+    : 'Nenhuma prioridade crítica identificada.'
+}
+
+Onde eu focaria primeiro:
+${mainIndicator}
+
+Próxima ação prática:
+Definir uma meta simples para os próximos dias: reduzir pressão de compras, preservar caixa e acompanhar vencimentos próximos.
+    `.trim();
+  }
+
+  return null;
+};
+
 // @desc    Ask IA Bebcom
 // @route   POST /api/ia/ask
 const askIABebcom = async (req, res) => {
@@ -2153,7 +2342,10 @@ const askIABebcom = async (req, res) => {
     const operationalAlerts = buildOperationalAlerts(ctx, previousCtx);
 
     const lowerQuestion = question.toLowerCase();
+    
     const financialIntent = extractFinancialIntent(question);
+
+    const advancedIntent = detectAdvancedIntent(question);
 
     const isMorningQuestion = lowerQuestion.includes('bom dia');
 
@@ -2253,11 +2445,29 @@ const askIABebcom = async (req, res) => {
       lowerQuestion.includes('alguma sugestao');
 
     const educationalAnswer = getEducationalAnswer(question);
+    
     const knowledgeBaseAnswer = getKnowledgeBaseAnswer(question, ctx);
+
+    const advancedIntentAnswer = buildAdvancedIntentAnswer({
+  intent: advancedIntent,
+  question,
+  ctx,
+  previousCtx,
+  analyticalInsights,
+  operationalTrends,
+  operationalPriorities,
+  operationalAlerts,
+  operationalScore,
+});
 
     let answer = '';
 
-    if (isCopilotQuestion) {
+    if (
+       advancedIntentAnswer &&
+       advancedIntent !== 'educational'
+       ) {
+      answer = advancedIntentAnswer;
+    } else if (isCopilotQuestion) {
       answer = managerCopilot;
     } else if (
       financialIntent.wantsTotal &&

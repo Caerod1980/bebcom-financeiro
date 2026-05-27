@@ -1003,6 +1003,128 @@ const buildOperationalScore = (
     weaknesses,
   };
 };
+
+const buildOperationalAlerts = (
+  currentCtx,
+  previousCtx
+) => {
+  const alerts = [];
+
+  // Caixa negativo
+  if (currentCtx.balance < 0) {
+    alerts.push({
+      level: 'critical',
+      message:
+        'Caixa operando com saldo negativo no período.',
+    });
+  }
+
+  // Despesas maiores que entradas
+  if (
+    currentCtx.totalExpenses >
+    currentCtx.totalIncome
+  ) {
+    alerts.push({
+      level: 'critical',
+      message:
+        'As despesas ultrapassaram as entradas do período.',
+    });
+  }
+
+  // Crescimento de despesas
+  if (
+    previousCtx?.totalExpenses > 0
+  ) {
+    const growth =
+      (
+        (currentCtx.totalExpenses -
+          previousCtx.totalExpenses) /
+        previousCtx.totalExpenses
+      ) * 100;
+
+    if (growth > 20) {
+      alerts.push({
+        level: 'warning',
+        message: `Despesas cresceram ${growth.toFixed(
+          1
+        )}% em relação ao período anterior.`,
+      });
+    }
+  }
+
+  // Queda no ticket médio
+  const currentTicket =
+    currentCtx.managementReport
+      ?.averageTicket || 0;
+
+  const previousTicket =
+    previousCtx.managementReport
+      ?.averageTicket || 0;
+
+  if (
+    previousTicket > 0 &&
+    currentTicket < previousTicket
+  ) {
+    const drop =
+      (
+        (previousTicket -
+          currentTicket) /
+        previousTicket
+      ) * 100;
+
+    if (drop > 10) {
+      alerts.push({
+        level: 'warning',
+        message: `Ticket médio caiu ${drop.toFixed(
+          1
+        )}% em relação ao período anterior.`,
+      });
+    }
+  }
+
+  // Compras muito altas
+  const purchases =
+    currentCtx.expenseCategories.find(
+      (item) =>
+        item.category ===
+        'compras_mercadorias'
+    );
+
+  if (
+    purchases &&
+    currentCtx.totalIncome > 0
+  ) {
+    const percentage =
+      (
+        purchases.amount /
+        currentCtx.totalIncome
+      ) * 100;
+
+    if (percentage > 60) {
+      alerts.push({
+        level: 'warning',
+        message: `Compras de mercadorias representam ${percentage.toFixed(
+          1
+        )}% das entradas do período.`,
+      });
+    }
+  }
+
+  // Contas pendentes elevadas
+  if (
+    currentCtx.pendingPayable >
+    currentCtx.totalIncome * 0.5
+  ) {
+    alerts.push({
+      level: 'warning',
+      message:
+        'Contas pendentes representam parcela elevada do faturamento.',
+    });
+  }
+
+  return alerts;
+};
+
 const buildAutomaticRecommendations = (ctx) => {
   const recommendations = [];
 
@@ -2055,6 +2177,7 @@ const askIABebcom = async (req, res) => {
     const operationalTrends = buildOperationalTrend(ctx, previousCtx);
     const operationalScore = buildOperationalScore(ctx, previousCtx);
     const operationalPriorities = buildOperationalPriorities(ctx, previousCtx);
+    const operationalAlerts = buildOperationalAlerts(ctx, previousCtx);
 
     const lowerQuestion = question.toLowerCase();
     const financialIntent = extractFinancialIntent(question);
@@ -2292,6 +2415,18 @@ ${
         .map((item, index) => `${index + 1}. ${item.message}`)
         .join('\n')
     : 'Nenhuma prioridade crítica identificada no período atual.'
+}
+
+Alertas automáticos:
+${
+  operationalAlerts.length > 0
+    ? operationalAlerts
+        .map(
+          (alert) =>
+            `⚠️ ${alert.message}`
+        )
+        .join('\n')
+    : 'Nenhum alerta operacional relevante identificado.'
 }
 
 Você pode perguntar de forma mais específica, por exemplo:

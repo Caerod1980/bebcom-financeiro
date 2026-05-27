@@ -1062,9 +1062,10 @@ const buildOperationalAlerts = (
       ?.averageTicket || 0;
 
   if (
-    previousTicket > 0 &&
-    currentTicket < previousTicket
-  ) {
+  previousTicket > 0 &&
+  currentTicket > 0 &&
+  currentTicket < previousTicket
+) {
     const drop =
       (
         (previousTicket -
@@ -1169,28 +1170,27 @@ const buildManagerCopilot = ({
   operationalPriorities,
   operationalTrends,
   operationalScore,
+  operationalAlerts,
 }) => {
-  const currentMonth =
-    currentCtx.periodLabel || 'Período atual';
+  const currentMonth = currentCtx.periodLabel || 'Período atual';
 
   const prioritiesText =
     operationalPriorities.length > 0
       ? operationalPriorities
-          .map(
-            (item, index) =>
-              `${index + 1}. ${item.message}`
-          )
+          .map((item, index) => `${index + 1}. ${item.message}`)
           .join('\n')
       : 'Nenhuma prioridade crítica identificada.';
 
   const trendsText =
     operationalTrends.length > 0
-      ? operationalTrends
-          .map((item) => `• ${item}`)
-          .join('\n')
+      ? operationalTrends.map((item) => `• ${item}`).join('\n')
       : 'Ainda não identifiquei tendência operacional relevante.';
 
-  // BOM DIA
+  const alertsText =
+    operationalAlerts && operationalAlerts.length > 0
+      ? operationalAlerts.map((alert) => `⚠️ ${alert.message}`).join('\n')
+      : 'Nenhum alerta operacional relevante identificado.';
+
   if (type === 'morning') {
     return `
 Bom dia, Rodrigo.
@@ -1202,6 +1202,9 @@ ${trendsText}
 Prioridades do dia:
 ${prioritiesText}
 
+Alertas automáticos:
+${alertsText}
+
 Minha percepção:
 Hoje o principal foco deve ser preservar caixa, controlar compras e acompanhar o ritmo operacional da loja.
 
@@ -1210,7 +1213,6 @@ Defina uma prioridade operacional para acompanhar ao longo do dia.
     `.trim();
   }
 
-  // OPERAÇÃO
   if (type === 'operation') {
     return `
 Análise operacional do Bebcom em ${currentMonth}:
@@ -1221,36 +1223,17 @@ ${prioritiesText}
 Tendências operacionais:
 ${trendsText}
 
+Alertas automáticos:
+${alertsText}
+
 Leitura gerencial:
 A operação apresenta pontos que exigem atenção principalmente em caixa, despesas e equilíbrio operacional.
 
 Minha percepção:
 O crescimento precisa acontecer com controle financeiro e operacional para preservar margem e saúde do caixa.
-
-Próxima ação sugerida:
-Concentre atenção primeiro no ponto que mais pressiona resultado e fluxo financeiro.
     `.trim();
   }
 
-  // ATENÇÃO
-  if (type === 'attention') {
-    return `
-Pontos que merecem atenção no Bebcom:
-
-${prioritiesText}
-
-Tendências observadas:
-${trendsText}
-
-Minha leitura:
-Os principais riscos atuais estão relacionados à pressão financeira da operação e ao equilíbrio entre compras, despesas e entradas.
-
-Sugestão prática:
-Acompanhe diariamente os indicadores mais críticos até estabilizar o cenário operacional.
-    `.trim();
-  }
-
-  // PANORAMA
   if (type === 'panorama') {
     return `
 Panorama executivo do Bebcom — ${currentMonth}
@@ -1261,15 +1244,14 @@ ${trendsText}
 Prioridades:
 ${prioritiesText}
 
+Alertas automáticos:
+${alertsText}
+
 Visão gerencial:
 O Bebcom já possui operação relevante e movimentação consistente, mas os números mostram necessidade de equilíbrio entre crescimento, despesas e geração de caixa.
-
-Percepção estratégica:
-O foco agora deve ser eficiência operacional, controle de compras e fortalecimento da margem.
     `.trim();
   }
 
-  // MÊS
   if (type === 'month') {
     return `
 Resumo gerencial de ${currentMonth}:
@@ -1280,19 +1262,16 @@ ${prioritiesText}
 Tendências identificadas:
 ${trendsText}
 
+Alertas automáticos:
+${alertsText}
+
 Leitura do mês:
 O período mostra comportamento operacional que exige atenção principalmente sobre caixa, despesas e desempenho financeiro.
-
-Minha percepção:
-A operação precisa crescer mantendo controle sobre margem, compras e capital de giro.
-
-Próxima ação sugerida:
-Escolha um indicador principal para acompanhar até o fechamento do mês.
     `.trim();
   }
-// SCORE
-if (type === 'score') {
-  return `
+
+  if (type === 'score') {
+    return `
 Saúde operacional do Bebcom:
 ${operationalScore.score}/100
 
@@ -1302,38 +1281,31 @@ ${operationalScore.status}
 Pontos fortes:
 ${
   operationalScore.strengths.length > 0
-    ? operationalScore.strengths
-        .map((item) => `• ${item}`)
-        .join('\n')
+    ? operationalScore.strengths.map((item) => `• ${item}`).join('\n')
     : 'Nenhum ponto forte relevante identificado.'
 }
 
 Pontos críticos:
 ${
   operationalScore.weaknesses.length > 0
-    ? operationalScore.weaknesses
-        .map((item) => `• ${item}`)
-        .join('\n')
+    ? operationalScore.weaknesses.map((item) => `• ${item}`).join('\n')
     : 'Nenhum ponto crítico relevante identificado.'
 }
+    `.trim();
+  }
 
-Leitura gerencial:
-O score operacional resume o equilíbrio entre caixa, despesas, ticket médio e comportamento financeiro da operação.
-
-Minha percepção:
-O objetivo principal é aumentar eficiência operacional preservando margem e capital de giro.
-  `.trim();
-}
-  
-  // FALLBACK
   return `
 Resumo operacional do Bebcom:
 
 ${prioritiesText}
 
 ${trendsText}
+
+Alertas automáticos:
+${alertsText}
   `.trim();
 };
+
 const buildComparisonAnswer = (currentCtx, compareCtx) => {
   const revenueVariation = calculateVariation(
     currentCtx.totalIncome,
@@ -2229,13 +2201,14 @@ const askIABebcom = async (req, res) => {
       copilotType = 'score';
     }
 
-    const managerCopilot = buildManagerCopilot({
-      type: copilotType,
-      currentCtx: ctx,
-      operationalPriorities,
-      operationalTrends,
-      operationalScore,
-    });
+ const managerCopilot = buildManagerCopilot({
+  type: copilotType,
+  currentCtx: ctx,
+  operationalPriorities,
+  operationalTrends,
+  operationalScore,
+  operationalAlerts,
+});
 
     const isComparisonQuestion =
       lowerQuestion.includes('compare') ||

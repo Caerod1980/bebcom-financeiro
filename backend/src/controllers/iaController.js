@@ -2472,6 +2472,15 @@ const detectAdvancedIntent = (question) => {
     lower.includes('como funciona')
   ) return 'educational';
 
+  if (
+  lower.includes('dias mais fortes') ||
+  lower.includes('dias mais fracos') ||
+  lower.includes('comportamento operacional') ||
+  lower.includes('acelerou') ||
+  lower.includes('desacelerou') ||
+  lower.includes('ritmo operacional')
+) return 'operational_behavior';
+
   return 'general';
 };
 
@@ -2571,6 +2580,26 @@ Conclusão:
 O ponto mais importante é observar se a operação está crescendo com equilíbrio ou apenas movimentando mais dinheiro com pressão no caixa.
     `.trim();
   }
+
+  if (intent === 'operational_behavior') {
+  return `
+Comportamento operacional de ${ctx.periodLabel}:
+
+${
+  operationalBehavior && operationalBehavior.length > 0
+    ? operationalBehavior
+        .map((item) => `• ${item}`)
+        .join('\n')
+    : 'Ainda não identifiquei padrão operacional suficiente neste período.'
+}
+
+Minha leitura:
+O comportamento operacional ajuda a entender ritmo de vendas, concentração financeira e pressão de caixa ao longo do período.
+
+Conclusão:
+Esses padrões ajudam a identificar dias fortes, aceleração da operação e momentos de maior pressão financeira.
+  `.trim();
+}
 
   if (intent === 'risk') {
     return `

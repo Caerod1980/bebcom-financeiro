@@ -756,6 +756,109 @@ const buildAnalyticalInsights = (currentCtx, previousCtx) => {
   return insights;
 };
 
+const buildTemporalOperationalMemory = (
+  currentCtx,
+  previousCtx
+) => {
+  const memories = [];
+
+  if (!previousCtx) {
+    return memories;
+  }
+
+  // Caixa
+  if (
+    currentCtx.balance < 0 &&
+    previousCtx.balance < 0
+  ) {
+    memories.push(
+      'O caixa vem operando pressionado nos últimos períodos.'
+    );
+  }
+
+  // Despesas
+  if (
+    currentCtx.totalExpenses >
+      currentCtx.totalIncome &&
+    previousCtx.totalExpenses >
+      previousCtx.totalIncome
+  ) {
+    memories.push(
+      'As despesas seguem acima das entradas nos períodos analisados.'
+    );
+  }
+
+  // Compras
+  const currentPurchases =
+    currentCtx.expenseCategories.find(
+      (item) =>
+        item.category === 'compras_mercadorias'
+    );
+
+  const previousPurchases =
+    previousCtx.expenseCategories.find(
+      (item) =>
+        item.category === 'compras_mercadorias'
+    );
+
+  if (
+    currentPurchases &&
+    previousPurchases &&
+    currentCtx.totalIncome > 0 &&
+    previousCtx.totalIncome > 0
+  ) {
+    const currentRatio =
+      currentPurchases.amount /
+      currentCtx.totalIncome;
+
+    const previousRatio =
+      previousPurchases.amount /
+      previousCtx.totalIncome;
+
+    if (
+      currentRatio > 0.6 &&
+      previousRatio > 0.6
+    ) {
+      memories.push(
+        'As compras de mercadorias seguem acima da média saudável da operação.'
+      );
+    }
+  }
+
+  // Ticket médio
+  const currentTicket =
+    currentCtx.managementReport
+      ?.averageTicket || 0;
+
+  const previousTicket =
+    previousCtx.managementReport
+      ?.averageTicket || 0;
+
+  if (
+    currentTicket > 0 &&
+    previousTicket > 0
+  ) {
+    if (
+      currentTicket < previousTicket
+    ) {
+      memories.push(
+        'O ticket médio demonstra tendência de queda operacional.'
+      );
+    }
+
+    if (
+      currentTicket >
+      previousTicket
+    ) {
+      memories.push(
+        'O ticket médio demonstra recuperação operacional.'
+      );
+    }
+  }
+
+  return memories;
+};
+
 const buildOperationalTrend = (currentCtx, previousCtx) => {
   const trends = [];
 
@@ -1217,6 +1320,7 @@ const buildManagerCopilot = ({
   currentCtx,
   operationalPriorities,
   operationalTrends,
+  temporalMemories,
   operationalScore,
   operationalAlerts,
 }) => {
@@ -1309,6 +1413,17 @@ ${prioritiesText}
 
 Tendências identificadas:
 ${trendsText}
+
+${
+  temporalMemories.length > 0
+    ? `
+Memória operacional:
+${temporalMemories
+  .map((item) => `• ${item}`)
+  .join('\n')}
+`
+    : ''
+}
 
 Alertas automáticos:
 ${alertsText}
@@ -2217,6 +2332,7 @@ const buildAdvancedIntentAnswer = ({
   previousCtx,
   analyticalInsights,
   operationalTrends,
+  temporalMemories,
   operationalPriorities,
   operationalAlerts,
   operationalScore,
@@ -2277,6 +2393,17 @@ ${
   operationalTrends.length > 0
     ? operationalTrends.map((item) => `• ${item}`).join('\n')
     : 'Ainda não identifiquei tendência operacional relevante no comparativo atual.'
+}
+
+${
+  temporalMemories.length > 0
+    ? `
+Memória operacional:
+${temporalMemories
+  .map((item) => `• ${item}`)
+  .join('\n')}
+`
+    : ''
 }
 
 Minha interpretação:
@@ -2403,6 +2530,7 @@ const askIABebcom = async (req, res) => {
 
     const analyticalInsights = buildAnalyticalInsights(ctx, previousCtx);
     const operationalTrends = buildOperationalTrend(ctx, previousCtx);
+    const temporalMemories = buildTemporalOperationalMemory(ctx, previousCtx);
     const operationalScore = buildOperationalScore(ctx, previousCtx);
     const operationalPriorities = buildOperationalPriorities(ctx, previousCtx);
     const operationalAlerts = buildOperationalAlerts(ctx, previousCtx);
@@ -2465,6 +2593,7 @@ const askIABebcom = async (req, res) => {
   currentCtx: ctx,
   operationalPriorities,
   operationalTrends,
+  temporalMemories,
   operationalScore,
   operationalAlerts,
 });
@@ -2518,13 +2647,14 @@ const askIABebcom = async (req, res) => {
     
     const knowledgeBaseAnswer = getKnowledgeBaseAnswer(question, ctx);
 
-    const advancedIntentAnswer = buildAdvancedIntentAnswer({
+   const advancedIntentAnswer = buildAdvancedIntentAnswer({
   intent: advancedIntent,
   question,
   ctx,
   previousCtx,
   analyticalInsights,
   operationalTrends,
+  temporalMemories,
   operationalPriorities,
   operationalAlerts,
   operationalScore,

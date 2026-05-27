@@ -820,6 +820,124 @@ const buildOperationalPriorities = (currentCtx, previousCtx) => {
   return priorities;
 };
 
+const buildOperationalScore = (
+  currentCtx,
+  previousCtx
+) => {
+  let score = 100;
+
+  const strengths = [];
+  const weaknesses = [];
+
+  const currentTicket =
+    currentCtx.managementReport?.averageTicket || 0;
+
+  const previousTicket =
+    previousCtx.managementReport?.averageTicket || 0;
+
+  // Caixa negativo
+  if (currentCtx.balance < 0) {
+    score -= 20;
+
+    weaknesses.push(
+      'Caixa operando com saldo negativo.'
+    );
+  } else {
+    strengths.push(
+      'O caixa do período está positivo.'
+    );
+  }
+
+  // Despesas maiores que receita
+  if (currentCtx.totalExpenses > currentCtx.totalIncome) {
+    score -= 15;
+
+    weaknesses.push(
+      'As despesas estão maiores que as entradas.'
+    );
+  } else {
+    strengths.push(
+      'As entradas superam as despesas.'
+    );
+  }
+
+  // Ticket médio
+  if (
+    previousTicket > 0 &&
+    currentTicket > previousTicket
+  ) {
+    strengths.push(
+      'O ticket médio apresenta evolução positiva.'
+    );
+  }
+
+  if (
+    previousTicket > 0 &&
+    currentTicket < previousTicket
+  ) {
+    score -= 10;
+
+    weaknesses.push(
+      'O ticket médio caiu em relação ao período anterior.'
+    );
+  }
+
+  // Contas pendentes
+  if (
+    currentCtx.pendingPayable >
+    currentCtx.totalIncome * 0.5
+  ) {
+    score -= 10;
+
+    weaknesses.push(
+      'As contas pendentes estão elevadas.'
+    );
+  }
+
+  // Compras muito altas
+  const topExpense =
+    currentCtx.expenseCategories?.[0];
+
+  if (
+    topExpense &&
+    topExpense.category === 'compras_mercadorias'
+  ) {
+    weaknesses.push(
+      'Compras seguem como principal pressão financeira.'
+    );
+
+    score -= 5;
+  }
+
+  // Receita relevante
+  if (currentCtx.totalIncome > 50000) {
+    strengths.push(
+      'A operação apresenta volume financeiro relevante.'
+    );
+  }
+
+  // Limites
+  if (score < 0) score = 0;
+  if (score > 100) score = 100;
+
+  // Classificação
+  let status = 'Saudável';
+
+  if (score < 80) {
+    status = 'Atenção';
+  }
+
+  if (score < 60) {
+    status = 'Crítico';
+  }
+
+  return {
+    score,
+    status,
+    strengths,
+    weaknesses,
+  };
+};
 const buildAutomaticRecommendations = (ctx) => {
   const recommendations = [];
 
@@ -863,6 +981,7 @@ const buildManagerCopilot = ({
   currentCtx,
   operationalPriorities,
   operationalTrends,
+  operationalScore,
 }) => {
   const currentMonth =
     currentCtx.periodLabel || 'Período atual';
@@ -984,7 +1103,41 @@ Próxima ação sugerida:
 Escolha um indicador principal para acompanhar até o fechamento do mês.
     `.trim();
   }
+// SCORE
+if (type === 'score') {
+  return `
+Saúde operacional do Bebcom:
+${operationalScore.score}/100
 
+Classificação:
+${operationalScore.status}
+
+Pontos fortes:
+${
+  operationalScore.strengths.length > 0
+    ? operationalScore.strengths
+        .map((item) => `• ${item}`)
+        .join('\n')
+    : 'Nenhum ponto forte relevante identificado.'
+}
+
+Pontos críticos:
+${
+  operationalScore.weaknesses.length > 0
+    ? operationalScore.weaknesses
+        .map((item) => `• ${item}`)
+        .join('\n')
+    : 'Nenhum ponto crítico relevante identificado.'
+}
+
+Leitura gerencial:
+O score operacional resume o equilíbrio entre caixa, despesas, ticket médio e comportamento financeiro da operação.
+
+Minha percepção:
+O objetivo principal é aumentar eficiência operacional preservando margem e capital de giro.
+  `.trim();
+}
+  
   // FALLBACK
   return `
 Resumo operacional do Bebcom:
@@ -1653,6 +1806,9 @@ const askIABebcom = async (req, res) => {
 const operationalTrends =
   buildOperationalTrend(ctx, previousCtx);
 
+const operationalScore =
+  buildOperationalScore(ctx, previousCtx);
+
 const operationalPriorities =
   buildOperationalPriorities(ctx, previousCtx);
 
@@ -1674,12 +1830,19 @@ const isMonthQuestion =
   lowerQuestion.includes('como está o mês') ||
   lowerQuestion.includes('resumo do mês');
 
+const isScoreQuestion =
+  lowerQuestion.includes('score') ||
+  lowerQuestion.includes('saúde da operação') ||
+  lowerQuestion.includes('como está a saúde') ||
+  lowerQuestion.includes('saude operacional');
+
 const isCopilotQuestion =
   isMorningQuestion ||
   isOperationQuestion ||
   isAttentionQuestion ||
   isPanoramaQuestion ||
   isMonthQuestion ||
+  isScoreQuestion ||
   lowerQuestion.includes('como estamos');
 
 let copilotType = 'default';
@@ -1694,6 +1857,8 @@ if (isMorningQuestion) {
   copilotType = 'panorama';
 } else if (isMonthQuestion) {
   copilotType = 'month';
+} else if (isScoreQuestion) {
+  copilotType = 'score';
 }
 
 const managerCopilot =
@@ -1702,6 +1867,7 @@ const managerCopilot =
     currentCtx: ctx,
     operationalPriorities,
     operationalTrends,
+    operationalScore,
   });
        const isComparisonQuestion =
       lowerQuestion.includes('compare') ||

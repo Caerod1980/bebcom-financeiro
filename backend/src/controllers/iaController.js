@@ -405,22 +405,23 @@ const buildContext = async ({ month, year, start, end }) => {
   const incomeCategories = getCategoryTotals(entries, 'income');
 
   return {
-    month,
-    year,
-    periodLabel:
-  month && year
-    ? getMonthLabel(month, year)
-    : 'Período personalizado',
-    totalIncome,
-    totalExpenses,
-    balance,
-    pendingPayable,
-    pendingReceivable,
-    managementReport,
-    inventory,
-    expenseCategories,
-    incomeCategories,
-  };
+  month,
+  year,
+  periodLabel:
+    month && year
+      ? getMonthLabel(month, year)
+      : 'Período personalizado',
+  entries,
+  totalIncome,
+  totalExpenses,
+  balance,
+  pendingPayable,
+  pendingReceivable,
+  managementReport,
+  inventory,
+  expenseCategories,
+  incomeCategories,
+};
 };
 
 const buildFlowAnswer = (ctx) => {
@@ -1756,6 +1757,51 @@ O maior ponto de atenção deve ser o grupo que mais consome caixa no período.
   `.trim();
 };
 
+const buildSupplierImpactAnswer = (ctx) => {
+  const grouped = {};
+
+  ctx.entries
+    .filter(
+      (entry) =>
+        entry.type === 'expense' &&
+        entry.category === 'compras_mercadorias'
+    )
+    .forEach((entry) => {
+      const supplier = (entry.description || 'sem_fornecedor')
+        .trim()
+        .toLowerCase();
+
+      if (!grouped[supplier]) {
+        grouped[supplier] = 0;
+      }
+
+      grouped[supplier] += Math.abs(Number(entry.amount || 0));
+    });
+
+  const totals = Object.entries(grouped)
+    .map(([supplier, amount]) => ({ supplier, amount }))
+    .sort((a, b) => b.amount - a.amount);
+
+  return `
+Fornecedores com maior impacto em compras de mercadorias em ${ctx.periodLabel}:
+
+${
+  totals.length > 0
+    ? totals
+        .slice(0, 10)
+        .map(
+          (item, index) =>
+            `${index + 1}. ${item.supplier}: ${formatCurrency(item.amount)}`
+        )
+        .join('\n')
+    : 'Não encontrei compras de mercadorias com fornecedor na descrição neste período.'
+}
+
+Minha leitura:
+Esse ranking mostra quais fornecedores mais impactaram o caixa dentro das compras de mercadorias.
+  `.trim();
+};
+
 // @desc    Ask IA Bebcom
 // @route   POST /api/ia/ask
 const askIABebcom = async (req, res) => {
@@ -1894,6 +1940,13 @@ const askIABebcom = async (req, res) => {
 
     const isRelativeQuestion = !!relativePeriod || !!specificDatePeriod;
 
+    const isSupplierImpactQuestion =
+      lowerQuestion.includes('fornecedor') ||
+      lowerQuestion.includes('fornecedores') ||
+      lowerQuestion.includes('descrição') ||
+      lowerQuestion.includes('descricao') ||
+      lowerQuestion.includes('nome do fornecedor');
+
     const isTopExpensesQuestion =
       lowerQuestion.includes('maiores despesas') ||
       lowerQuestion.includes('maior despesa') ||
@@ -1935,6 +1988,8 @@ const askIABebcom = async (req, res) => {
       answer = buildComparisonAnswer(ctx, previousCtx);
     } else if (isRelativeQuestion) {
       answer = buildRelativePeriodAnswer(ctx);
+    } else if (isSupplierImpactQuestion) {
+      answer = buildSupplierImpactAnswer(ctx);
     } else if (isTopExpensesQuestion) {
       answer = buildTopExpensesAnswer(ctx);
     } else if (

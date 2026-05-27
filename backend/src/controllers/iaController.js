@@ -1315,12 +1315,153 @@ const buildMainOperationalIndicator = (ctx) => {
   return 'O principal indicador do período é manter o equilíbrio entre entradas, saídas, compras e contas pendentes.';
 };
 
+const buildOperationalBehavior = (ctx) => {
+  const behaviors = [];
+
+  const entries = ctx.entries || [];
+
+  if (entries.length === 0) {
+    return behaviors;
+  }
+
+  const weekDays = [
+    'domingo',
+    'segunda-feira',
+    'terça-feira',
+    'quarta-feira',
+    'quinta-feira',
+    'sexta-feira',
+    'sábado',
+  ];
+
+  const incomeByDay = {};
+  const expenseByDay = {};
+
+  entries.forEach((entry) => {
+    const date = new Date(entry.date);
+    const dayName = weekDays[date.getDay()];
+    const amount = Math.abs(Number(entry.amount || 0));
+
+    if (entry.type === 'income') {
+      incomeByDay[dayName] = (incomeByDay[dayName] || 0) + amount;
+    }
+
+    if (entry.type === 'expense') {
+      expenseByDay[dayName] = (expenseByDay[dayName] || 0) + amount;
+    }
+  });
+
+  const topIncomeDay = Object.entries(incomeByDay)
+    .map(([day, amount]) => ({ day, amount }))
+    .sort((a, b) => b.amount - a.amount)[0];
+
+  const topExpenseDay = Object.entries(expenseByDay)
+    .map(([day, amount]) => ({ day, amount }))
+    .sort((a, b) => b.amount - a.amount)[0];
+
+  if (topIncomeDay) {
+    behaviors.push(
+      `O dia com maior concentração de entradas foi ${topIncomeDay.day}, com ${formatCurrency(topIncomeDay.amount)}.`
+    );
+  }
+
+  if (topExpenseDay) {
+    behaviors.push(
+      `O dia com maior concentração de saídas foi ${topExpenseDay.day}, com ${formatCurrency(topExpenseDay.amount)}.`
+    );
+  }
+
+  if (
+    topIncomeDay &&
+    topExpenseDay &&
+    topIncomeDay.day === topExpenseDay.day
+  ) {
+    behaviors.push(
+      'Entradas e saídas se concentram no mesmo dia da semana, exigindo atenção ao fluxo diário de caixa.'
+    );
+  }
+
+  const firstHalfEntries = entries.filter((entry) => {
+    const day = new Date(entry.date).getDate();
+    return day <= 15;
+  });
+
+  const secondHalfEntries = entries.filter((entry) => {
+    const day = new Date(entry.date).getDate();
+    return day > 15;
+  });
+
+  const firstHalfIncome = firstHalfEntries
+    .filter((entry) => entry.type === 'income')
+    .reduce((acc, entry) => acc + Math.abs(Number(entry.amount || 0)), 0);
+
+  const secondHalfIncome = secondHalfEntries
+    .filter((entry) => entry.type === 'income')
+    .reduce((acc, entry) => acc + Math.abs(Number(entry.amount || 0)), 0);
+
+  const firstHalfExpenses = firstHalfEntries
+    .filter((entry) => entry.type === 'expense')
+    .reduce((acc, entry) => acc + Math.abs(Number(entry.amount || 0)), 0);
+
+  const secondHalfExpenses = secondHalfEntries
+    .filter((entry) => entry.type === 'expense')
+    .reduce((acc, entry) => acc + Math.abs(Number(entry.amount || 0)), 0);
+
+  if (secondHalfIncome > firstHalfIncome * 1.2) {
+    behaviors.push(
+      'As entradas aceleraram na segunda metade do período, indicando melhora recente no ritmo de vendas ou recebimentos.'
+    );
+  }
+
+  if (firstHalfIncome > secondHalfIncome * 1.2) {
+    behaviors.push(
+      'As entradas foram mais fortes na primeira metade do período, indicando desaceleração recente no ritmo de vendas ou recebimentos.'
+    );
+  }
+
+  if (secondHalfExpenses > firstHalfExpenses * 1.2) {
+    behaviors.push(
+      'As saídas aceleraram na segunda metade do período, indicando aumento recente de pressão financeira.'
+    );
+  }
+
+  if (firstHalfExpenses > secondHalfExpenses * 1.2) {
+    behaviors.push(
+      'As saídas foram mais concentradas na primeira metade do período.'
+    );
+  }
+
+  const purchaseEntries = entries.filter(
+    (entry) =>
+      entry.type === 'expense' &&
+      entry.category === 'compras_mercadorias'
+  );
+
+  const purchaseTotal = purchaseEntries.reduce(
+    (acc, entry) => acc + Math.abs(Number(entry.amount || 0)),
+    0
+  );
+
+  if (purchaseTotal > 0 && ctx.totalExpenses > 0) {
+    const purchaseShare = (purchaseTotal / ctx.totalExpenses) * 100;
+
+    if (purchaseShare > 50) {
+      behaviors.push(
+        `As compras de mercadorias representam ${purchaseShare.toFixed(1)}% das saídas do período, mostrando forte peso operacional nas compras.`
+      );
+    }
+  }
+
+  return behaviors;
+};
+
 const buildManagerCopilot = ({
   type,
   currentCtx,
   operationalPriorities,
   operationalTrends,
   temporalMemories,
+  operationalBehavior,
   operationalScore,
   operationalAlerts,
 }) => {
@@ -1343,6 +1484,11 @@ const buildManagerCopilot = ({
       ? operationalAlerts.map((alert) => `⚠️ ${alert.message}`).join('\n')
       : 'Nenhum alerta operacional relevante identificado.';
 
+  const behaviorText =
+  operationalBehavior && operationalBehavior.length > 0
+    ? operationalBehavior.map((item) => `• ${item}`).join('\n')
+    : 'Ainda não identifiquei padrão operacional suficiente neste período.';
+
   if (type === 'morning') {
     return `
 Bom dia, Rodrigo.
@@ -1356,6 +1502,7 @@ ${prioritiesText}
 
 Alertas automáticos:
 ${alertsText}
+
 
 Minha percepção:
 Hoje o principal foco deve ser preservar caixa, controlar compras e acompanhar o ritmo operacional da loja.
@@ -1424,6 +1571,9 @@ ${temporalMemories
 `
     : ''
 }
+
+Comportamento operacional:
+${behaviorText}
 
 Alertas automáticos:
 ${alertsText}
@@ -2333,6 +2483,7 @@ const buildAdvancedIntentAnswer = ({
   analyticalInsights,
   operationalTrends,
   temporalMemories,
+  operationalBehavior,
   operationalPriorities,
   operationalAlerts,
   operationalScore,
@@ -2404,6 +2555,13 @@ ${temporalMemories
   .join('\n')}
 `
     : ''
+}
+
+Comportamento operacional:
+${
+  operationalBehavior && operationalBehavior.length > 0
+    ? operationalBehavior.map((item) => `• ${item}`).join('\n')
+    : 'Ainda não identifiquei padrão operacional suficiente neste período.'
 }
 
 Minha interpretação:
@@ -2531,6 +2689,7 @@ const askIABebcom = async (req, res) => {
     const analyticalInsights = buildAnalyticalInsights(ctx, previousCtx);
     const operationalTrends = buildOperationalTrend(ctx, previousCtx);
     const temporalMemories = buildTemporalOperationalMemory(ctx, previousCtx);
+    const operationalBehavior = buildOperationalBehavior(ctx);
     const operationalScore = buildOperationalScore(ctx, previousCtx);
     const operationalPriorities = buildOperationalPriorities(ctx, previousCtx);
     const operationalAlerts = buildOperationalAlerts(ctx, previousCtx);
@@ -2594,6 +2753,7 @@ const askIABebcom = async (req, res) => {
   operationalPriorities,
   operationalTrends,
   temporalMemories,
+  operationalBehavior,
   operationalScore,
   operationalAlerts,
 });
@@ -2647,7 +2807,7 @@ const askIABebcom = async (req, res) => {
     
     const knowledgeBaseAnswer = getKnowledgeBaseAnswer(question, ctx);
 
-   const advancedIntentAnswer = buildAdvancedIntentAnswer({
+  const advancedIntentAnswer = buildAdvancedIntentAnswer({
   intent: advancedIntent,
   question,
   ctx,
@@ -2655,6 +2815,7 @@ const askIABebcom = async (req, res) => {
   analyticalInsights,
   operationalTrends,
   temporalMemories,
+  operationalBehavior,
   operationalPriorities,
   operationalAlerts,
   operationalScore,

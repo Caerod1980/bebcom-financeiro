@@ -284,42 +284,41 @@ const getComparisonPeriods = (question) => {
   });
 
   if (uniqueDetected.length >= 2) {
-    const current = uniqueDetected[0];
-    const compare = uniqueDetected[1];
+  const first = uniqueDetected[0];
+  const second = uniqueDetected[1];
 
-    return {
-      current: {
-        month: current.month,
-        year: current.year,
-        start: new Date(current.year, current.month - 1, 1),
-        end: new Date(
-          current.year,
-          current.month,
-          0,
-          23,
-          59,
-          59,
-          999
-        ),
-      },
+  return {
+    current: {
+      month: second.month,
+      year: second.year,
+      start: new Date(second.year, second.month - 1, 1),
+      end: new Date(
+        second.year,
+        second.month,
+        0,
+        23,
+        59,
+        59,
+        999
+      ),
+    },
 
-      compare: {
-        month: compare.month,
-        year: compare.year,
-        start: new Date(compare.year, compare.month - 1, 1),
-        end: new Date(
-          compare.year,
-          compare.month,
-          0,
-          23,
-          59,
-          59,
-          999
-        ),
-      },
-    };
-  }
-
+    compare: {
+      month: first.month,
+      year: first.year,
+      start: new Date(first.year, first.month - 1, 1),
+      end: new Date(
+        first.year,
+        first.month,
+        0,
+        23,
+        59,
+        59,
+        999
+      ),
+    },
+  };
+}
   return null;
 };
 
@@ -1334,11 +1333,11 @@ ${alertsText}
 const hasReliableComparisonData = (ctx) => {
   if (!ctx) return false;
 
+  const hasEntries = ctx.entries && ctx.entries.length > 0;
   const hasIncome = ctx.totalIncome > 0;
   const hasExpenses = ctx.totalExpenses > 0;
-  const hasEntries = ctx.entries && ctx.entries.length > 0;
 
-  return hasEntries && (hasIncome || hasExpenses);
+  return hasEntries && hasIncome && hasExpenses;
 };
 
 const buildComparisonAnswer = (currentCtx, compareCtx) => {
@@ -2450,7 +2449,11 @@ const askIABebcom = async (req, res) => {
       lowerQuestion.includes('compare') ||
       lowerQuestion.includes('compar') ||
       lowerQuestion.includes('versus') ||
-      lowerQuestion.includes('vs');
+      lowerQuestion.includes('vs') ||
+      lowerQuestion.includes('em relação a') ||
+      lowerQuestion.includes('em relacao a') ||
+      lowerQuestion.includes('ficou em relação') ||
+      lowerQuestion.includes('ficou em relacao');
 
     const isDailyBriefing =
       lowerQuestion.includes('resumo do dia') ||

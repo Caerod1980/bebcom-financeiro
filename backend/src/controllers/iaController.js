@@ -1952,6 +1952,42 @@ const buildExecutiveMemory = (
   return memories;
 };
 
+const buildExecutiveResponseStyle = (
+  question
+) => {
+  const lower =
+    question.toLowerCase();
+
+  // Perguntas objetivas
+  if (
+    lower.includes('acha') ||
+    lower.includes('preocupa') ||
+    lower.includes('vale a pena') ||
+    lower.includes('estamos evoluindo') ||
+    lower.includes('recuperação') ||
+    lower.includes('recuperacao') ||
+    lower.includes('piorando') ||
+    lower.includes('melhorou') ||
+    lower.includes('focaria')
+  ) {
+    return 'executive_short';
+  }
+
+  // Perguntas profundas
+  if (
+    lower.includes('análise') ||
+    lower.includes('analise') ||
+    lower.includes('detalhada') ||
+    lower.includes('completa') ||
+    lower.includes('relatório') ||
+    lower.includes('relatorio')
+  ) {
+    return 'executive_long';
+  }
+
+  return 'normal';
+};
+
 const buildManagerCopilot = ({
   type,
   currentCtx,
@@ -3058,6 +3094,7 @@ const buildAdvancedIntentAnswer = ({
   strategicSimulations,
   executiveDecisions,
   executiveMemory,
+  executiveResponseStyle,
   operationalPriorities,
   operationalAlerts,
   operationalScore,
@@ -3130,6 +3167,32 @@ Acompanhar diariamente compras de mercadorias, saldo disponível e contas penden
   }
 
   if (intent === 'trends') {
+    if (
+  executiveResponseStyle ===
+  'executive_short'
+) {
+  return `
+Minha percepção:
+
+${
+  executiveMemory &&
+  executiveMemory.length > 0
+    ? executiveMemory
+        .map((item) => `• ${item}`)
+        .join('\n')
+    : 'Ainda não há histórico suficiente para uma leitura executiva contínua.'
+}
+
+Os principais pontos que mais chamam atenção hoje são:
+• pressão operacional
+• compras elevadas
+• necessidade de preservar caixa
+
+Minha posição:
+Eu focaria primeiro em recuperar equilíbrio financeiro antes de acelerar crescimento.
+  `.trim();
+}
+    
     return `
 Tendências operacionais de ${ctx.periodLabel}:
 
@@ -3176,7 +3239,7 @@ O ponto mais importante é observar se a operação está crescendo com equilíb
   }
 
   if (intent === 'operational_behavior') {
-  return `
+return `
 Comportamento operacional de ${ctx.periodLabel}:
 
 ${
@@ -3196,7 +3259,29 @@ Esses padrões ajudam a identificar dias fortes, aceleração da operação e mo
 }
 
   if (intent === 'executive_decision') {
+  if (
+  executiveResponseStyle ===
+  'executive_short'
+) {
   return `
+Minha posição executiva:
+
+${
+  executiveDecisions &&
+  executiveDecisions.length > 0
+    ? executiveDecisions
+        .slice(0, 2)
+        .map((item) => `• ${item}`)
+        .join('\n')
+    : 'Ainda não identifiquei necessidade de intervenção executiva relevante.'
+}
+
+Minha percepção:
+O momento exige mais preservação financeira do que expansão operacional.
+  `.trim();
+}
+    
+    return `
 Diretoria executiva IA — ${ctx.periodLabel}
 
 Minha posição gerencial:
@@ -3400,6 +3485,7 @@ const askIABebcom = async (req, res) => {
     const strategicSimulations = buildStrategicSimulation(ctx);
     const executiveDecisions = buildExecutiveDecision(ctx);
     const executiveMemory = buildExecutiveMemory(ctx, previousCtx);
+    const executiveResponseStyle = buildExecutiveResponseStyle(question);
     const operationalScore = buildOperationalScore(ctx, previousCtx);
     const operationalPriorities = buildOperationalPriorities(ctx, previousCtx);
     const operationalAlerts = buildOperationalAlerts(ctx, previousCtx);
@@ -3532,6 +3618,7 @@ const askIABebcom = async (req, res) => {
   strategicSimulations,
   executiveDecisions,
   executiveMemory,
+  executiveResponseStyle,
   operationalPriorities,
   operationalAlerts,
   operationalScore,

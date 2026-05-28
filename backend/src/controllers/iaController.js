@@ -1968,7 +1968,10 @@ const buildExecutiveResponseStyle = (
     lower.includes('recuperacao') ||
     lower.includes('piorando') ||
     lower.includes('melhorou') ||
-    lower.includes('focaria')
+    lower.includes('focaria') ||
+    lower.includes('contrataria') ||
+    lower.includes('abriria') ||
+    lower.includes('investir')
   ) {
     return 'executive_short';
   }
@@ -3006,7 +3009,10 @@ const detectAdvancedIntent = (question) => {
   lower.includes('crescendo de forma saudável') ||
   lower.includes('crescendo de forma saudavel') ||
   lower.includes('amadurecendo') ||
-  lower.includes('pressionando')
+  lower.includes('pressionando') ||
+  lower.includes('vem piorando') ||
+  lower.includes('situação vem piorando') ||
+  lower.includes('situacao vem piorando')
 ) return 'trends';
 
   if (

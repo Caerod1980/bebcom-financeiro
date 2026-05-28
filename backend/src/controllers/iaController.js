@@ -3420,18 +3420,27 @@ const buildConversationalContext = ({
   const lower = question.toLowerCase();
 
   const isFollowUp =
-    lower.startsWith('e ') ||
-    lower.startsWith('e se') ||
-    lower.includes('e contratação') ||
-    lower.includes('e contratacao') ||
-    lower.includes('e compras') ||
-    lower.includes('e investimento') ||
-    lower.includes('nesse caso') ||
-    lower.includes('então') ||
-    lower.includes('entao') ||
-    lower.includes('por esse motivo') ||
-    lower.includes('seguindo essa linha');
-
+  lower.startsWith('e ') ||
+  lower.startsWith('e se') ||
+  lower.startsWith('nesse caso') ||
+  lower.startsWith('neste caso') ||
+  lower.includes('e contratar') ||
+  lower.includes('e contratação') ||
+  lower.includes('e contratacao') ||
+  lower.includes('e compra') ||
+  lower.includes('e comprar') ||
+  lower.includes('e compras') ||
+  lower.includes('e mercadorias') ||
+  lower.includes('comprar mais mercadorias') ||
+  lower.includes('e investimento') ||
+  lower.includes('nesse caso') ||
+  lower.includes('neste caso') ||
+  lower.includes('então') ||
+  lower.includes('entao') ||
+  lower.includes('por esse motivo') ||
+  lower.includes('seguindo essa linha') ||
+  lower.includes('o que você faria') ||
+  lower.includes('o que voce faria');
   if (!isFollowUp || !lastIAContext) {
     return null;
   }

@@ -1752,6 +1752,82 @@ const buildStrategicSimulation = (ctx) => {
   return simulations;
 };
 
+const buildExecutiveDecision = (ctx) => {
+  const decisions = [];
+
+  const purchases = ctx.expenseCategories.find(
+    (item) => item.category === 'compras_mercadorias'
+  );
+
+  // Caixa negativo
+  if (ctx.balance < 0) {
+    decisions.push(
+      'Eu evitaria assumir novas despesas até estabilizar o caixa operacional.'
+    );
+  }
+
+  // Compras elevadas
+  if (
+    purchases &&
+    ctx.totalIncome > 0
+  ) {
+    const purchaseShare =
+      (purchases.amount / ctx.totalIncome) * 100;
+
+    if (purchaseShare > 75) {
+      decisions.push(
+        'Eu reduziria temporariamente o ritmo de compras antes de ampliar estoque.'
+      );
+    }
+  }
+
+  // Contas pendentes
+  if (
+    ctx.pendingPayable >
+    ctx.totalIncome * 0.4
+  ) {
+    decisions.push(
+      'A pressão de contas pendentes exige acompanhamento financeiro diário.'
+    );
+  }
+
+  // Resultado saudável
+  if (
+    ctx.balance > 0 &&
+    ctx.pendingPayable <
+      ctx.totalIncome * 0.25
+  ) {
+    decisions.push(
+      'A operação demonstra espaço para crescimento controlado com responsabilidade financeira.'
+    );
+  }
+
+  // Estoque elevado
+  const stock =
+    ctx.inventory?.finalStock || 0;
+
+  if (
+    stock > ctx.totalIncome
+  ) {
+    decisions.push(
+      'Eu priorizaria giro do estoque antes de aumentar reposições.'
+    );
+  }
+
+  // Situação crítica
+  if (
+    ctx.balance < 0 &&
+    ctx.pendingPayable >
+      ctx.totalIncome * 0.35
+  ) {
+    decisions.push(
+      'Minha prioridade absoluta seria recuperar equilíbrio financeiro antes de expandir operação ou assumir novos compromissos.'
+    );
+  }
+
+  return decisions;
+};
+
 const buildManagerCopilot = ({
   type,
   currentCtx,
@@ -2815,6 +2891,19 @@ const detectAdvancedIntent = (question) => {
   lower.includes('projecao')
 ) return 'strategic_simulation';
 
+  if (
+  lower.includes('vale a pena') ||
+  lower.includes('você abriria') ||
+  lower.includes('voce abriria') ||
+  lower.includes('você contrataria') ||
+  lower.includes('voce contrataria') ||
+  lower.includes('o que faria no meu lugar') ||
+  lower.includes('a situação é preocupante') ||
+  lower.includes('a situacao é preocupante') ||
+  lower.includes('a situacao e preocupante') ||
+  lower.includes('devo investir')
+) return 'executive_decision';
+
   return 'general';
 };
 
@@ -2830,6 +2919,7 @@ const buildAdvancedIntentAnswer = ({
   strategicRecommendations,
   operationalPlan,
   strategicSimulations,
+  executiveDecisions,
   operationalPriorities,
   operationalAlerts,
   operationalScore,
@@ -2944,6 +3034,31 @@ O comportamento operacional ajuda a entender ritmo de vendas, concentração fin
 
 Conclusão:
 Esses padrões ajudam a identificar dias fortes, aceleração da operação e momentos de maior pressão financeira.
+  `.trim();
+}
+
+  if (intent === 'executive_decision') {
+  return `
+Diretoria executiva IA — ${ctx.periodLabel}
+
+Minha posição gerencial:
+${
+  executiveDecisions &&
+  executiveDecisions.length > 0
+    ? executiveDecisions
+        .map((item) => `• ${item}`)
+        .join('\n')
+    : 'Ainda não identifiquei necessidade de intervenção executiva relevante.'
+}
+
+Minha leitura:
+A tomada de decisão precisa considerar equilíbrio financeiro, pressão operacional, capacidade de crescimento e preservação do caixa.
+
+O que eu faria:
+Eu priorizaria decisões que fortaleçam caixa, reduzam pressão operacional e preparem a operação para crescimento sustentável.
+
+Conclusão:
+O foco principal não deve ser apenas crescer, mas crescer mantendo controle operacional e saúde financeira.
   `.trim();
 }
 
@@ -3125,6 +3240,7 @@ const askIABebcom = async (req, res) => {
     const strategicRecommendations = buildStrategicRecommendations(ctx);
     const operationalPlan = buildOperationalPlan(ctx);
     const strategicSimulations = buildStrategicSimulation(ctx);
+    const executiveDecisions = buildExecutiveDecision(ctx);
     const operationalScore = buildOperationalScore(ctx, previousCtx);
     const operationalPriorities = buildOperationalPriorities(ctx, previousCtx);
     const operationalAlerts = buildOperationalAlerts(ctx, previousCtx);
@@ -3255,6 +3371,7 @@ const askIABebcom = async (req, res) => {
   strategicRecommendations,
   operationalPlan,
   strategicSimulations,
+  executiveDecisions,
   operationalPriorities,
   operationalAlerts,
   operationalScore,

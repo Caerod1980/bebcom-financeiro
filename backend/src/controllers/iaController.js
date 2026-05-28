@@ -1828,6 +1828,130 @@ const buildExecutiveDecision = (ctx) => {
   return decisions;
 };
 
+const buildExecutiveMemory = (
+  currentCtx,
+  previousCtx
+) => {
+  const memories = [];
+
+  if (!previousCtx) {
+    return memories;
+  }
+
+  // Caixa
+  if (
+    currentCtx.balance < 0 &&
+    previousCtx.balance < 0
+  ) {
+    memories.push(
+      'O caixa permanece pressionado em relação ao período anterior.'
+    );
+  }
+
+  if (
+    currentCtx.balance > previousCtx.balance &&
+    currentCtx.balance > 0
+  ) {
+    memories.push(
+      'O resultado operacional demonstra melhora em relação ao período anterior.'
+    );
+  }
+
+  if (
+    currentCtx.balance < previousCtx.balance
+  ) {
+    memories.push(
+      'O resultado operacional piorou em relação ao período anterior.'
+    );
+  }
+
+  // Compras
+  const currentPurchases =
+    currentCtx.expenseCategories.find(
+      (item) =>
+        item.category === 'compras_mercadorias'
+    );
+
+  const previousPurchases =
+    previousCtx.expenseCategories.find(
+      (item) =>
+        item.category === 'compras_mercadorias'
+    );
+
+  if (
+    currentPurchases &&
+    previousPurchases &&
+    currentCtx.totalIncome > 0 &&
+    previousCtx.totalIncome > 0
+  ) {
+    const currentShare =
+      (currentPurchases.amount /
+        currentCtx.totalIncome) *
+      100;
+
+    const previousShare =
+      (previousPurchases.amount /
+        previousCtx.totalIncome) *
+      100;
+
+    if (
+      currentShare > previousShare
+    ) {
+      memories.push(
+        'A pressão de compras aumentou em relação ao período anterior.'
+      );
+    }
+
+    if (
+      currentShare < previousShare
+    ) {
+      memories.push(
+        'O peso das compras reduziu em relação ao período anterior.'
+      );
+    }
+  }
+
+  // Contas pendentes
+  if (
+    currentCtx.pendingPayable >
+    previousCtx.pendingPayable
+  ) {
+    memories.push(
+      'As contas pendentes cresceram em relação ao período anterior.'
+    );
+  }
+
+  if (
+    currentCtx.pendingPayable <
+    previousCtx.pendingPayable
+  ) {
+    memories.push(
+      'As contas pendentes reduziram em relação ao período anterior.'
+    );
+  }
+
+  // Receita
+  if (
+    currentCtx.totalIncome >
+    previousCtx.totalIncome
+  ) {
+    memories.push(
+      'A receita operacional aumentou em relação ao período anterior.'
+    );
+  }
+
+  if (
+    currentCtx.totalIncome <
+    previousCtx.totalIncome
+  ) {
+    memories.push(
+      'A receita operacional caiu em relação ao período anterior.'
+    );
+  }
+
+  return memories;
+};
+
 const buildManagerCopilot = ({
   type,
   currentCtx,
@@ -2920,6 +3044,7 @@ const buildAdvancedIntentAnswer = ({
   operationalPlan,
   strategicSimulations,
   executiveDecisions,
+  executiveMemory,
   operationalPriorities,
   operationalAlerts,
   operationalScore,
@@ -2953,6 +3078,16 @@ ${
         .map((item) => `• ${item}`)
         .join('\n')
     : 'Nenhuma recomendação estratégica relevante identificada.'
+}
+
+Memória executiva:
+${
+  executiveMemory &&
+  executiveMemory.length > 0
+    ? executiveMemory
+        .map((item) => `• ${item}`)
+        .join('\n')
+    : 'Ainda não há histórico suficiente para leitura executiva contínua.'
 }
 
 Minha percepção estratégica:
@@ -3007,6 +3142,16 @@ ${
   operationalBehavior && operationalBehavior.length > 0
     ? operationalBehavior.map((item) => `• ${item}`).join('\n')
     : 'Ainda não identifiquei padrão operacional suficiente neste período.'
+}
+
+Memória executiva:
+${
+  executiveMemory &&
+  executiveMemory.length > 0
+    ? executiveMemory
+        .map((item) => `• ${item}`)
+        .join('\n')
+    : 'Ainda não há histórico suficiente para leitura executiva contínua.'
 }
 
 Minha interpretação:
@@ -3241,6 +3386,7 @@ const askIABebcom = async (req, res) => {
     const operationalPlan = buildOperationalPlan(ctx);
     const strategicSimulations = buildStrategicSimulation(ctx);
     const executiveDecisions = buildExecutiveDecision(ctx);
+    const executiveMemory = buildExecutiveMemory(ctx, previousCtx);
     const operationalScore = buildOperationalScore(ctx, previousCtx);
     const operationalPriorities = buildOperationalPriorities(ctx, previousCtx);
     const operationalAlerts = buildOperationalAlerts(ctx, previousCtx);
@@ -3372,6 +3518,7 @@ const askIABebcom = async (req, res) => {
   operationalPlan,
   strategicSimulations,
   executiveDecisions,
+  executiveMemory,
   operationalPriorities,
   operationalAlerts,
   operationalScore,

@@ -1355,15 +1355,43 @@ const buildOperationalBehavior = (ctx) => {
     .map(([day, amount]) => ({ day, amount }))
     .sort((a, b) => b.amount - a.amount)[0];
 
-  const topExpenseDay = Object.entries(expenseByDay)
-    .map(([day, amount]) => ({ day, amount }))
-    .sort((a, b) => b.amount - a.amount)[0];
+  const weakIncomeDay = Object.entries(incomeByDay)
+  .map(([day, amount]) => ({ day, amount }))
+  .sort((a, b) => a.amount - b.amount)[0];
 
   if (topIncomeDay) {
     behaviors.push(
       `O dia com maior concentração de entradas foi ${topIncomeDay.day}, com ${formatCurrency(topIncomeDay.amount)}.`
     );
   }
+  const topExpenseDay = Object.entries(expenseByDay)
+    .map(([day, amount]) => ({ day, amount }))
+    .sort((a, b) => b.amount - a.amount)[0];
+
+  if (weakIncomeDay) {
+  behaviors.push(
+    `O dia com menor volume de entradas foi ${weakIncomeDay.day}, com ${formatCurrency(weakIncomeDay.amount)}.`
+  );
+}
+  
+  const totalIncomeDays = Object.values(incomeByDay).reduce(
+  (acc, value) => acc + value,
+  0
+);
+
+if (
+  topIncomeDay &&
+  totalIncomeDays > 0
+) {
+  const concentration =
+    (topIncomeDay.amount / totalIncomeDays) * 100;
+
+  if (concentration > 35) {
+    behaviors.push(
+      `As entradas estão muito concentradas em ${topIncomeDay.day}, representando ${concentration.toFixed(1)}% do faturamento do período.`
+    );
+  }
+}
 
   if (topExpenseDay) {
     behaviors.push(
@@ -1407,6 +1435,19 @@ const buildOperationalBehavior = (ctx) => {
     .filter((entry) => entry.type === 'expense')
     .reduce((acc, entry) => acc + Math.abs(Number(entry.amount || 0)), 0);
 
+  const weekendIncome =
+  (incomeByDay['sábado'] || 0) +
+  (incomeByDay['domingo'] || 0);
+
+if (
+  totalIncomeDays > 0 &&
+  weekendIncome / totalIncomeDays > 0.4
+) {
+  behaviors.push(
+    'A operação demonstra forte dependência do movimento de fim de semana.'
+  );
+}
+
   if (secondHalfIncome > firstHalfIncome * 1.2) {
     behaviors.push(
       'As entradas aceleraram na segunda metade do período, indicando melhora recente no ritmo de vendas ou recebimentos.'
@@ -1449,8 +1490,14 @@ const buildOperationalBehavior = (ctx) => {
       behaviors.push(
         `As compras de mercadorias representam ${purchaseShare.toFixed(1)}% das saídas do período, mostrando forte peso operacional nas compras.`
       );
-    }
+}
+    if (purchaseShare > 70) {
+  behaviors.push(
+    'O nível de compras está muito elevado em relação ao porte operacional do período.'
+  );
+}
   }
+
 
   return behaviors;
 };

@@ -2802,14 +2802,6 @@ Definir uma meta simples para os próximos dias: reduzir pressão de compras, pr
   `.trim();
 }
 
-Onde eu focaria primeiro:
-${mainIndicator}
-
-Próxima ação prática:
-Definir uma meta simples para os próximos dias: reduzir pressão de compras, preservar caixa e acompanhar vencimentos próximos.
-    `.trim();
-  }
-
   return null;
 };
 

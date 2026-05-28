@@ -4,6 +4,8 @@ const ManagementReport = require('../models/ManagementReport');
 const InventoryBalance = require('../models/InventoryBalance');
 const iaKnowledgeBase = require('../data/iaKnowledgeBase');
 
+let lastIAContext = null;
+
 const formatCurrency = (value) =>
   Number(value || 0).toLocaleString('pt-BR', {
     style: 'currency',
@@ -3407,6 +3409,63 @@ Definir uma meta simples para os próximos dias: reduzir pressão de compras, pr
   return null;
 };
 
+const buildConversationalContext = ({
+  question,
+  intent,
+  ctx,
+  mainIndicator,
+  executiveDecisions,
+  strategicRecommendations,
+}) => {
+  const lower = question.toLowerCase();
+
+  const isFollowUp =
+    lower.startsWith('e ') ||
+    lower.startsWith('e se') ||
+    lower.includes('e contratação') ||
+    lower.includes('e contratacao') ||
+    lower.includes('e compras') ||
+    lower.includes('e investimento') ||
+    lower.includes('nesse caso') ||
+    lower.includes('então') ||
+    lower.includes('entao') ||
+    lower.includes('por esse motivo') ||
+    lower.includes('seguindo essa linha');
+
+  if (!isFollowUp || !lastIAContext) {
+    return null;
+  }
+
+  if (
+    lastIAContext.intent === 'executive_decision' ||
+    lastIAContext.intent === 'operational_plan' ||
+    lastIAContext.intent === 'strategic_simulation'
+  ) {
+    return `
+Complementando a análise anterior:
+
+Pelo mesmo cenário identificado em ${ctx.periodLabel}, eu manteria cautela.
+
+Motivo principal:
+${mainIndicator}
+
+Minha posição:
+${
+  executiveDecisions && executiveDecisions.length > 0
+    ? executiveDecisions.slice(0, 2).map((item) => `• ${item}`).join('\n')
+    : strategicRecommendations && strategicRecommendations.length > 0
+      ? strategicRecommendations.slice(0, 2).map((item) => `• ${item}`).join('\n')
+      : 'Eu priorizaria preservar caixa antes de assumir novas decisões operacionais.'
+}
+
+Conclusão:
+A decisão deve continuar alinhada com recuperação de caixa, controle de compras e redução de pressão operacional.
+    `.trim();
+  }
+
+  return null;
+};
+
 // @desc    Ask IA Bebcom
 // @route   POST /api/ia/ask
 const askIABebcom = async (req, res) => {
@@ -3548,6 +3607,28 @@ const askIABebcom = async (req, res) => {
     } else if (isScoreQuestion) {
       copilotType = 'score';
     }
+
+  const conversationalContextAnswer =
+  buildConversationalContext({
+    question,
+    intent: advancedIntent,
+    ctx,
+    mainIndicator: buildMainOperationalIndicator(ctx),
+    executiveDecisions,
+    strategicRecommendations,
+  });
+
+if (conversationalContextAnswer) {
+  lastIAContext = {
+    intent: advancedIntent,
+    periodLabel: ctx.periodLabel,
+    question,
+  };
+
+  return res.json({
+    answer: conversationalContextAnswer,
+  });
+}
 
  const managerCopilot = buildManagerCopilot({
   type: copilotType,
@@ -3790,6 +3871,12 @@ Você pode perguntar de forma mais específica, por exemplo:
 “Como foi a semana passada?”
       `.trim();
     }
+
+    lastIAContext = {
+  intent: advancedIntent,
+  periodLabel: ctx.periodLabel,
+  question,
+};
 
     return res.json({
       answer,

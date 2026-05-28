@@ -1583,6 +1583,100 @@ const buildStrategicRecommendations = (ctx) => {
   return recommendations;
 };
 
+const buildOperationalPlan = (ctx) => {
+  const plans = [];
+
+  const purchases = ctx.expenseCategories.find(
+    (item) => item.category === 'compras_mercadorias'
+  );
+
+  // Caixa negativo
+  if (ctx.balance < 0) {
+    plans.push(
+      'Preservar caixa imediatamente até estabilizar o resultado operacional.'
+    );
+  }
+
+  // Compras elevadas
+  if (
+    purchases &&
+    ctx.totalIncome > 0
+  ) {
+    const percentage =
+      (purchases.amount / ctx.totalIncome) * 100;
+
+    if (percentage > 70) {
+      plans.push(
+        'Reduzir temporariamente compras e focar aumento de giro do estoque atual.'
+      );
+    }
+  }
+
+  // Ticket médio
+  const ticket =
+    ctx.managementReport?.averageTicket || 0;
+
+  if (ticket > 0 && ticket < 25) {
+    plans.push(
+      'Criar ações para elevar ticket médio com combos, adicionais e produtos complementares.'
+    );
+  }
+
+  // Fim de semana
+  const saturdayIncome =
+    ctx.weekdayIncome?.sábado || 0;
+
+  const sundayIncome =
+    ctx.weekdayIncome?.domingo || 0;
+
+  const weekendIncome =
+    saturdayIncome + sundayIncome;
+
+  if (
+    ctx.totalIncome > 0 &&
+    weekendIncome / ctx.totalIncome > 0.35
+  ) {
+    plans.push(
+      'Fortalecer campanhas e ações comerciais para o fim de semana, principal período operacional da loja.'
+    );
+  }
+
+  // Contas pendentes
+  if (
+    ctx.pendingPayable >
+    ctx.totalIncome * 0.35
+  ) {
+    plans.push(
+      'Acompanhar contas pendentes diariamente para evitar pressão acumulada de vencimentos.'
+    );
+  }
+
+  // Estoque
+  const stock =
+    ctx.inventory?.finalStock || 0;
+
+  if (
+    stock > ctx.totalIncome
+  ) {
+    plans.push(
+      'Priorizar giro de estoque antes de ampliar reposições.'
+    );
+  }
+
+  // Crescimento saudável
+  if (
+    ctx.balance > 0 &&
+    ctx.pendingPayable <
+      ctx.totalIncome * 0.25
+  ) {
+    plans.push(
+      'A operação permite crescimento controlado mantendo equilíbrio financeiro.'
+    );
+  }
+
+  return plans;
+};
+
 const buildManagerCopilot = ({
   type,
   currentCtx,
@@ -2625,6 +2719,16 @@ const detectAdvancedIntent = (question) => {
   lower.includes('ritmo operacional')
 ) return 'operational_behavior';
 
+  if (
+  lower.includes('plano') ||
+  lower.includes('o que devo fazer') ||
+  lower.includes('como recuperar') ||
+  lower.includes('como melhorar') ||
+  lower.includes('qual meta') ||
+  lower.includes('qual estratégia') ||
+  lower.includes('planejamento')
+) return 'operational_plan';
+
   return 'general';
 };
 
@@ -2638,6 +2742,7 @@ const buildAdvancedIntentAnswer = ({
   temporalMemories,
   operationalBehavior,
   strategicRecommendations,
+  operationalPlan,
   operationalPriorities,
   operationalAlerts,
   operationalScore,
@@ -2752,6 +2857,30 @@ O comportamento operacional ajuda a entender ritmo de vendas, concentração fin
 
 Conclusão:
 Esses padrões ajudam a identificar dias fortes, aceleração da operação e momentos de maior pressão financeira.
+  `.trim();
+}
+
+  if (intent === 'operational_plan') {
+  return `
+Planejamento operacional do Bebcom — ${ctx.periodLabel}
+
+Plano recomendado:
+${
+  operationalPlan && operationalPlan.length > 0
+    ? operationalPlan
+        .map((item, index) => `${index + 1}. ${item}`)
+        .join('\n')
+    : 'Nenhum plano operacional relevante identificado.'
+}
+
+Minha visão estratégica:
+O objetivo principal agora deve ser preservar caixa, melhorar eficiência operacional e aumentar resultado sem elevar pressão financeira.
+
+Meta operacional sugerida:
+Buscar crescimento com equilíbrio entre vendas, compras e geração de caixa.
+
+Minha posição:
+Eu priorizaria decisões que aumentem giro, reduzam pressão financeira e fortaleçam os dias mais fortes da operação.
   `.trim();
 }
 
@@ -2885,6 +3014,7 @@ const askIABebcom = async (req, res) => {
     const temporalMemories = buildTemporalOperationalMemory(ctx, previousCtx);
     const operationalBehavior = buildOperationalBehavior(ctx);
     const strategicRecommendations = buildStrategicRecommendations(ctx);
+    const operationalPlan = buildOperationalPlan(ctx);
     const operationalScore = buildOperationalScore(ctx, previousCtx);
     const operationalPriorities = buildOperationalPriorities(ctx, previousCtx);
     const operationalAlerts = buildOperationalAlerts(ctx, previousCtx);
@@ -3013,6 +3143,7 @@ const askIABebcom = async (req, res) => {
   temporalMemories,
   operationalBehavior,
   strategicRecommendations,
+  operationalPlan,
   operationalPriorities,
   operationalAlerts,
   operationalScore,

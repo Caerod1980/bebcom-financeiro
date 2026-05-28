@@ -3617,7 +3617,16 @@ const askIABebcom = async (req, res) => {
       copilotType = 'score';
     }
 
- if (conversationalContextAnswer) {
+ const conversationalContextAnswer = buildConversationalContext({
+  question,
+  intent: advancedIntent,
+  ctx,
+  mainIndicator: buildMainOperationalIndicator(ctx),
+  executiveDecisions,
+  strategicRecommendations,
+});
+
+if (conversationalContextAnswer) {
   const preservedIntent =
     lastIAContext?.intent &&
     lastIAContext.intent !== 'general'

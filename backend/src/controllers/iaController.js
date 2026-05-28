@@ -2519,9 +2519,13 @@ const detectAdvancedIntent = (question) => {
     lower.includes('como funciona')
   ) return 'educational';
 
-  if (
+ if (
   lower.includes('dias mais fortes') ||
   lower.includes('dias mais fracos') ||
+  lower.includes('parecem mais fortes') ||
+  lower.includes('parecem mais fracos') ||
+  lower.includes('dia forte') ||
+  lower.includes('dia fraco') ||
   lower.includes('comportamento operacional') ||
   lower.includes('acelerou') ||
   lower.includes('desacelerou') ||

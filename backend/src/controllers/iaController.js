@@ -3617,19 +3617,15 @@ const askIABebcom = async (req, res) => {
       copilotType = 'score';
     }
 
-  const conversationalContextAnswer =
-  buildConversationalContext({
-    question,
-    intent: advancedIntent,
-    ctx,
-    mainIndicator: buildMainOperationalIndicator(ctx),
-    executiveDecisions,
-    strategicRecommendations,
-  });
+ if (conversationalContextAnswer) {
+  const preservedIntent =
+    lastIAContext?.intent &&
+    lastIAContext.intent !== 'general'
+      ? lastIAContext.intent
+      : advancedIntent;
 
-if (conversationalContextAnswer) {
   lastIAContext = {
-    intent: advancedIntent,
+    intent: preservedIntent,
     periodLabel: ctx.periodLabel,
     question,
   };
@@ -3638,7 +3634,6 @@ if (conversationalContextAnswer) {
     answer: conversationalContextAnswer,
   });
 }
-
  const managerCopilot = buildManagerCopilot({
   type: copilotType,
   currentCtx: ctx,

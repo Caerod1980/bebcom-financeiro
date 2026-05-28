@@ -1502,6 +1502,87 @@ if (
   return behaviors;
 };
 
+const buildStrategicRecommendations = (ctx) => {
+  const recommendations = [];
+
+  const purchases = ctx.expenseCategories.find(
+    (item) => item.category === 'compras_mercadorias'
+  );
+
+  // Caixa negativo
+  if (ctx.balance < 0) {
+    recommendations.push(
+      'Minha prioridade imediata seria preservar caixa e evitar novas despesas não essenciais.'
+    );
+  }
+
+  // Compras muito altas
+  if (
+    purchases &&
+    ctx.totalIncome > 0
+  ) {
+    const percentage =
+      (purchases.amount / ctx.totalIncome) * 100;
+
+    if (percentage > 60) {
+      recommendations.push(
+        'Eu reduziria temporariamente o ritmo de compras até melhorar o equilíbrio do caixa.'
+      );
+    }
+
+    if (percentage > 75) {
+      recommendations.push(
+        'O volume de compras está muito acima do ideal. O foco agora deve ser aumentar giro antes de novas reposições.'
+      );
+    }
+  }
+
+  // Contas pendentes
+  if (
+    ctx.pendingPayable >
+    ctx.totalIncome * 0.4
+  ) {
+    recommendations.push(
+      'Minha recomendação seria acompanhar vencimentos diariamente para evitar pressão acumulada no caixa.'
+    );
+  }
+
+  // Ticket médio
+  const ticket =
+    ctx.managementReport?.averageTicket || 0;
+
+  if (ticket > 0 && ticket < 25) {
+    recommendations.push(
+      'Eu trabalharia estratégias simples para elevar ticket médio, como combos e produtos complementares.'
+    );
+  }
+
+  // Caixa positivo
+  if (
+    ctx.balance > 0 &&
+    ctx.pendingPayable <
+      ctx.totalIncome * 0.3
+  ) {
+    recommendations.push(
+      'A operação apresenta espaço para crescimento controlado mantendo equilíbrio financeiro.'
+    );
+  }
+
+  // Estoque
+  const stock =
+    ctx.inventory?.finalStock || 0;
+
+  if (
+    stock > ctx.totalIncome
+  ) {
+    recommendations.push(
+      'O estoque financeiro parece elevado em relação ao faturamento atual. Eu focaria em giro antes de ampliar compras.'
+    );
+  }
+
+  return recommendations;
+};
+
 const buildManagerCopilot = ({
   type,
   currentCtx,
@@ -1509,6 +1590,7 @@ const buildManagerCopilot = ({
   operationalTrends,
   temporalMemories,
   operationalBehavior,
+  strategicRecommendations,
   operationalScore,
   operationalAlerts,
 }) => {
@@ -1535,6 +1617,14 @@ const buildManagerCopilot = ({
   operationalBehavior && operationalBehavior.length > 0
     ? operationalBehavior.map((item) => `• ${item}`).join('\n')
     : 'Ainda não identifiquei padrão operacional suficiente neste período.';
+
+  const recommendationsText =
+  strategicRecommendations &&
+  strategicRecommendations.length > 0
+    ? strategicRecommendations
+        .map((item) => `• ${item}`)
+        .join('\n')
+    : 'Nenhuma recomendação estratégica relevante identificada.';
 
   if (type === 'morning') {
     return `
@@ -1621,6 +1711,9 @@ ${temporalMemories
 
 Comportamento operacional:
 ${behaviorText}
+
+Recomendações estratégicas:
+${recommendationsText}
 
 Alertas automáticos:
 ${alertsText}
@@ -2544,6 +2637,7 @@ const buildAdvancedIntentAnswer = ({
   operationalTrends,
   temporalMemories,
   operationalBehavior,
+  strategicRecommendations,
   operationalPriorities,
   operationalAlerts,
   operationalScore,
@@ -2568,6 +2662,15 @@ ${
   operationalPriorities.length > 0
     ? operationalPriorities.map((item, index) => `${index + 1}. ${item.message}`).join('\n')
     : 'Nenhuma prioridade crítica identificada.'
+}
+
+Recomendações estratégicas:
+${
+  strategicRecommendations.length > 0
+    ? strategicRecommendations
+        .map((item) => `• ${item}`)
+        .join('\n')
+    : 'Nenhuma recomendação estratégica relevante identificada.'
 }
 
 Minha percepção estratégica:
@@ -2670,14 +2773,33 @@ Eu trataria esse ponto como prioridade gerencial antes de assumir novas compras,
     `.trim();
   }
 
-  if (intent === 'priority') {
-    return `
+if (intent === 'priority') {
+  return `
 Prioridades gerenciais do Bebcom em ${ctx.periodLabel}:
 
 ${
   operationalPriorities.length > 0
-    ? operationalPriorities.map((item, index) => `${index + 1}. ${item.message}`).join('\n')
+    ? operationalPriorities
+        .map((item, index) => `${index + 1}. ${item.message}`)
+        .join('\n')
     : 'Nenhuma prioridade crítica identificada.'
+}
+
+Recomendações estratégicas:
+${
+  strategicRecommendations.length > 0
+    ? strategicRecommendations
+        .map((item) => `• ${item}`)
+        .join('\n')
+    : 'Nenhuma recomendação estratégica relevante identificada.'
+}
+
+Onde eu focaria primeiro:
+${mainIndicator}
+
+Próxima ação prática:
+Definir uma meta simples para os próximos dias: reduzir pressão de compras, preservar caixa e acompanhar vencimentos próximos.
+  `.trim();
 }
 
 Onde eu focaria primeiro:
@@ -2770,6 +2892,7 @@ const askIABebcom = async (req, res) => {
     const operationalTrends = buildOperationalTrend(ctx, previousCtx);
     const temporalMemories = buildTemporalOperationalMemory(ctx, previousCtx);
     const operationalBehavior = buildOperationalBehavior(ctx);
+    const strategicRecommendations = buildStrategicRecommendations(ctx);
     const operationalScore = buildOperationalScore(ctx, previousCtx);
     const operationalPriorities = buildOperationalPriorities(ctx, previousCtx);
     const operationalAlerts = buildOperationalAlerts(ctx, previousCtx);
@@ -2834,6 +2957,7 @@ const askIABebcom = async (req, res) => {
   operationalTrends,
   temporalMemories,
   operationalBehavior,
+  strategicRecommendations,
   operationalScore,
   operationalAlerts,
 });
@@ -2896,6 +3020,7 @@ const askIABebcom = async (req, res) => {
   operationalTrends,
   temporalMemories,
   operationalBehavior,
+  strategicRecommendations,
   operationalPriorities,
   operationalAlerts,
   operationalScore,

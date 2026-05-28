@@ -1677,6 +1677,81 @@ const buildOperationalPlan = (ctx) => {
   return plans;
 };
 
+const buildStrategicSimulation = (ctx) => {
+  const simulations = [];
+
+  const absBalance = Math.abs(ctx.balance || 0);
+
+  // Caixa negativo
+  if (ctx.balance < 0) {
+    simulations.push({
+      type: 'cash_recovery',
+      message: `Para equilibrar o caixa atual, a operação precisaria gerar aproximadamente ${formatCurrency(absBalance)} adicionais sem aumentar despesas.`,
+    });
+  }
+
+  // Compras
+  const purchases = ctx.expenseCategories.find(
+    (item) => item.category === 'compras_mercadorias'
+  );
+
+  if (
+    purchases &&
+    ctx.totalIncome > 0
+  ) {
+    const purchaseShare =
+      (purchases.amount / ctx.totalIncome) * 100;
+
+    simulations.push({
+      type: 'purchase_share',
+      message: `As compras atuais representam ${purchaseShare.toFixed(1)}% das entradas do período.`,
+    });
+
+    if (purchaseShare > 70) {
+      const suggestedPurchases =
+        ctx.totalIncome * 0.55;
+
+      simulations.push({
+        type: 'purchase_reduction',
+        message: `Para uma operação mais equilibrada, as compras deveriam ficar próximas de ${formatCurrency(suggestedPurchases)} neste nível de faturamento.`,
+      });
+    }
+  }
+
+  // Ticket médio
+  const ticket =
+    ctx.managementReport?.averageTicket || 0;
+
+  const commands =
+    ctx.managementReport?.totalOrders || 0;
+
+  if (ticket > 0 && commands > 0) {
+    const simulatedTicket =
+      ticket + 5;
+
+    const projectedRevenue =
+      simulatedTicket * commands;
+
+    simulations.push({
+      type: 'ticket_growth',
+      message: `Se o ticket médio subisse para ${formatCurrency(simulatedTicket)}, o faturamento projetado seria aproximadamente ${formatCurrency(projectedRevenue)}.`,
+    });
+  }
+
+  // Crescimento
+  if (ctx.totalIncome > 0) {
+    const targetGrowth =
+      ctx.totalIncome * 1.15;
+
+    simulations.push({
+      type: 'growth_projection',
+      message: `Uma meta saudável de crescimento seria atingir aproximadamente ${formatCurrency(targetGrowth)} em entradas mantendo controle operacional.`,
+    });
+  }
+
+  return simulations;
+};
+
 const buildManagerCopilot = ({
   type,
   currentCtx,
@@ -2729,6 +2804,17 @@ const detectAdvancedIntent = (question) => {
   lower.includes('planejamento')
 ) return 'operational_plan';
 
+  if (
+  lower.includes('quanto preciso vender') ||
+  lower.includes('quanto preciso crescer') ||
+  lower.includes('quanto posso comprar') ||
+  lower.includes('e se eu reduzir compras') ||
+  lower.includes('e se aumentar ticket') ||
+  lower.includes('simulação') ||
+  lower.includes('projeção') ||
+  lower.includes('projecao')
+) return 'strategic_simulation';
+
   return 'general';
 };
 
@@ -2743,6 +2829,7 @@ const buildAdvancedIntentAnswer = ({
   operationalBehavior,
   strategicRecommendations,
   operationalPlan,
+  strategicSimulations,
   operationalPriorities,
   operationalAlerts,
   operationalScore,
@@ -2857,6 +2944,28 @@ O comportamento operacional ajuda a entender ritmo de vendas, concentração fin
 
 Conclusão:
 Esses padrões ajudam a identificar dias fortes, aceleração da operação e momentos de maior pressão financeira.
+  `.trim();
+}
+
+  if (intent === 'strategic_simulation') {
+  return `
+Simulação estratégica do Bebcom — ${ctx.periodLabel}
+
+Projeções identificadas:
+${
+  strategicSimulations &&
+  strategicSimulations.length > 0
+    ? strategicSimulations
+        .map((item) => `• ${item.message}`)
+        .join('\n')
+    : 'Nenhuma simulação estratégica relevante identificada.'
+}
+
+Minha visão:
+A simulação estratégica ajuda a visualizar metas possíveis, equilíbrio financeiro e impacto operacional antes da tomada de decisão.
+
+Conclusão:
+O foco principal deve ser crescer preservando caixa, margem e equilíbrio entre compras e faturamento.
   `.trim();
 }
 
@@ -3015,6 +3124,7 @@ const askIABebcom = async (req, res) => {
     const operationalBehavior = buildOperationalBehavior(ctx);
     const strategicRecommendations = buildStrategicRecommendations(ctx);
     const operationalPlan = buildOperationalPlan(ctx);
+    const strategicSimulations = buildStrategicSimulation(ctx);
     const operationalScore = buildOperationalScore(ctx, previousCtx);
     const operationalPriorities = buildOperationalPriorities(ctx, previousCtx);
     const operationalAlerts = buildOperationalAlerts(ctx, previousCtx);
@@ -3144,6 +3254,7 @@ const askIABebcom = async (req, res) => {
   operationalBehavior,
   strategicRecommendations,
   operationalPlan,
+  strategicSimulations,
   operationalPriorities,
   operationalAlerts,
   operationalScore,

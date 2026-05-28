@@ -3586,11 +3586,20 @@ const askIABebcom = async (req, res) => {
       lowerQuestion.includes('resumo do mês');
 
     const isScoreQuestion =
-      lowerQuestion.includes('score') ||
-      lowerQuestion.includes('saúde da operação') ||
-      lowerQuestion.includes('como está a saúde') ||
-      lowerQuestion.includes('saude operacional') ||
-      lowerQuestion.includes('saúde operacional');
+  lowerQuestion.includes('score') ||
+  lowerQuestion.includes('nota') ||
+  lowerQuestion.includes('qual nota') ||
+  lowerQuestion.includes('saúde da empresa') ||
+  lowerQuestion.includes('saude da empresa') ||
+  lowerQuestion.includes('saúde da operação') ||
+  lowerQuestion.includes('saude operacional') ||
+  lowerQuestion.includes('saúde operacional') ||
+  lowerQuestion.includes('como está a saúde') ||
+  lowerQuestion.includes('como você avalia') ||
+  lowerQuestion.includes('como voce avalia') ||
+  lowerQuestion.includes('avaliaria a operação') ||
+  lowerQuestion.includes('avalia a operação') ||
+  lowerQuestion.includes('avalia a operacao');
 
     const isCopilotQuestion =
       isMorningQuestion ||

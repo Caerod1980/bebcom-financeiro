@@ -249,9 +249,9 @@ const getComparisonPeriods = (question) => {
   monthNames.forEach((item) => {
     item.names.forEach((name) => {
       const regex = new RegExp(
-        `${name}\\s*(20\\d{2})?`,
-        'gi'
-      );
+  `\\b${name}\\b\\s*(20\\d{2})?`,
+  'gi'
+   );
 
       let match;
 
@@ -2951,14 +2951,27 @@ const detectAdvancedIntent = (question) => {
     lower.includes('o que acha')
   ) return 'insights';
 
-  if (
-    lower.includes('tendência') ||
-    lower.includes('tendencia') ||
-    lower.includes('o que mudou') ||
-    lower.includes('melhorou ou piorou') ||
-    lower.includes('resultado piorou') ||
-    lower.includes('resultado melhorou')
-  ) return 'trends';
+ if (
+  lower.includes('tendência') ||
+  lower.includes('tendencia') ||
+  lower.includes('o que mudou') ||
+  lower.includes('melhorou ou piorou') ||
+  lower.includes('resultado piorou') ||
+  lower.includes('resultado melhorou') ||
+  lower.includes('evoluiu') ||
+  lower.includes('evolução') ||
+  lower.includes('evolucao') ||
+  lower.includes('pressão financeira') ||
+  lower.includes('pressao financeira') ||
+  lower.includes('contas pendentes cresceram') ||
+  lower.includes('demonstra recuperação') ||
+  lower.includes('demonstra recuperacao') ||
+  lower.includes('estamos evoluindo') ||
+  lower.includes('crescendo de forma saudável') ||
+  lower.includes('crescendo de forma saudavel') ||
+  lower.includes('amadurecendo') ||
+  lower.includes('pressionando')
+) return 'trends';
 
   if (
     lower.includes('risco') ||

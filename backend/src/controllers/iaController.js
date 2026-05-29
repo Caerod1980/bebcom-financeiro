@@ -4871,7 +4871,6 @@ const askIABebcom = async (req, res) => {
 
   historicalMemory = buildHistoricalMemory(ctx, historicalContexts);
   seasonalityAnalysis = buildSeasonalityAnalysis(ctx, historicalContexts);
-  opportunityAnalysis = buildOpportunityAnalysis(ctx, operationalScore, historicalMemory);
 } 
 
     const analyticalInsights = buildAnalyticalInsights(ctx, previousCtx);
@@ -4885,6 +4884,7 @@ const askIABebcom = async (req, res) => {
     const executiveMemory = buildExecutiveMemory(ctx, previousCtx);
     const executiveResponseStyle = buildExecutiveResponseStyle(question);
     const operationalScore = buildOperationalScore(ctx, previousCtx);
+    opportunityAnalysis = buildOpportunityAnalysis(ctx, operationalScore, historicalMemory);
     const operationalPriorities = buildOperationalPriorities(ctx, previousCtx);
     const operationalAlerts = buildOperationalAlerts(ctx, previousCtx);
     const actionPlan = buildActionPlan(ctx, operationalScore, operationalPriorities, strategicRecommendations);

@@ -3085,6 +3085,15 @@ const detectAdvancedIntent = (question) => {
   lower.includes('devo investir')
 ) return 'executive_decision';
 
+  if (
+  lower.includes('plano de ação') ||
+  lower.includes('o que devo fazer agora') ||
+  lower.includes('qual sua recomendação') ||
+  lower.includes('próximos passos') ||
+  lower.includes('proximo passo')
+)
+  return 'action_plan';
+
   return 'general';
 };
 
@@ -3103,6 +3112,7 @@ const buildAdvancedIntentAnswer = ({
   executiveDecisions,
   executiveMemory,
   executiveResponseStyle,
+  actionPlan,
   operationalPriorities,
   operationalAlerts,
   operationalScore,
@@ -3335,6 +3345,36 @@ O foco principal deve ser crescer preservando caixa, margem e equilíbrio entre 
   `.trim();
 }
 
+  if (intent === 'action_plan') {
+  return `
+Plano de ação automático — ${ctx.periodLabel}
+
+Foco principal:
+${actionPlan?.focus || 'Manter equilíbrio operacional'}
+
+Urgência:
+${actionPlan?.urgency || 'Baixa'}
+
+Ações recomendadas:
+${
+  actionPlan?.actions && actionPlan.actions.length > 0
+    ? actionPlan.actions
+        .map((item, index) => `${index + 1}. ${item}`)
+        .join('\n')
+    : 'Nenhuma ação crítica identificada para este período.'
+}
+
+Meta sugerida:
+${actionPlan?.target || 'Manter crescimento com equilíbrio'}
+
+Minha visão:
+Eu executaria essas ações antes de pensar em expansão, novas compras ou investimentos.
+
+Conclusão:
+O objetivo do plano é transformar a análise da IA em ações práticas para proteger caixa, melhorar giro e fortalecer a operação.
+  `.trim();
+}
+
   if (intent === 'operational_plan') {
   return `
 Planejamento operacional do Bebcom — ${ctx.periodLabel}
@@ -3473,6 +3513,86 @@ A decisão deve continuar alinhada com recuperação de caixa, controle de compr
   }
 
   return null;
+};
+
+const buildActionPlan = (
+  ctx,
+  operationalScore,
+  operationalPriorities,
+  strategicRecommendations
+) => {
+
+  const actions = [];
+
+  let focus =
+    'Manter crescimento sustentável';
+
+  let urgency = 'Baixa';
+
+  // Score crítico
+  if (operationalScore.score < 60) {
+    urgency = 'Alta';
+  }
+
+  if (ctx.balance < 0) {
+    focus = 'Recuperação de caixa';
+
+    actions.push(
+      'Suspender despesas não essenciais.'
+    );
+
+    actions.push(
+      'Priorizar geração imediata de caixa.'
+    );
+  }
+
+  const purchases =
+    ctx.expenseCategories.find(
+      item =>
+        item.category ===
+        'compras_mercadorias'
+    );
+
+  if (
+    purchases &&
+    ctx.totalIncome > 0
+  ) {
+    const share =
+      (purchases.amount /
+        ctx.totalIncome) *
+      100;
+
+    if (share > 70) {
+      actions.push(
+        'Reduzir temporariamente compras.'
+      );
+
+      actions.push(
+        'Aumentar giro do estoque atual.'
+      );
+    }
+  }
+
+  if (
+    ctx.pendingPayable >
+    ctx.totalIncome * 0.4
+  ) {
+    actions.push(
+      'Monitorar vencimentos diariamente.'
+    );
+  }
+
+  return {
+    focus,
+    urgency,
+    actions,
+    target:
+      ctx.balance < 0
+        ? `Eliminar saldo negativo de ${formatCurrency(
+            Math.abs(ctx.balance)
+          )}`
+        : 'Manter crescimento com equilíbrio',
+  };
 };
 
 // @desc    Ask IA Bebcom
@@ -3652,6 +3772,7 @@ if (conversationalContextAnswer) {
     answer: conversationalContextAnswer,
   });
 }
+   
  const managerCopilot = buildManagerCopilot({
   type: copilotType,
   currentCtx: ctx,
@@ -3728,6 +3849,7 @@ if (conversationalContextAnswer) {
   executiveDecisions,
   executiveMemory,
   executiveResponseStyle,
+  actionPlan,
   operationalPriorities,
   operationalAlerts,
   operationalScore,

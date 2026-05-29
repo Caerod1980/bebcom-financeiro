@@ -3107,6 +3107,11 @@ const detectAdvancedIntent = (question) => {
   lower.includes('vem acontecendo') ||
   lower.includes('isso é recorrente') ||
   lower.includes('isso e recorrente') ||
+  lower.includes('problema é recorrente') ||
+  lower.includes('problema e recorrente') ||
+  lower.includes('recorrente') ||
+  lower.includes('isso se repete') ||
+  lower.includes('vem se repetindo') ||
   lower.includes('padrão histórico') ||
   lower.includes('padrao historico') ||
   lower.includes('ao longo dos meses')

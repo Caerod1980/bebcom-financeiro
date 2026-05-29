@@ -3100,6 +3100,22 @@ const detectAdvancedIntent = (question) => {
   ) return 'insights';
 
   if (
+  lower.includes('sazonalidade') ||
+  lower.includes('sazonal') ||
+  lower.includes('meses mais fortes') ||
+  lower.includes('meses mais fracos') ||
+  lower.includes('qual mês vende mais') ||
+  lower.includes('qual mes vende mais') ||
+  lower.includes('qual mês vende menos') ||
+  lower.includes('qual mes vende menos') ||
+  lower.includes('quando devo comprar mais estoque') ||
+  lower.includes('quando devo comprar mais') ||
+  lower.includes('quando devo ser mais conservador') ||
+  lower.includes('período tende a vender mais') ||
+  lower.includes('periodo tende a vender mais')
+ ) return 'seasonality';
+
+  if (
   lower.includes('histórico') ||
   lower.includes('historico') ||
   lower.includes('últimos meses') ||
@@ -3337,6 +3353,7 @@ const buildAdvancedIntentAnswer = ({
   executiveDecisions,
   executiveMemory,
   historicalMemory,
+  seasonalityAnalysis,
   executiveResponseStyle,
   actionPlan,
   smartGoal,
@@ -3474,6 +3491,48 @@ ${historicalMemory?.patternStrength || 'Insuficiente'}
 
 Conclusão:
 Com mais períodos alimentados, a IA Bebcom poderá avaliar com mais precisão se a empresa está melhorando, piorando ou passando por ajuste temporário.
+  `.trim();
+}
+
+if (intent === 'seasonality') {
+  return `
+Sazonalidade operacional — ${ctx.periodLabel}
+
+Confiança da leitura:
+${seasonalityAnalysis?.confidence || 'Baixa'}
+
+Períodos analisados:
+${seasonalityAnalysis?.totalPeriods || 0}
+
+Meses mais fortes:
+${
+  seasonalityAnalysis?.strongestMonths?.length > 0
+    ? seasonalityAnalysis.strongestMonths
+        .map(
+          (item, index) =>
+            `${index + 1}. ${item.period}: ${formatCurrency(item.income)}`
+        )
+        .join('\n')
+    : 'Ainda não há meses suficientes para identificar os mais fortes.'
+}
+
+Meses mais fracos:
+${
+  seasonalityAnalysis?.weakestMonths?.length > 0
+    ? seasonalityAnalysis.weakestMonths
+        .map(
+          (item, index) =>
+            `${index + 1}. ${item.period}: ${formatCurrency(item.income)}`
+        )
+        .join('\n')
+    : 'Ainda não há meses suficientes para identificar os mais fracos.'
+}
+
+Minha leitura:
+${seasonalityAnalysis?.reading || 'Ainda não há sazonalidade suficiente para análise confiável.'}
+
+Recomendação:
+${seasonalityAnalysis?.recommendation || 'Alimente mais meses para melhorar a leitura sazonal.'}
   `.trim();
 }
 
@@ -4478,6 +4537,97 @@ if (allPeriods.length >= 2) {
   };
 };
 
+const buildSeasonalityAnalysis = (currentCtx, historicalContexts = []) => {
+  const allPeriods = [currentCtx, ...historicalContexts].filter(
+    (ctx) =>
+      ctx &&
+      ctx.totalIncome > 0 &&
+      ctx.periodLabel
+  );
+
+  if (allPeriods.length < 3) {
+    return {
+      available: false,
+      confidence: 'Baixa',
+      strongestMonths: [],
+      weakestMonths: [],
+      reading:
+        'Ainda não há meses suficientes para identificar sazonalidade com segurança.',
+      recommendation:
+        'Quando houver pelo menos 3 meses completos, a IA poderá apontar meses fortes, meses fracos e períodos de maior cautela.',
+    };
+  }
+
+  const orderedByIncome = [...allPeriods].sort(
+    (a, b) => b.totalIncome - a.totalIncome
+  );
+
+  const strongestMonths = orderedByIncome.slice(0, 3).map((ctx) => ({
+    period: ctx.periodLabel,
+    income: ctx.totalIncome,
+  }));
+
+  const weakestMonths = [...orderedByIncome]
+    .reverse()
+    .slice(0, 3)
+    .map((ctx) => ({
+      period: ctx.periodLabel,
+      income: ctx.totalIncome,
+    }));
+
+  const currentRank =
+    orderedByIncome.findIndex(
+      (ctx) => ctx.periodLabel === currentCtx.periodLabel
+    ) + 1;
+
+  let reading =
+    'Ainda não há padrão sazonal forte, mas já é possível comparar força relativa entre os meses disponíveis.';
+
+  if (currentRank === 1) {
+    reading =
+      'O período atual está entre os mais fortes do histórico analisado.';
+  }
+
+  if (currentRank === orderedByIncome.length) {
+    reading =
+      'O período atual está entre os mais fracos do histórico analisado.';
+  }
+
+  let confidence = 'Baixa';
+
+  if (allPeriods.length >= 6) {
+    confidence = 'Média';
+  }
+
+  if (allPeriods.length >= 12) {
+    confidence = 'Alta';
+  }
+
+  let recommendation =
+    'Use essa leitura como apoio inicial. A sazonalidade ficará mais confiável quando houver 6 a 12 meses completos.';
+
+  if (currentRank === 1) {
+    recommendation =
+      'Como o período atual está forte, vale priorizar giro, margem e reposições cuidadosas sem perder controle de caixa.';
+  }
+
+  if (currentRank === orderedByIncome.length) {
+    recommendation =
+      'Como o período atual está fraco, eu seria mais conservador em compras, despesas e novos compromissos.';
+  }
+
+  return {
+    available: true,
+    confidence,
+    currentRank,
+    totalPeriods: allPeriods.length,
+    strongestMonths,
+    weakestMonths,
+    reading,
+    recommendation,
+  };
+};
+
 // @desc    Ask IA Bebcom
 // @route   POST /api/ia/ask
 const askIABebcom = async (req, res) => {
@@ -4565,6 +4715,7 @@ const askIABebcom = async (req, res) => {
   historicalContexts = await buildHistoricalContexts(period, 6);
 
   historicalMemory = buildHistoricalMemory(ctx, historicalContexts);
+  seasonalityAnalysis = buildSeasonalityAnalysis(ctx, historicalContexts);
 } 
 
     const analyticalInsights = buildAnalyticalInsights(ctx, previousCtx);
@@ -4771,6 +4922,7 @@ if (conversationalContextAnswer) {
   executiveDecisions,
   executiveMemory,
   historicalMemory,
+  seasonalityAnalysis,
   executiveResponseStyle,
   actionPlan,
   smartGoal,

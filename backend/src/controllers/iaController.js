@@ -4541,29 +4541,40 @@ const buildSeasonalityAnalysis = (currentCtx, historicalContexts = []) => {
   const allPeriods = [currentCtx, ...historicalContexts].filter(
     (ctx) =>
       ctx &&
-      ctx.totalIncome > 0 &&
-      ctx.periodLabel
+     ctx.totalIncome > 0
   );
 
-  if (allPeriods.length < 3) {
-    return {
-      available: false,
-      confidence: 'Baixa',
-      strongestMonths: [],
-      weakestMonths: [],
-      reading:
-        'Ainda não há meses suficientes para identificar sazonalidade com segurança.',
-      recommendation:
-        'Quando houver pelo menos 3 meses completos, a IA poderá apontar meses fortes, meses fracos e períodos de maior cautela.',
-    };
-  }
+if (allPeriods.length < 3) {
+  return {
+    available: false,
+    confidence: 'Baixa',
+    currentRank: null,
+    totalPeriods: allPeriods.length,
+    strongestMonths: allPeriods
+      .sort((a, b) => b.totalIncome - a.totalIncome)
+      .map((ctx) => ({
+        period: ctx.periodLabel,
+        income: ctx.totalIncome,
+      })),
+    weakestMonths: allPeriods
+      .sort((a, b) => a.totalIncome - b.totalIncome)
+      .map((ctx) => ({
+        period: ctx.periodLabel || `${ctx.month}/${ctx.year}`,
+        income: ctx.totalIncome,
+      })),
+    reading:
+      'Ainda não há meses suficientes para identificar sazonalidade com segurança, mas já é possível visualizar os períodos disponíveis.',
+    recommendation:
+      'Quando houver pelo menos 3 meses completos, a IA poderá apontar meses fortes, meses fracos e períodos de maior cautela.',
+  };
+} 
 
   const orderedByIncome = [...allPeriods].sort(
     (a, b) => b.totalIncome - a.totalIncome
   );
 
   const strongestMonths = orderedByIncome.slice(0, 3).map((ctx) => ({
-    period: ctx.periodLabel,
+    period: ctx.periodLabel || `${ctx.month}/${ctx.year}`,
     income: ctx.totalIncome,
   }));
 
@@ -4571,14 +4582,18 @@ const buildSeasonalityAnalysis = (currentCtx, historicalContexts = []) => {
     .reverse()
     .slice(0, 3)
     .map((ctx) => ({
-      period: ctx.periodLabel,
+      period: ctx.periodLabel || `${ctx.month}/${ctx.year}`,
       income: ctx.totalIncome,
     }));
 
-  const currentRank =
-    orderedByIncome.findIndex(
-      (ctx) => ctx.periodLabel === currentCtx.periodLabel
-    ) + 1;
+  const currentLabel =
+  currentCtx.periodLabel || `${currentCtx.month}/${currentCtx.year}`;
+
+const currentRank =
+  orderedByIncome.findIndex((ctx) => {
+    const label = ctx.periodLabel || `${ctx.month}/${ctx.year}`;
+    return label === currentLabel;
+  }) + 1;
 
   let reading =
     'Ainda não há padrão sazonal forte, mas já é possível comparar força relativa entre os meses disponíveis.';

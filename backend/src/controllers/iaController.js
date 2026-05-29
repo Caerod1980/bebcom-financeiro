@@ -3134,6 +3134,11 @@ const detectAdvancedIntent = (question) => {
   lower.includes('situacao melhorou') ||
   lower.includes('situação piorou') ||
   lower.includes('situacao piorou') ||
+  lower.includes('ao longo dos meses') ||
+  lower.includes('situação melhorou') ||
+  lower.includes('situacao melhorou') ||
+  lower.includes('situação piorou') ||
+  lower.includes('situacao piorou') ||
   lower.includes('ao longo dos meses')
 ) return 'historical_evolution';
 

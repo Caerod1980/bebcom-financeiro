@@ -3100,6 +3100,19 @@ const detectAdvancedIntent = (question) => {
   ) return 'insights';
 
   if (
+  lower.includes('oportunidade') ||
+  lower.includes('maior oportunidade') ||
+  lower.includes('onde devo focar') ||
+  lower.includes('gargalo') ||
+  lower.includes('o que pode melhorar') ||
+  lower.includes('ação gera maior impacto') ||
+  lower.includes('acao gera maior impacto') ||
+  lower.includes('qual oportunidade') ||
+  lower.includes('onde está a oportunidade') ||
+  lower.includes('onde esta a oportunidade')
+) return 'opportunity';
+
+  if (
   lower.includes('sazonalidade') ||
   lower.includes('sazonal') ||
   lower.includes('meses mais fortes') ||
@@ -3362,6 +3375,7 @@ const buildAdvancedIntentAnswer = ({
   executiveMemory,
   historicalMemory,
   seasonalityAnalysis,
+  opportunityAnalysis,
   executiveResponseStyle,
   actionPlan,
   smartGoal,
@@ -3499,6 +3513,37 @@ ${historicalMemory?.patternStrength || 'Insuficiente'}
 
 Conclusão:
 Com mais períodos alimentados, a IA Bebcom poderá avaliar com mais precisão se a empresa está melhorando, piorando ou passando por ajuste temporário.
+  `.trim();
+}
+
+if (intent === 'opportunity') {
+  return `
+Oportunidades identificadas — ${ctx.periodLabel}
+
+Maior oportunidade:
+${opportunityAnalysis?.mainOpportunity?.title || 'Não identificada'}
+
+Descrição:
+${opportunityAnalysis?.mainOpportunity?.description || ''}
+
+Outras oportunidades:
+${
+  opportunityAnalysis?.opportunities?.length > 0
+    ? opportunityAnalysis.opportunities
+        .slice(1)
+        .map(
+          (item) =>
+            `• ${item.title}: ${item.description}`
+        )
+        .join('\n')
+    : 'Nenhuma oportunidade adicional identificada.'
+}
+
+Minha leitura:
+A melhor oportunidade é aquela que gera impacto relevante sem aumentar risco financeiro ou operacional.
+
+Conclusão:
+A IA Bebcom considera essa a ação com maior potencial de melhorar resultado, caixa ou eficiência neste momento.
   `.trim();
 }
 
@@ -4651,6 +4696,88 @@ const currentRank =
   };
 };
 
+const buildOpportunityAnalysis = (
+  ctx,
+  operationalScore,
+  historicalMemory
+) => {
+  const opportunities = [];
+
+  if (ctx.balance < 0) {
+    opportunities.push({
+      priority: 10,
+      title: 'Recuperação de caixa',
+      description:
+        `Eliminar o saldo negativo de ${formatCurrency(
+          Math.abs(ctx.balance)
+        )} pode gerar impacto imediato na saúde financeira.`,
+    });
+  }
+
+  const purchases = ctx.expenseCategories.find(
+    (item) => item.category === 'compras_mercadorias'
+  );
+
+  if (purchases && ctx.totalIncome > 0) {
+    const share =
+      (purchases.amount / ctx.totalIncome) * 100;
+
+    if (share > 70) {
+      opportunities.push({
+        priority: 9,
+        title: 'Aumentar giro do estoque',
+        description:
+          `As compras representam ${share.toFixed(
+            1
+          )}% das entradas. Vender melhor o estoque atual pode gerar caixa sem novas compras.`,
+      });
+    }
+  }
+
+  if (
+    ctx.inventory &&
+    ctx.inventory.finalStock > ctx.totalIncome * 0.5
+  ) {
+    opportunities.push({
+      priority: 8,
+      title: 'Transformar estoque em caixa',
+      description:
+        `O estoque estimado de ${formatCurrency(
+          ctx.inventory.finalStock
+        )} representa uma oportunidade de geração de caixa.`,
+    });
+  }
+
+  if (
+    historicalMemory?.executiveEvolution?.status ===
+    'Evolução negativa'
+  ) {
+    opportunities.push({
+      priority: 7,
+      title: 'Interromper deterioração operacional',
+      description:
+        'Os indicadores históricos mostram piora operacional. Corrigir tendências negativas pode gerar melhora estrutural.',
+    });
+  }
+
+  opportunities.sort(
+    (a, b) => b.priority - a.priority
+  );
+
+  const mainOpportunity =
+    opportunities[0] ||
+    {
+      title: 'Crescimento sustentável',
+      description:
+        'A operação não apresenta gargalos críticos relevantes neste momento.',
+    };
+
+  return {
+    opportunities,
+    mainOpportunity,
+  };
+};
+
 // @desc    Ask IA Bebcom
 // @route   POST /api/ia/ask
 const askIABebcom = async (req, res) => {
@@ -4679,6 +4806,11 @@ const askIABebcom = async (req, res) => {
          'Ainda não há períodos históricos suficientes para identificar padrões multiperíodo.',
       ],
     };
+
+   let opportunityAnalysis = {
+      opportunities: [],
+      mainOpportunity: null,
+};
 
     if (specificDatePeriod) {
       period = {
@@ -4739,6 +4871,7 @@ const askIABebcom = async (req, res) => {
 
   historicalMemory = buildHistoricalMemory(ctx, historicalContexts);
   seasonalityAnalysis = buildSeasonalityAnalysis(ctx, historicalContexts);
+  opportunityAnalysis = buildOpportunityAnalysis(ctx, operationalScore, historicalMemory);
 } 
 
     const analyticalInsights = buildAnalyticalInsights(ctx, previousCtx);
@@ -4946,6 +5079,7 @@ if (conversationalContextAnswer) {
   executiveMemory,
   historicalMemory,
   seasonalityAnalysis,
+  opportunityAnalysis,
   executiveResponseStyle,
   actionPlan,
   smartGoal,

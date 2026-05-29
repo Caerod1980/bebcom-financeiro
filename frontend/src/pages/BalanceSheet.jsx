@@ -7,6 +7,7 @@ import {
   Landmark,
   Wallet,
   Scale,
+  Download,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { balanceSheetService } from '../services/api';
@@ -99,30 +100,49 @@ const BalanceSheet = () => {
   };
 
   const calculateLocalTotals = (data) => {
-    const assets = data.assets || {};
-    const liabilities = data.liabilities || {};
+  const assets = data.assets || {};
+  const liabilities = data.liabilities || {};
 
-    const totalAssets =
-      toNumber(assets.cash) +
-      toNumber(assets.bank) +
-      toNumber(assets.inventory) +
-      toNumber(assets.receivables) +
-      toNumber(assets.equipment) +
-      toNumber(assets.otherAssets);
+  const totalAssets =
+    toNumber(assets.cash) +
+    toNumber(assets.bank) +
+    toNumber(assets.inventory) +
+    toNumber(assets.receivables) +
+    toNumber(assets.equipment) +
+    toNumber(assets.otherAssets);
 
-    const totalLiabilities =
-      toNumber(liabilities.loans) +
-      toNumber(liabilities.suppliers) +
-      toNumber(liabilities.taxes) +
-      toNumber(liabilities.fixedBills) +
-      toNumber(liabilities.otherLiabilities);
+  const totalLiabilities =
+    toNumber(liabilities.loans) +
+    toNumber(liabilities.suppliers) +
+    toNumber(liabilities.taxes) +
+    toNumber(liabilities.fixedBills) +
+    toNumber(liabilities.otherLiabilities);
 
-    return {
-      totalAssets,
-      totalLiabilities,
-      equity: totalAssets - totalLiabilities,
-    };
+  return {
+    totalAssets,
+    totalLiabilities,
+    equity: totalAssets - totalLiabilities,
   };
+};
+
+  const calculateIndicators = (totalAssets, totalLiabilities, equity) => {
+  const liquidity =
+    totalLiabilities > 0 ? totalAssets / totalLiabilities : 0;
+
+  const debtRatio =
+    totalAssets > 0 ? (totalLiabilities / totalAssets) * 100 : 0;
+
+  const equityRatio =
+    totalAssets > 0 ? (equity / totalAssets) * 100 : 0;
+
+  return { liquidity, debtRatio, equityRatio };
+};
+
+const getEquityStatus = (equity) => {
+  if (equity < 0) return 'Crítico';
+  if (equity === 0) return 'Atenção';
+  return 'Saudável';
+};
 
   const handleAssetChange = (field, value) => {
     const updated = {
@@ -246,6 +266,14 @@ const BalanceSheet = () => {
     equity: localTotals.equity,
   };
 
+  const indicators = calculateIndicators(
+  displayTotals.totalAssets,
+  displayTotals.totalLiabilities,
+  displayTotals.equity
+);
+
+const equityStatus = getEquityStatus(displayTotals.equity);
+
   return (
     <div className="p-3 sm:p-4 md:p-6">
       <div className="flex flex-col lg:flex-row justify-between gap-4 mb-6">
@@ -295,6 +323,15 @@ const BalanceSheet = () => {
             )}
             Salvar Balanço
           </button>
+
+          <button
+             type="button"
+             onClick={() => window.print()}
+             className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+          >
+             <Download className="w-4 h-4" />
+               Exportar PDF
+        </button>
         </div>
       </div>
 
@@ -317,6 +354,39 @@ const BalanceSheet = () => {
           icon={Scale}
         />
       </div>
+
+      <div className="bg-white rounded-2xl border shadow-sm p-5 mb-6">
+  <h2 className="text-lg font-semibold text-gray-900">
+    Análise Patrimonial
+  </h2>
+
+  <p className="text-sm text-gray-600 mt-1">
+    Leitura gerencial da estrutura patrimonial da empresa
+  </p>
+
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
+    <div className="bg-gray-50 rounded-xl p-4">
+      <p className="text-sm text-gray-500">Situação Patrimonial</p>
+      <p className="text-xl font-bold text-gray-900 mt-1">
+        {equityStatus}
+      </p>
+    </div>
+
+    <div className="bg-gray-50 rounded-xl p-4">
+      <p className="text-sm text-gray-500">Liquidez Patrimonial</p>
+      <p className="text-xl font-bold text-gray-900 mt-1">
+        {indicators.liquidity.toFixed(2)}
+      </p>
+    </div>
+
+    <div className="bg-gray-50 rounded-xl p-4">
+      <p className="text-sm text-gray-500">Endividamento</p>
+      <p className="text-xl font-bold text-gray-900 mt-1">
+        {indicators.debtRatio.toFixed(1)}%
+      </p>
+    </div>
+  </div>
+</div>
 
       <div className="bg-white rounded-2xl border shadow-sm p-5 mb-6">
         <div className="flex items-center gap-2 mb-3">
@@ -345,6 +415,24 @@ const BalanceSheet = () => {
           </div>
         </div>
       </div>
+
+      <div className="bg-white rounded-2xl border shadow-sm p-5 mb-6">
+  <h2 className="text-lg font-semibold text-gray-900">
+    Visão Estratégica da IA Bebcom
+  </h2>
+
+  <p className="text-sm text-gray-600 mt-3">
+    O Balanço Patrimonial mostra a posição financeira acumulada da empresa.
+    Quando o patrimônio líquido está positivo, a operação possui mais bens e direitos
+    do que obrigações registradas.
+  </p>
+
+  <p className="text-sm text-gray-600 mt-3">
+    Minha leitura gerencial: acompanhe a relação entre ativo, passivo e patrimônio líquido.
+    Quanto menor a dependência de dívidas e maior a formação de patrimônio próprio,
+    mais forte tende a ser a estrutura financeira da empresa.
+  </p>
+</div> 
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
         <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">

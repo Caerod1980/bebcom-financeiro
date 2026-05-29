@@ -3125,6 +3125,18 @@ const detectAdvancedIntent = (question) => {
 ) return 'historical_memory';
 
   if (
+  lower.includes('score histórico') ||
+  lower.includes('score historico') ||
+  lower.includes('evolução do score') ||
+  lower.includes('evolucao do score') ||
+  lower.includes('nossa nota melhorou') ||
+  lower.includes('o score melhorou') ||
+  lower.includes('estamos mais saudáveis') ||
+  lower.includes('estamos mais saudaveis') ||
+  lower.includes('como evoluiu o score')
+) return 'score_evolution';
+
+  if (
   lower.includes('estamos evoluindo') ||
   lower.includes('estamos melhorando') ||
   lower.includes('estamos piorando') ||
@@ -3399,6 +3411,38 @@ Ação sugerida:
 Acompanhar diariamente compras de mercadorias, saldo disponível e contas pendentes.
     `.trim();
   }
+
+if (intent === 'score_evolution') {
+  const evolution = historicalMemory?.scoreEvolution;
+
+  return `
+Score histórico evolutivo — ${ctx.periodLabel}
+
+Tendência:
+${evolution?.trend || 'Indefinida'}
+
+Histórico de score:
+${
+  evolution?.scores?.length > 0
+    ? evolution.scores
+        .map(
+          (item) =>
+            `• ${item.period}: ${item.score}/100`
+        )
+        .join('\n')
+    : 'Ainda não há histórico suficiente.'
+}
+
+Minha leitura:
+${evolution?.summary || 'Ainda não há histórico suficiente para avaliar evolução do score.'}
+
+Confiança:
+${historicalMemory?.confidence || 'Baixa'}
+
+Conclusão:
+O score histórico ajuda a medir se a saúde operacional está evoluindo, piorando ou permanecendo estável ao longo dos períodos.
+  `.trim();
+}
 
 if (intent === 'historical_evolution') {
   const evolution = historicalMemory?.executiveEvolution;
@@ -4113,6 +4157,11 @@ const buildHistoricalMemory = (currentCtx, historicalContexts = []) => {
     (ctx) => ctx && ctx.totalIncome > 0
   );
 
+  const scoreHistory = allPeriods.map((ctx) => ({
+  period: ctx.periodLabel,
+  score: buildOperationalScore(ctx, ctx).score,
+}));
+
   const memories = [];
 
   if (allPeriods.length < 2) {
@@ -4127,6 +4176,12 @@ const buildHistoricalMemory = (currentCtx, historicalContexts = []) => {
   summary:
     'Ainda não há histórico suficiente para avaliar evolução executiva com segurança.',
   signals: [],
+},
+      scoreEvolution: {
+  trend: 'Indefinida',
+  summary:
+    'Ainda não há histórico suficiente para avaliar evolução do score.',
+  scores: [],
 },
       memories: [
         'Ainda não há períodos históricos suficientes para identificar padrões multiperíodo.',
@@ -4280,6 +4335,43 @@ if (patternStrength === 'Forte') {
     'Há sinais fortes de padrão operacional recorrente. O cenário atual parece fazer parte de um comportamento que vem se repetindo nos períodos analisados.';
 }
 
+let scoreEvolution = {
+  trend: 'Indefinida',
+  summary:
+    'Ainda não há histórico suficiente para avaliar evolução do score.',
+  scores: scoreHistory,
+};
+
+if (scoreHistory.length >= 2) {
+  const firstScore = scoreHistory[scoreHistory.length - 1].score;
+  const lastScore = scoreHistory[0].score;
+
+  const variation = lastScore - firstScore;
+
+  if (variation >= 5) {
+    scoreEvolution.trend = 'Melhora';
+
+    scoreEvolution.summary =
+      `O score operacional evoluiu ${variation} pontos nos períodos analisados.`;
+  }
+
+  if (variation <= -5) {
+    scoreEvolution.trend = 'Piora';
+
+    scoreEvolution.summary =
+      `O score operacional caiu ${Math.abs(
+        variation
+      )} pontos nos períodos analisados.`;
+  }
+
+  if (variation > -5 && variation < 5) {
+    scoreEvolution.trend = 'Estável';
+
+    scoreEvolution.summary =
+      'O score operacional permanece relativamente estável nos períodos analisados.';
+  }
+}
+
 let executiveEvolution = {
   status: 'Indefinido',
   summary:
@@ -4377,6 +4469,7 @@ if (allPeriods.length >= 2) {
     direction,
     patternStrength,
     executiveEvolution,
+    scoreEvolution,
     memories:
       memories.length > 0
         ? memories

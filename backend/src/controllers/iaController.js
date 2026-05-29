@@ -3114,6 +3114,13 @@ const detectAdvancedIntent = (question) => {
   lower.includes('vem se repetindo') ||
   lower.includes('padrão histórico') ||
   lower.includes('padrao historico') ||
+  lower.includes('padrões operacionais') ||
+  lower.includes('padroes operacionais') ||
+  lower.includes('quais padrões') ||
+  lower.includes('quais padroes') ||
+  lower.includes('o que vem se repetindo') ||
+  lower.includes('pressão recorrente') ||
+  lower.includes('pressao recorrente') ||
   lower.includes('ao longo dos meses')
 ) return 'historical_memory';
 

@@ -3125,25 +3125,6 @@ const detectAdvancedIntent = (question) => {
 ) return 'trends';
 
   if (
-  lower.includes('empresa fosse sua') ||
-  lower.includes('no meu lugar') ||
-  lower.includes('caminho certo') ||
-  lower.includes('maior preocupação') ||
-  lower.includes('maior preocupacao') ||
-  lower.includes('o que te preocupa') ||
-  lower.includes('o que te incomoda') ||
-  lower.includes('acredita no futuro') ||
-  lower.includes('futuro da empresa') ||
-  lower.includes('crescendo de forma saudável') ||
-  lower.includes('crescendo de forma saudavel') ||
-  lower.includes('expandiria') ||
-  lower.includes('abriria outra unidade') ||
-  lower.includes('segunda unidade') ||
-  lower.includes('qual conselho') ||
-  lower.includes('que conselho')
-) return 'president_decision';
-
-  if (
     lower.includes('risco') ||
     lower.includes('principal problema') ||
     lower.includes('alerta') ||
@@ -3441,16 +3422,11 @@ Esses padrões ajudam a identificar dias fortes, aceleração da operação e mo
 }
 
   if (intent === 'president_decision') {
-    if (intent === 'president_decision') {
-  return `
+    return `
 Diretor Presidente IA — ${ctx.periodLabel}
 
-${presidentDecision.headline}
-
-Tom da análise:
-${presidentDecision.tone}
-
 Minha maior preocupação:
+
 ${
   presidentDecision.concerns.length > 0
     ? presidentDecision.concerns
@@ -3460,6 +3436,7 @@ ${
 }
 
 Oportunidades identificadas:
+
 ${
   presidentDecision.opportunities.length > 0
     ? presidentDecision.opportunities
@@ -3471,15 +3448,16 @@ ${
 Nível de confiança:
 ${presidentDecision.confidence}
 
-Minha posição:
+Se a empresa fosse minha:
+
 ${presidentDecision.conclusion}
 
-Próxima decisão que eu tomaria:
-${smartGoal?.mainGoal || 'Preservar caixa e fortalecer a operação.'}
+Minha visão:
+Eu tomaria decisões focadas em preservar caixa, fortalecer margem e preparar a empresa para crescimento sustentável.
 
 Conclusão:
-O papel do Diretor Presidente IA é ajudar a tomar decisões com visão de dono, protegendo caixa, margem e crescimento sustentável.
-  `.trim();
+O objetivo não é apenas crescer, mas construir uma operação financeiramente forte e previsível.
+`.trim();
 }
 
   if (intent === 'executive_decision') {
@@ -3833,8 +3811,7 @@ const buildPresidentDecision = (
   operationalScore,
   operationalAlerts,
   strategicRecommendations,
-  smartGoal,
-  style = 'default'
+  smartGoal
 ) => {
   let concerns = [];
   let opportunities = [];
@@ -3884,55 +3861,7 @@ else {
     'Eu focaria em crescimento sustentável preservando margem e geração de caixa.';
 }
 
-  let headline = 'Minha leitura presidencial';
-let tone = 'equilibrado';
-
-if (style === 'visionary') {
-  headline = 'Minha visão sobre o futuro da empresa';
-  tone = 'estratégico e otimista com cautela';
-
-  if (ctx.totalIncome > 50000) {
-    conclusion =
-      'Eu acredito no potencial da operação, mas só aceleraria crescimento depois de recuperar previsibilidade financeira.';
-  }
-}
-
-if (style === 'conservative') {
-  headline = 'Minha posição sobre expansão ou novos compromissos';
-  tone = 'conservador';
-
-  conclusion =
-    'Eu não ampliaria estrutura neste momento. Primeiro recuperaria caixa, reduziria pressão de compras e estabilizaria a operação.';
-}
-
-if (style === 'critical') {
-  headline = 'O que mais me preocupa nos números';
-  tone = 'crítico e direto';
-
-  conclusion =
-    'O que mais me incomoda não é o volume de vendas, mas a pressão financeira gerada por caixa negativo, compras elevadas e contas pendentes.';
-}
-
-if (style === 'opportunity') {
-  headline = 'Onde eu vejo oportunidade agora';
-  tone = 'orientado a oportunidade';
-
-  conclusion =
-    'A maior oportunidade está em transformar estoque atual em caixa, melhorar giro e vender melhor sem aumentar despesas.';
-}
-
-if (style === 'mentor') {
-  headline = 'O que eu faria no seu lugar';
-  tone = 'mentor executivo';
-
-  conclusion =
-    'Eu passaria os próximos dias focado em três pontos: recuperar caixa, reduzir compras temporariamente e aumentar giro do estoque atual.';
-}
-
 return {
-  style,
-  headline,
-  tone,
   concerns,
   opportunities,
   conclusion,
@@ -4052,64 +3981,7 @@ const askIABebcom = async (req, res) => {
 })();
     const smartGoal = buildSmartGoal(ctx, operationalScore, actionPlan, strategicSimulations, goalHorizon);
 
-    const detectPresidentStyle = (question) => {
-  const lower = question.toLowerCase();
-
-  if (
-    lower.includes('futuro') ||
-    lower.includes('caminho certo') ||
-    lower.includes('onde podemos chegar') ||
-    lower.includes('potencial')
-  ) {
-    return 'visionary';
-  }
-
-  if (
-    lower.includes('segunda unidade') ||
-    lower.includes('expandiria') ||
-    lower.includes('abriria') ||
-    lower.includes('contrataria') ||
-    lower.includes('investiria') ||
-    lower.includes('vale investir')
-  ) {
-    return 'conservative';
-  }
-
-  if (
-    lower.includes('preocupação') ||
-    lower.includes('preocupacao') ||
-    lower.includes('preocupa') ||
-    lower.includes('incomoda') ||
-    lower.includes('maior receio') ||
-    lower.includes('pior número') ||
-    lower.includes('pior numero')
-  ) {
-    return 'critical';
-  }
-
-  if (
-    lower.includes('oportunidade') ||
-    lower.includes('potencial') ||
-    lower.includes('ponto positivo') ||
-    lower.includes('lado bom')
-  ) {
-    return 'opportunity';
-  }
-
-  if (
-    lower.includes('conselho') ||
-    lower.includes('meu lugar') ||
-    lower.includes('empresa fosse sua') ||
-    lower.includes('o que faria')
-  ) {
-    return 'mentor';
-  }
-
-  return 'default';
-};
-    const presidentStyle = detectPresidentStyle(question);
-
-    const presidentDecision = buildPresidentDecision(ctx, operationalScore, operationalAlerts, strategicRecommendations, smartGoal, presidentStyle); 
+    const presidentDecision = buildPresidentDecision(ctx, operationalScore, operationalAlerts, strategicRecommendations, smartGoal);
     
     const financialIntent = extractFinancialIntent(question);
 

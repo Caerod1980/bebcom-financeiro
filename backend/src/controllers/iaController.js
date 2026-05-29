@@ -1993,12 +1993,58 @@ const buildExecutiveResponseStyle = (
   return 'normal';
 };
 
-const buildSmartGoal = (
+  const buildSmartGoal = (
   ctx,
   operationalScore,
   actionPlan,
-  strategicSimulations
-) => {
+  strategicSimulations,
+  horizon = 'general'
+  ) => {
+
+     if (horizon === 'daily') {
+  return {
+    period: 'diário',
+    mainGoal:
+      'Preservar caixa e evitar novas pressões financeiras.',
+    financialGoal:
+      'Não ampliar o saldo negativo.',
+    operationalGoal:
+      'Priorizar vendas e evitar compras não urgentes.',
+    successIndicator:
+      'Fechar o dia sem deterioração do caixa.',
+  };
+}
+
+    if (horizon === 'weekly') {
+  return {
+    period: 'semanal',
+    mainGoal:
+      `Recuperar ${formatCurrency(
+        Math.abs(ctx.balance)
+      )} do saldo negativo.`,
+    financialGoal:
+      'Aumentar geração de caixa.',
+    operationalGoal:
+      'Melhorar giro e reduzir compras.',
+    successIndicator:
+      'Encerrar a semana com melhora financeira.',
+  };
+}
+
+    if (horizon === 'monthly') {
+  return {
+    period: 'mensal',
+    mainGoal:
+      'Voltar ao equilíbrio financeiro.',
+    financialGoal:
+      'Fechar o mês com saldo positivo.',
+    operationalGoal:
+      'Reduzir peso das compras e melhorar margem.',
+    successIndicator:
+      'Score operacional acima de 70.',
+  };
+}
+
   let mainGoal = 'Manter crescimento com equilíbrio operacional.';
   let financialGoal = 'Preservar caixa e manter despesas proporcionais às entradas.';
   let operationalGoal = 'Manter giro saudável, controle de compras e estabilidade operacional.';
@@ -2045,7 +2091,6 @@ const buildSmartGoal = (
     successIndicator = 'Manter caixa positivo, compras controladas e score saudável.';
     period = 'mensal';
   }
-
   return {
     period,
     mainGoal,
@@ -3147,6 +3192,27 @@ if (
   lower.includes('proximos passos') ||
   lower.includes('proximo passo')
 ) return 'action_plan';
+
+  const goalHorizon = (() => {
+  if (
+    lower.includes('hoje') ||
+    lower.includes('diária') ||
+    lower.includes('diaria')
+  ) return 'daily';
+
+  if (
+    lower.includes('semana') ||
+    lower.includes('semanal')
+  ) return 'weekly';
+
+  if (
+    lower.includes('mês') ||
+    lower.includes('mes') ||
+    lower.includes('mensal')
+  ) return 'monthly';
+
+  return 'general';
+})();
 
 if (
   lower.includes('meta inteligente') ||

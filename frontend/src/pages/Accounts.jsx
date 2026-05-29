@@ -707,29 +707,45 @@ useEffect(() => {
   )}
 </div>
 
-      <div className="flex flex-col sm:flex-row gap-3 mb-6 justify-end">
-  <button
-    type="button"
-    onClick={() => setShowFilters(!showFilters)}
-    className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
-  >
-    <Filter className="w-4 h-4" />
-    Filtros
-  </button>
+    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-5">
 
-  <button
-    type="button"
-    onClick={() => {
-      setShowForm(true);
-      setEditingAccount(null);
-      setFormData(emptyForm);
-    }}
-    className="flex items-center justify-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 text-sm"
-  >
-    <PlusCircle className="w-4 h-4" />
-    Nova Conta
-  </button>
-</div>
+  <div>
+    <h2 className="text-lg font-semibold text-gray-900">
+      Gestão de Contas
+    </h2>
+
+    <p className="text-sm text-gray-600">
+      Filtre, cadastre e gerencie compromissos financeiros
+    </p>
+  </div>
+
+  <div className="flex flex-col sm:flex-row gap-3">
+
+    <button
+      type="button"
+      onClick={() => setShowFilters(!showFilters)}
+      className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+    >
+      <Filter className="w-4 h-4" />
+      Filtros
+    </button>
+
+    <button
+      type="button"
+      onClick={() => {
+        setShowForm(true);
+        setEditingAccount(null);
+        setFormData(emptyForm);
+      }}
+      className="flex items-center justify-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 text-sm"
+    >
+      <PlusCircle className="w-4 h-4" />
+      Nova Conta
+    </button>
+
+  </div>
+
+</div> 
 
       {showFilters && (
         <div className="bg-white rounded-2xl border shadow-sm p-5 mb-6">

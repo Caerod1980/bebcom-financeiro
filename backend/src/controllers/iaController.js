@@ -3840,11 +3840,8 @@ const askIABebcom = async (req, res) => {
     const operationalPriorities = buildOperationalPriorities(ctx, previousCtx);
     const operationalAlerts = buildOperationalAlerts(ctx, previousCtx);
     const actionPlan = buildActionPlan(ctx, operationalScore, operationalPriorities, strategicRecommendations);
-    const smartGoal = buildSmartGoal(ctx, operationalScore, actionPlan, strategicSimulations, goalHorizon);
-
     const lowerQuestion = question.toLowerCase();
-
-    const goalHorizon = (() => {
+     const goalHorizon = (() => {
   if (
     lowerQuestion.includes('hoje') ||
     lowerQuestion.includes('diária') ||
@@ -3864,6 +3861,7 @@ const askIABebcom = async (req, res) => {
 
   return 'general';
 })();
+    const smartGoal = buildSmartGoal(ctx, operationalScore, actionPlan, strategicSimulations, goalHorizon);
     
     const financialIntent = extractFinancialIntent(question);
 

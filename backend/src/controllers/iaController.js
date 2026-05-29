@@ -3112,6 +3112,14 @@ const detectAdvancedIntent = (question) => {
   lower.includes('quando devo comprar mais') ||
   lower.includes('quando devo ser mais conservador') ||
   lower.includes('período tende a vender mais') ||
+  lower.includes('quais meses são mais fortes') ||
+  lower.includes('quais meses sao mais fortes') ||
+  lower.includes('quais meses são mais fracos') ||
+  lower.includes('quais meses sao mais fracos') ||
+  lower.includes('meses são mais fortes') ||
+  lower.includes('meses sao mais fortes') ||
+  lower.includes('meses são mais fracos') ||
+  lower.includes('meses sao mais fracos') ||
   lower.includes('periodo tende a vender mais')
  ) return 'seasonality';
 

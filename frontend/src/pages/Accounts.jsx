@@ -747,6 +747,8 @@ useEffect(() => {
 
 </div> 
 
+      <hr className="mb-6 border-gray-200" />
+
       {showFilters && (
         <div className="bg-white rounded-2xl border shadow-sm p-5 mb-6">
           <div className="flex justify-between items-center mb-4">

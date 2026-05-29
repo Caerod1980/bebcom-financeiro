@@ -3124,6 +3124,27 @@ const detectAdvancedIntent = (question) => {
   lower.includes('situacao vem piorando')
 ) return 'trends';
 
+if (
+  lower.includes('empresa fosse sua') ||
+  lower.includes('no meu lugar') ||
+  lower.includes('caminho certo') ||
+  lower.includes('maior preocupação') ||
+  lower.includes('maior preocupacao') ||
+  lower.includes('o que te preocupa') ||
+  lower.includes('o que te incomoda') ||
+  lower.includes('acredita no futuro') ||
+  lower.includes('futuro da empresa') ||
+  lower.includes('crescendo de forma saudável') ||
+  lower.includes('crescendo de forma saudavel') ||
+  lower.includes('expandiria') ||
+  lower.includes('abriria outra unidade') ||
+  lower.includes('segunda unidade') ||
+  lower.includes('qual oportunidade') ||
+  lower.includes('que oportunidade') ||
+  lower.includes('qual conselho') ||
+  lower.includes('que conselho')
+) return 'president_decision';
+
   if (
     lower.includes('risco') ||
     lower.includes('principal problema') ||
@@ -3178,10 +3199,16 @@ const detectAdvancedIntent = (question) => {
   lower.includes('o que te preocupa') ||
   lower.includes('o que te incomoda') ||
   lower.includes('acredita no futuro') ||
+  lower.includes('futuro da empresa') ||
   lower.includes('crescendo de forma saudável') ||
   lower.includes('crescendo de forma saudavel') ||
   lower.includes('expandiria') ||
-  lower.includes('abriria outra unidade')
+  lower.includes('abriria outra unidade') ||
+  lower.includes('segunda unidade') ||
+  lower.includes('qual oportunidade') ||
+  lower.includes('que oportunidade') ||
+  lower.includes('qual conselho') ||
+  lower.includes('que conselho')
 ) return 'president_decision';
 
   if (
@@ -3421,12 +3448,19 @@ Esses padrões ajudam a identificar dias fortes, aceleração da operação e mo
   `.trim();
 }
 
-  if (intent === 'president_decision') {
-    return `
+ if (intent === 'president_decision') {
+  return `
 Diretor Presidente IA — ${ctx.periodLabel}
 
-Minha maior preocupação:
+${presidentDecision.headline}
 
+Tom da análise:
+${presidentDecision.tone}
+
+Minha resposta direta:
+${presidentDecision.directAnswer}
+
+Minha maior preocupação:
 ${
   presidentDecision.concerns.length > 0
     ? presidentDecision.concerns
@@ -3436,7 +3470,6 @@ ${
 }
 
 Oportunidades identificadas:
-
 ${
   presidentDecision.opportunities.length > 0
     ? presidentDecision.opportunities
@@ -3448,62 +3481,11 @@ ${
 Nível de confiança:
 ${presidentDecision.confidence}
 
-Se a empresa fosse minha:
-
+Minha posição final:
 ${presidentDecision.conclusion}
 
-Minha visão:
-Eu tomaria decisões focadas em preservar caixa, fortalecer margem e preparar a empresa para crescimento sustentável.
-
-Conclusão:
-O objetivo não é apenas crescer, mas construir uma operação financeiramente forte e previsível.
-`.trim();
-}
-
-  if (intent === 'executive_decision') {
-  if (
-  executiveResponseStyle ===
-  'executive_short'
-) {
-  return `
-Minha posição executiva:
-
-${
-  executiveDecisions &&
-  executiveDecisions.length > 0
-    ? executiveDecisions
-        .slice(0, 2)
-        .map((item) => `• ${item}`)
-        .join('\n')
-    : 'Ainda não identifiquei necessidade de intervenção executiva relevante.'
-}
-
-Minha percepção:
-O momento exige mais preservação financeira do que expansão operacional.
-  `.trim();
-}
-    
-    return `
-Diretoria executiva IA — ${ctx.periodLabel}
-
-Minha posição gerencial:
-${
-  executiveDecisions &&
-  executiveDecisions.length > 0
-    ? executiveDecisions
-        .map((item) => `• ${item}`)
-        .join('\n')
-    : 'Ainda não identifiquei necessidade de intervenção executiva relevante.'
-}
-
-Minha leitura:
-A tomada de decisão precisa considerar equilíbrio financeiro, pressão operacional, capacidade de crescimento e preservação do caixa.
-
-O que eu faria:
-Eu priorizaria decisões que fortaleçam caixa, reduzam pressão operacional e preparem a operação para crescimento sustentável.
-
-Conclusão:
-O foco principal não deve ser apenas crescer, mas crescer mantendo controle operacional e saúde financeira.
+Próxima decisão que eu tomaria:
+${smartGoal?.mainGoal || 'Preservar caixa e fortalecer a operação.'}
   `.trim();
 }
 
@@ -3857,62 +3839,130 @@ const buildPresidentDecision = (
   operationalAlerts,
   strategicRecommendations,
   smartGoal,
-  style = 'default'
+  presidentStyle = 'default'
 ) => {
-  let concerns = [];
-  let opportunities = [];
-  let conclusion = '';
-  let confidence = 'Moderada';
+  const concerns = [];
+  const opportunities = [];
 
   if (ctx.balance < 0) {
-  concerns.push(
-    `O caixa apresenta saldo negativo de ${formatCurrency(
-      Math.abs(ctx.balance)
-    )}.`
-  );
-}
+    concerns.push(
+      `O caixa apresenta saldo negativo de ${formatCurrency(Math.abs(ctx.balance))}.`
+    );
+  }
 
   if (ctx.pendingPayable > ctx.totalIncome * 0.3) {
-  concerns.push(
-    'As contas pendentes representam pressão financeira relevante.'
-  );
-}
+    concerns.push(
+      'As contas pendentes representam pressão financeira relevante.'
+    );
+  }
 
   if (operationalScore.score < 70) {
-  concerns.push(
-    'A saúde operacional ainda não atingiu um nível confortável.'
+    concerns.push(
+      'A saúde operacional ainda não atingiu um nível confortável.'
+    );
+  }
+
+  const purchases = ctx.expenseCategories.find(
+    (item) => item.category === 'compras_mercadorias'
   );
-}
+
+  if (purchases && ctx.totalIncome > 0) {
+    const purchaseShare = (purchases.amount / ctx.totalIncome) * 100;
+
+    if (purchaseShare > 70) {
+      concerns.push(
+        `As compras representam ${purchaseShare.toFixed(1)}% das entradas, pressionando a geração de caixa.`
+      );
+    }
+  }
 
   if (ctx.totalIncome > 50000) {
-  opportunities.push(
-    'A operação possui volume financeiro suficiente para crescer após estabilização.'
-  );
-}
+    opportunities.push(
+      'A operação possui volume financeiro suficiente para crescer após estabilização.'
+    );
+  }
 
-  if (
-  ctx.inventory?.finalStock > 0
-) {
-  opportunities.push(
-    'Existe estoque disponível para gerar caixa sem necessidade imediata de novas compras.'
-  );
-}
+  if (ctx.inventory?.finalStock > 0) {
+    opportunities.push(
+      'Existe estoque disponível para gerar caixa sem necessidade imediata de novas compras.'
+    );
+  }
 
-  if (ctx.balance < 0) {
-  conclusion =
-    'Minha prioridade absoluta seria recuperar caixa antes de acelerar crescimento.';
-}
-else {
-  conclusion =
-    'Eu focaria em crescimento sustentável preservando margem e geração de caixa.';
-}
+  let headline = 'Minha leitura presidencial';
+  let tone = 'equilibrado';
+  let conclusion =
+    ctx.balance < 0
+      ? 'Minha prioridade absoluta seria recuperar caixa antes de acelerar crescimento.'
+      : 'Eu focaria em crescimento sustentável preservando margem e geração de caixa.';
 
-return {
-  concerns,
-  opportunities,
-  conclusion,
-  confidence,
-};
+  let directAnswer =
+    'Eu tomaria decisões focadas em preservar caixa, fortalecer margem e preparar a empresa para crescimento sustentável.';
+
+  if (presidentStyle === 'visionary') {
+    headline = 'Minha visão sobre o futuro da empresa';
+    tone = 'estratégico e otimista com cautela';
+
+    directAnswer =
+      'Sim, eu vejo potencial real na operação. O Bebcom já demonstra capacidade de movimentação financeira relevante. O ponto principal agora é transformar esse volume em caixa saudável e previsível.';
+
+    conclusion =
+      'Eu acredito no futuro da empresa, mas só aceleraria crescimento depois de recuperar previsibilidade financeira.';
+  }
+
+  if (presidentStyle === 'conservative') {
+    headline = 'Minha posição sobre expansão ou novos compromissos';
+    tone = 'conservador e prudente';
+
+    directAnswer =
+      'Hoje eu não expandiria. Antes de abrir nova unidade, contratar ou assumir novos compromissos, eu provaria que a operação atual consegue gerar caixa positivo com compras controladas.';
+
+    conclusion =
+      'Expandir uma operação pressionada pode ampliar os problemas existentes. Primeiro eu estabilizaria caixa, margem e compras.';
+  }
+
+  if (presidentStyle === 'critical') {
+    headline = 'O que mais me preocupa nos números';
+    tone = 'crítico e direto';
+
+    directAnswer =
+      'O que mais me incomoda não é o faturamento. É o fato de a operação movimentar dinheiro, mas ainda terminar com caixa negativo e forte pressão de compras.';
+
+    conclusion =
+      'Eu investigaria primeiro compras, margem e giro, porque esses três pontos parecem estar segurando a geração real de caixa.';
+  }
+
+  if (presidentStyle === 'opportunity') {
+    headline = 'Onde eu vejo oportunidade agora';
+    tone = 'orientado a oportunidade';
+
+    directAnswer =
+      'A maior oportunidade está em transformar o estoque atual em caixa, vender melhor os produtos já comprados e aumentar giro sem criar novas despesas.';
+
+    conclusion =
+      'Eu buscaria crescimento usando melhor o que a empresa já possui, antes de colocar mais dinheiro em compras ou expansão.';
+  }
+
+  if (presidentStyle === 'mentor') {
+    headline = 'O que eu faria no seu lugar';
+    tone = 'mentor executivo';
+
+    directAnswer =
+      'Se eu estivesse no seu lugar, passaria os próximos dias focado em três pontos: recuperar caixa, reduzir compras temporariamente e acelerar o giro do estoque atual.';
+
+    conclusion =
+      'Crescimento pode esperar alguns dias. Caixa não. Eu primeiro recuperaria controle financeiro para depois voltar a acelerar.';
+  }
+
+  return {
+    style: presidentStyle,
+    headline,
+    tone,
+    directAnswer,
+    concerns,
+    opportunities,
+    conclusion,
+    confidence: 'Moderada',
+  };
 };
 
 // @desc    Ask IA Bebcom

@@ -3170,6 +3170,21 @@ const detectAdvancedIntent = (question) => {
 ) return 'strategic_simulation';
 
   if (
+  lower.includes('empresa fosse sua') ||
+  lower.includes('no meu lugar') ||
+  lower.includes('caminho certo') ||
+  lower.includes('maior preocupação') ||
+  lower.includes('maior preocupacao') ||
+  lower.includes('o que te preocupa') ||
+  lower.includes('o que te incomoda') ||
+  lower.includes('acredita no futuro') ||
+  lower.includes('crescendo de forma saudável') ||
+  lower.includes('crescendo de forma saudavel') ||
+  lower.includes('expandiria') ||
+  lower.includes('abriria outra unidade')
+) return 'president_decision';
+
+  if (
   lower.includes('vale a pena') ||
   lower.includes('você abriria') ||
   lower.includes('voce abriria') ||
@@ -3242,6 +3257,7 @@ const buildAdvancedIntentAnswer = ({
   executiveResponseStyle,
   actionPlan,
   smartGoal,
+  presidentDecision,
   operationalPriorities,
   operationalAlerts,
   operationalScore,
@@ -3403,6 +3419,45 @@ O comportamento operacional ajuda a entender ritmo de vendas, concentração fin
 Conclusão:
 Esses padrões ajudam a identificar dias fortes, aceleração da operação e momentos de maior pressão financeira.
   `.trim();
+}
+
+  if (intent === 'president_decision') {
+    return `
+Diretor Presidente IA — ${ctx.periodLabel}
+
+Minha maior preocupação:
+
+${
+  presidentDecision.concerns.length > 0
+    ? presidentDecision.concerns
+        .map((item) => `• ${item}`)
+        .join('\n')
+    : 'Nenhuma preocupação crítica identificada.'
+}
+
+Oportunidades identificadas:
+
+${
+  presidentDecision.opportunities.length > 0
+    ? presidentDecision.opportunities
+        .map((item) => `• ${item}`)
+        .join('\n')
+    : 'Nenhuma oportunidade relevante identificada.'
+}
+
+Nível de confiança:
+${presidentDecision.confidence}
+
+Se a empresa fosse minha:
+
+${presidentDecision.conclusion}
+
+Minha visão:
+Eu tomaria decisões focadas em preservar caixa, fortalecer margem e preparar a empresa para crescimento sustentável.
+
+Conclusão:
+O objetivo não é apenas crescer, mas construir uma operação financeiramente forte e previsível.
+`.trim();
 }
 
   if (intent === 'executive_decision') {
@@ -3751,6 +3806,68 @@ const buildActionPlan = (
   };
 };
 
+const buildPresidentDecision = (
+  ctx,
+  operationalScore,
+  operationalAlerts,
+  strategicRecommendations,
+  smartGoal
+) => {
+  let concerns = [];
+  let opportunities = [];
+  let conclusion = '';
+  let confidence = 'Moderada';
+
+  if (ctx.balance < 0) {
+  concerns.push(
+    `O caixa apresenta saldo negativo de ${formatCurrency(
+      Math.abs(ctx.balance)
+    )}.`
+  );
+}
+
+  if (ctx.pendingPayable > ctx.totalIncome * 0.3) {
+  concerns.push(
+    'As contas pendentes representam pressão financeira relevante.'
+  );
+}
+
+  if (operationalScore.score < 70) {
+  concerns.push(
+    'A saúde operacional ainda não atingiu um nível confortável.'
+  );
+}
+
+  if (ctx.totalIncome > 50000) {
+  opportunities.push(
+    'A operação possui volume financeiro suficiente para crescer após estabilização.'
+  );
+}
+
+  if (
+  ctx.inventory?.finalStock > 0
+) {
+  opportunities.push(
+    'Existe estoque disponível para gerar caixa sem necessidade imediata de novas compras.'
+  );
+}
+
+  if (ctx.balance < 0) {
+  conclusion =
+    'Minha prioridade absoluta seria recuperar caixa antes de acelerar crescimento.';
+}
+else {
+  conclusion =
+    'Eu focaria em crescimento sustentável preservando margem e geração de caixa.';
+}
+
+  return {
+  concerns,
+  opportunities,
+  conclusion,
+  confidence,
+};
+
 // @desc    Ask IA Bebcom
 // @route   POST /api/ia/ask
 const askIABebcom = async (req, res) => {
@@ -3862,6 +3979,8 @@ const askIABebcom = async (req, res) => {
   return 'general';
 })();
     const smartGoal = buildSmartGoal(ctx, operationalScore, actionPlan, strategicSimulations, goalHorizon);
+
+    const presidentDecision = buildPresidentDecision(ctx, operationalScore, operationalAlerts, strategicRecommendations, smartGoal);
     
     const financialIntent = extractFinancialIntent(question);
 
@@ -4028,6 +4147,7 @@ if (conversationalContextAnswer) {
   executiveResponseStyle,
   actionPlan,
   smartGoal,
+  presidentDecision,
   operationalPriorities,
   operationalAlerts,
   operationalScore,

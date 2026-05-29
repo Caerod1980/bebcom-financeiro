@@ -3052,16 +3052,6 @@ const detectAdvancedIntent = (question) => {
 ) return 'operational_behavior';
 
   if (
-  lower.includes('plano') ||
-  lower.includes('o que devo fazer') ||
-  lower.includes('como recuperar') ||
-  lower.includes('como melhorar') ||
-  lower.includes('qual meta') ||
-  lower.includes('qual estratégia') ||
-  lower.includes('planejamento')
-) return 'operational_plan';
-
-  if (
   lower.includes('quanto preciso vender') ||
   lower.includes('quanto preciso crescer') ||
   lower.includes('quanto posso comprar') ||
@@ -3085,14 +3075,27 @@ const detectAdvancedIntent = (question) => {
   lower.includes('devo investir')
 ) return 'executive_decision';
 
-  if (
+if (
   lower.includes('plano de ação') ||
+  lower.includes('plano de acao') ||
   lower.includes('o que devo fazer agora') ||
   lower.includes('qual sua recomendação') ||
+  lower.includes('qual sua recomendacao') ||
   lower.includes('próximos passos') ||
+  lower.includes('proximos passos') ||
   lower.includes('proximo passo')
-)
-  return 'action_plan';
+) return 'action_plan';
+
+if (
+  lower.includes('plano') ||
+  lower.includes('o que devo fazer') ||
+  lower.includes('como recuperar') ||
+  lower.includes('como melhorar') ||
+  lower.includes('qual meta') ||
+  lower.includes('qual estratégia') ||
+  lower.includes('qual estrategia') ||
+  lower.includes('planejamento')
+) return 'operational_plan';
 
   return 'general';
 };
@@ -3683,6 +3686,7 @@ const askIABebcom = async (req, res) => {
     const operationalScore = buildOperationalScore(ctx, previousCtx);
     const operationalPriorities = buildOperationalPriorities(ctx, previousCtx);
     const operationalAlerts = buildOperationalAlerts(ctx, previousCtx);
+    const actionPlan = buildActionPlan(ctx, operationalScore, operationalPriorities, strategicRecommendations);
 
     const lowerQuestion = question.toLowerCase();
     

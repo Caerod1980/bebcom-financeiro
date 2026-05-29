@@ -3099,6 +3099,19 @@ const detectAdvancedIntent = (question) => {
     lower.includes('o que acha')
   ) return 'insights';
 
+  if (
+  lower.includes('histórico') ||
+  lower.includes('historico') ||
+  lower.includes('últimos meses') ||
+  lower.includes('ultimos meses') ||
+  lower.includes('vem acontecendo') ||
+  lower.includes('isso é recorrente') ||
+  lower.includes('isso e recorrente') ||
+  lower.includes('padrão histórico') ||
+  lower.includes('padrao historico') ||
+  lower.includes('ao longo dos meses')
+) return 'historical_memory';
+
  if (
   lower.includes('tendência') ||
   lower.includes('tendencia') ||
@@ -3281,6 +3294,7 @@ const buildAdvancedIntentAnswer = ({
   strategicSimulations,
   executiveDecisions,
   executiveMemory,
+  historicalMemory,
   executiveResponseStyle,
   actionPlan,
   smartGoal,
@@ -3355,6 +3369,28 @@ Ação sugerida:
 Acompanhar diariamente compras de mercadorias, saldo disponível e contas pendentes.
     `.trim();
   }
+
+  if (intent === 'historical_memory') {
+  return `
+Memória histórica multiperíodo — ${ctx.periodLabel}
+
+Períodos analisados:
+${historicalMemory?.periodsAnalyzed || 0}
+
+Leitura histórica:
+${
+  historicalMemory?.memories && historicalMemory.memories.length > 0
+    ? historicalMemory.memories.map((item) => `• ${item}`).join('\n')
+    : 'Ainda não há histórico suficiente para identificar padrões consistentes.'
+}
+
+Minha interpretação:
+A memória histórica permite identificar se o cenário atual é um fato isolado ou parte de um comportamento recorrente da operação.
+
+Conclusão:
+Quanto mais meses forem alimentados no sistema, mais confiável será a leitura de tendência, recorrência e evolução operacional.
+  `.trim();
+}
 
   if (intent === 'trends') {
     if (
@@ -3965,6 +4001,125 @@ const buildPresidentDecision = (
   };
 };
 
+const buildHistoricalContexts = async (basePeriod, monthsBack = 6) => {
+  const contexts = [];
+
+  if (!basePeriod?.month || !basePeriod?.year) {
+    return contexts;
+  }
+
+  for (let i = 1; i <= monthsBack; i++) {
+    const date = new Date(basePeriod.year, basePeriod.month - 1 - i, 1);
+
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+
+    const period = {
+      month,
+      year,
+      start: new Date(year, month - 1, 1),
+      end: new Date(year, month, 0, 23, 59, 59, 999),
+    };
+
+    const ctx = await buildContext(period);
+
+    contexts.push(ctx);
+  }
+
+  return contexts;
+};
+
+const buildHistoricalMemory = (currentCtx, historicalContexts = []) => {
+  const validPeriods = historicalContexts.filter(
+    (ctx) =>
+      ctx &&
+      ctx.entries &&
+      ctx.entries.length > 0 &&
+      ctx.totalIncome > 0
+  );
+
+  const memories = [];
+
+  if (validPeriods.length === 0) {
+    return {
+      available: false,
+      periodsAnalyzed: 0,
+      memories: [
+        'Ainda não há períodos históricos suficientes para identificar padrões multiperíodo.',
+      ],
+    };
+  }
+
+  const allPeriods = [currentCtx, ...validPeriods];
+
+  const negativeCashPeriods = allPeriods.filter(
+    (ctx) => ctx.balance < 0
+  ).length;
+
+  if (negativeCashPeriods >= 2) {
+    memories.push(
+      `O caixa ficou negativo em ${negativeCashPeriods} dos ${allPeriods.length} períodos analisados.`
+    );
+  }
+
+  const expensePressurePeriods = allPeriods.filter(
+    (ctx) => ctx.totalExpenses > ctx.totalIncome
+  ).length;
+
+  if (expensePressurePeriods >= 2) {
+    memories.push(
+      `As despesas superaram as entradas em ${expensePressurePeriods} dos ${allPeriods.length} períodos analisados.`
+    );
+  }
+
+  const purchasePressurePeriods = allPeriods.filter((ctx) => {
+    const purchases = ctx.expenseCategories.find(
+      (item) => item.category === 'compras_mercadorias'
+    );
+
+    if (!purchases || ctx.totalIncome <= 0) return false;
+
+    return purchases.amount / ctx.totalIncome > 0.6;
+  }).length;
+
+  if (purchasePressurePeriods >= 2) {
+    memories.push(
+      `As compras de mercadorias ficaram acima de 60% das entradas em ${purchasePressurePeriods} dos ${allPeriods.length} períodos analisados.`
+    );
+  }
+
+  const ordered = [...allPeriods].reverse();
+
+  const first = ordered[0];
+  const last = ordered[ordered.length - 1];
+
+  if (first && last && first.totalIncome > 0) {
+    const incomeVariation =
+      ((last.totalIncome - first.totalIncome) / first.totalIncome) * 100;
+
+    if (incomeVariation > 10) {
+      memories.push(
+        `A receita apresenta crescimento acumulado de ${incomeVariation.toFixed(1)}% nos períodos analisados.`
+      );
+    }
+
+    if (incomeVariation < -10) {
+      memories.push(
+        `A receita apresenta queda acumulada de ${Math.abs(incomeVariation).toFixed(1)}% nos períodos analisados.`
+      );
+    }
+  }
+
+  return {
+    available: true,
+    periodsAnalyzed: allPeriods.length,
+    memories:
+      memories.length > 0
+        ? memories
+        : ['Ainda não há padrão histórico forte identificado nos períodos disponíveis.'],
+  };
+};
+
 // @desc    Ask IA Bebcom
 // @route   POST /api/ia/ask
 const askIABebcom = async (req, res) => {
@@ -4038,6 +4193,8 @@ const askIABebcom = async (req, res) => {
       };
 
       previousCtx = await buildContext(previousPeriod);
+      const historicalContexts = await buildHistoricalContexts(period, 6);
+      const historicalMemory = buildHistoricalMemory(ctx, historicalContexts);
     }
 
     const analyticalInsights = buildAnalyticalInsights(ctx, previousCtx);
@@ -4243,6 +4400,7 @@ if (conversationalContextAnswer) {
   strategicSimulations,
   executiveDecisions,
   executiveMemory,
+  historicalMemory,
   executiveResponseStyle,
   actionPlan,
   smartGoal,

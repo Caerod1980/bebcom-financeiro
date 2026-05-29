@@ -3861,11 +3861,12 @@ else {
     'Eu focaria em crescimento sustentável preservando margem e geração de caixa.';
 }
 
-  return {
+return {
   concerns,
   opportunities,
   conclusion,
   confidence,
+};
 };
 
 // @desc    Ask IA Bebcom

@@ -428,30 +428,6 @@ useEffect(() => {
             Controle de compromissos financeiros futuros e pendentes
           </p>
         </div>
-
-        <div className="flex flex-col sm:flex-row gap-3">
-          <button
-            type="button"
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
-          >
-            <Filter className="w-4 h-4" />
-            Filtros
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setShowForm(true);
-              setEditingAccount(null);
-              setFormData(emptyForm);
-            }}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 text-sm"
-          >
-            <PlusCircle className="w-4 h-4" />
-            Nova Conta
-          </button>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
@@ -729,6 +705,30 @@ useEffect(() => {
       </table>
     </div>
   )}
+</div>
+
+      <div className="flex flex-col sm:flex-row gap-3 mb-6 justify-end">
+  <button
+    type="button"
+    onClick={() => setShowFilters(!showFilters)}
+    className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+  >
+    <Filter className="w-4 h-4" />
+    Filtros
+  </button>
+
+  <button
+    type="button"
+    onClick={() => {
+      setShowForm(true);
+      setEditingAccount(null);
+      setFormData(emptyForm);
+    }}
+    className="flex items-center justify-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 text-sm"
+  >
+    <PlusCircle className="w-4 h-4" />
+    Nova Conta
+  </button>
 </div>
 
       {showFilters && (

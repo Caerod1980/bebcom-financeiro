@@ -4140,6 +4140,14 @@ const askIABebcom = async (req, res) => {
     let period;
     let ctx;
     let previousCtx;
+    let historicalContexts = [];
+    let historicalMemory = {
+       available: false,
+       periodsAnalyzed: 0,
+       memories: [
+         'Ainda não há períodos históricos suficientes para identificar padrões multiperíodo.',
+      ],
+    };
 
     if (specificDatePeriod) {
       period = {
@@ -4192,10 +4200,14 @@ const askIABebcom = async (req, res) => {
         end: new Date(previousYear, previousMonth, 0, 23, 59, 59, 999),
       };
 
-      previousCtx = await buildContext(previousPeriod);
-      const historicalContexts = await buildHistoricalContexts(period, 6);
-      const historicalMemory = buildHistoricalMemory(ctx, historicalContexts);
+        previousCtx = await buildContext(previousPeriod);
     }
+
+     if (period?.month && period?.year) {
+  historicalContexts = await buildHistoricalContexts(period, 6);
+
+  historicalMemory = buildHistoricalMemory(ctx, historicalContexts);
+} 
 
     const analyticalInsights = buildAnalyticalInsights(ctx, previousCtx);
     const operationalTrends = buildOperationalTrend(ctx, previousCtx);

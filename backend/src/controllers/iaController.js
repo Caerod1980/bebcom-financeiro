@@ -3375,12 +3375,18 @@ Acompanhar diariamente compras de mercadorias, saldo disponível e contas penden
     `.trim();
   }
 
-  if (intent === 'historical_memory') {
+ if (intent === 'historical_memory') {
   return `
 Memória histórica multiperíodo — ${ctx.periodLabel}
 
 Períodos analisados:
 ${historicalMemory?.periodsAnalyzed || 0}
+
+Confiança da leitura:
+${historicalMemory?.confidence || 'Baixa'}
+
+Direção histórica:
+${historicalMemory?.direction || 'Histórico insuficiente'}
 
 Leitura histórica:
 ${
@@ -3390,13 +3396,12 @@ ${
 }
 
 Minha interpretação:
-A memória histórica permite identificar se o cenário atual é um fato isolado ou parte de um comportamento recorrente da operação.
+A memória histórica ajuda a entender se o cenário atual é um fato isolado ou parte de um comportamento recorrente da operação.
 
 Conclusão:
-Quanto mais meses forem alimentados no sistema, mais confiável será a leitura de tendência, recorrência e evolução operacional.
+${historicalMemory?.conclusion || 'Quanto mais meses forem alimentados no sistema, mais confiável será a leitura histórica.'}
   `.trim();
 }
-
   if (intent === 'trends') {
     if (
   executiveResponseStyle ===
@@ -4043,39 +4048,33 @@ const buildHistoricalMemory = (currentCtx, historicalContexts = []) => {
       ctx.totalIncome > 0
   );
 
+  const allPeriods = [currentCtx, ...validPeriods].filter(
+    (ctx) => ctx && ctx.totalIncome > 0
+  );
+
   const memories = [];
 
-  if (validPeriods.length === 0) {
+  if (allPeriods.length < 2) {
     return {
       available: false,
-      periodsAnalyzed: 0,
+      periodsAnalyzed: allPeriods.length,
+      confidence: 'Baixa',
+      direction: 'Histórico insuficiente',
       memories: [
         'Ainda não há períodos históricos suficientes para identificar padrões multiperíodo.',
       ],
+      conclusion:
+        'Com mais meses lançados, a IA conseguirá diferenciar problema isolado de padrão operacional recorrente.',
     };
   }
-
-  const allPeriods = [currentCtx, ...validPeriods];
 
   const negativeCashPeriods = allPeriods.filter(
     (ctx) => ctx.balance < 0
   ).length;
 
-  if (negativeCashPeriods >= 2) {
-    memories.push(
-      `O caixa ficou negativo em ${negativeCashPeriods} dos ${allPeriods.length} períodos analisados.`
-    );
-  }
-
   const expensePressurePeriods = allPeriods.filter(
     (ctx) => ctx.totalExpenses > ctx.totalIncome
   ).length;
-
-  if (expensePressurePeriods >= 2) {
-    memories.push(
-      `As despesas superaram as entradas em ${expensePressurePeriods} dos ${allPeriods.length} períodos analisados.`
-    );
-  }
 
   const purchasePressurePeriods = allPeriods.filter((ctx) => {
     const purchases = ctx.expenseCategories.find(
@@ -4086,6 +4085,18 @@ const buildHistoricalMemory = (currentCtx, historicalContexts = []) => {
 
     return purchases.amount / ctx.totalIncome > 0.6;
   }).length;
+
+  if (negativeCashPeriods >= 2) {
+    memories.push(
+      `O caixa ficou negativo em ${negativeCashPeriods} dos ${allPeriods.length} períodos analisados.`
+    );
+  }
+
+  if (expensePressurePeriods >= 2) {
+    memories.push(
+      `As despesas superaram as entradas em ${expensePressurePeriods} dos ${allPeriods.length} períodos analisados.`
+    );
+  }
 
   if (purchasePressurePeriods >= 2) {
     memories.push(
@@ -4098,30 +4109,61 @@ const buildHistoricalMemory = (currentCtx, historicalContexts = []) => {
   const first = ordered[0];
   const last = ordered[ordered.length - 1];
 
+  let direction = 'Sem direção histórica forte identificada.';
+
   if (first && last && first.totalIncome > 0) {
     const incomeVariation =
       ((last.totalIncome - first.totalIncome) / first.totalIncome) * 100;
 
     if (incomeVariation > 10) {
+      direction = 'Receita em crescimento nos períodos analisados.';
+
       memories.push(
         `A receita apresenta crescimento acumulado de ${incomeVariation.toFixed(1)}% nos períodos analisados.`
       );
     }
 
     if (incomeVariation < -10) {
+      direction = 'Receita em queda nos períodos analisados.';
+
       memories.push(
         `A receita apresenta queda acumulada de ${Math.abs(incomeVariation).toFixed(1)}% nos períodos analisados.`
       );
     }
   }
 
+  let confidence = 'Baixa';
+
+  if (allPeriods.length >= 3) {
+    confidence = 'Média';
+  }
+
+  if (allPeriods.length >= 6) {
+    confidence = 'Alta';
+  }
+
+  let conclusion =
+    'O histórico ainda é curto para afirmar recorrência forte, mas já ajuda a observar sinais iniciais de tendência.';
+
+  if (
+    negativeCashPeriods >= 2 ||
+    expensePressurePeriods >= 2 ||
+    purchasePressurePeriods >= 2
+  ) {
+    conclusion =
+      'Há sinais de recorrência operacional. Vale acompanhar se esse comportamento continua nos próximos períodos.';
+  }
+
   return {
     available: true,
     periodsAnalyzed: allPeriods.length,
+    confidence,
+    direction,
     memories:
       memories.length > 0
         ? memories
         : ['Ainda não há padrão histórico forte identificado nos períodos disponíveis.'],
+    conclusion,
   };
 };
 

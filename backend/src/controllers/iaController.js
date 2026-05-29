@@ -3385,6 +3385,9 @@ ${historicalMemory?.periodsAnalyzed || 0}
 Confiança da leitura:
 ${historicalMemory?.confidence || 'Baixa'}
 
+Força do padrão:
+${historicalMemory?.patternStrength || 'Insuficiente'}
+
 Direção histórica:
 ${historicalMemory?.direction || 'Histórico insuficiente'}
 
@@ -4060,6 +4063,7 @@ const buildHistoricalMemory = (currentCtx, historicalContexts = []) => {
       periodsAnalyzed: allPeriods.length,
       confidence: 'Baixa',
       direction: 'Histórico insuficiente',
+      patternStrength: 'Insuficiente',
       memories: [
         'Ainda não há períodos históricos suficientes para identificar padrões multiperíodo.',
       ],
@@ -4086,6 +4090,26 @@ const buildHistoricalMemory = (currentCtx, historicalContexts = []) => {
     return purchases.amount / ctx.totalIncome > 0.6;
   }).length;
 
+  const highPendingPeriods = allPeriods.filter((ctx) => {
+  if (!ctx.totalIncome || ctx.totalIncome <= 0) return false;
+
+  return ctx.pendingPayable > ctx.totalIncome * 0.3;
+}).length;
+
+const highStockPeriods = allPeriods.filter((ctx) => {
+  const stock = ctx.inventory?.finalStock || 0;
+
+  if (!ctx.totalIncome || ctx.totalIncome <= 0) return false;
+
+  return stock > ctx.totalIncome * 0.7;
+}).length;
+
+const lowScorePeriods = allPeriods.filter((ctx) => {
+  const score = buildOperationalScore(ctx, ctx).score;
+
+  return score < 70;
+}).length;
+
   if (negativeCashPeriods >= 2) {
     memories.push(
       `O caixa ficou negativo em ${negativeCashPeriods} dos ${allPeriods.length} períodos analisados.`
@@ -4103,6 +4127,24 @@ const buildHistoricalMemory = (currentCtx, historicalContexts = []) => {
       `As compras de mercadorias ficaram acima de 60% das entradas em ${purchasePressurePeriods} dos ${allPeriods.length} períodos analisados.`
     );
   }
+
+ if (highPendingPeriods >= 2) {
+  memories.push(
+    `As contas pendentes representaram pressão relevante em ${highPendingPeriods} dos ${allPeriods.length} períodos analisados.`
+  );
+}
+
+if (highStockPeriods >= 2) {
+  memories.push(
+    `O estoque financeiro ficou elevado em ${highStockPeriods} dos ${allPeriods.length} períodos analisados.`
+  );
+}
+
+if (lowScorePeriods >= 2) {
+  memories.push(
+    `O score operacional ficou abaixo do ideal em ${lowScorePeriods} dos ${allPeriods.length} períodos analisados.`
+  );
+} 
 
   const ordered = [...allPeriods].reverse();
 
@@ -4142,23 +4184,44 @@ const buildHistoricalMemory = (currentCtx, historicalContexts = []) => {
     confidence = 'Alta';
   }
 
-  let conclusion =
-    'O histórico ainda é curto para afirmar recorrência forte, mas já ajuda a observar sinais iniciais de tendência.';
+   let patternStrength = 'Fraco';
 
-  if (
-    negativeCashPeriods >= 2 ||
-    expensePressurePeriods >= 2 ||
-    purchasePressurePeriods >= 2
-  ) {
-    conclusion =
-      'Há sinais de recorrência operacional. Vale acompanhar se esse comportamento continua nos próximos períodos.';
-  }
+const recurringSignals = [
+  negativeCashPeriods,
+  expensePressurePeriods,
+  purchasePressurePeriods,
+  highPendingPeriods,
+  highStockPeriods,
+  lowScorePeriods,
+].filter((count) => count >= 2).length;
+
+if (recurringSignals >= 2) {
+  patternStrength = 'Moderado';
+}
+
+if (recurringSignals >= 4) {
+  patternStrength = 'Forte';
+}
+
+ let conclusion =
+  'O histórico ainda é curto para afirmar recorrência forte, mas já ajuda a observar sinais iniciais de tendência.';
+
+if (patternStrength === 'Moderado') {
+  conclusion =
+    'Há sinais moderados de padrão operacional recorrente. A IA deve acompanhar se caixa, compras e contas continuam pressionando nos próximos períodos.';
+}
+
+if (patternStrength === 'Forte') {
+  conclusion =
+    'Há sinais fortes de padrão operacional recorrente. O cenário atual parece fazer parte de um comportamento que vem se repetindo nos períodos analisados.';
+}
 
   return {
     available: true,
     periodsAnalyzed: allPeriods.length,
     confidence,
     direction,
+    patternStrength,
     memories:
       memories.length > 0
         ? memories

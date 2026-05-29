@@ -3124,6 +3124,19 @@ const detectAdvancedIntent = (question) => {
   lower.includes('ao longo dos meses')
 ) return 'historical_memory';
 
+  if (
+  lower.includes('estamos evoluindo') ||
+  lower.includes('estamos melhorando') ||
+  lower.includes('estamos piorando') ||
+  lower.includes('empresa está mais saudável') ||
+  lower.includes('empresa esta mais saudavel') ||
+  lower.includes('situação melhorou') ||
+  lower.includes('situacao melhorou') ||
+  lower.includes('situação piorou') ||
+  lower.includes('situacao piorou') ||
+  lower.includes('ao longo dos meses')
+) return 'historical_evolution';
+
  if (
   lower.includes('tendência') ||
   lower.includes('tendencia') ||
@@ -3381,6 +3394,39 @@ Ação sugerida:
 Acompanhar diariamente compras de mercadorias, saldo disponível e contas pendentes.
     `.trim();
   }
+
+if (intent === 'historical_evolution') {
+  const evolution = historicalMemory?.executiveEvolution;
+
+  return `
+Evolução executiva multiperíodo — ${ctx.periodLabel}
+
+Períodos analisados:
+${historicalMemory?.periodsAnalyzed || 0}
+
+Confiança da leitura:
+${historicalMemory?.confidence || 'Baixa'}
+
+Status:
+${evolution?.status || 'Indefinido'}
+
+Sinais identificados:
+${
+  evolution?.signals && evolution.signals.length > 0
+    ? evolution.signals.map((item) => `• ${item}`).join('\n')
+    : 'Ainda não há sinais históricos suficientes para avaliar evolução.'
+}
+
+Minha leitura executiva:
+${evolution?.summary || 'Ainda não há histórico suficiente para avaliar evolução executiva com segurança.'}
+
+Força do padrão:
+${historicalMemory?.patternStrength || 'Insuficiente'}
+
+Conclusão:
+Com mais períodos alimentados, a IA Bebcom poderá avaliar com mais precisão se a empresa está melhorando, piorando ou passando por ajuste temporário.
+  `.trim();
+}
 
  if (intent === 'historical_memory') {
   return `
@@ -4071,6 +4117,12 @@ const buildHistoricalMemory = (currentCtx, historicalContexts = []) => {
       confidence: 'Baixa',
       direction: 'Histórico insuficiente',
       patternStrength: 'Insuficiente',
+      executiveEvolution: {
+  status: 'Indefinido',
+  summary:
+    'Ainda não há histórico suficiente para avaliar evolução executiva com segurança.',
+  signals: [],
+},
       memories: [
         'Ainda não há períodos históricos suficientes para identificar padrões multiperíodo.',
       ],
@@ -4223,12 +4275,103 @@ if (patternStrength === 'Forte') {
     'Há sinais fortes de padrão operacional recorrente. O cenário atual parece fazer parte de um comportamento que vem se repetindo nos períodos analisados.';
 }
 
+let executiveEvolution = {
+  status: 'Indefinido',
+  summary:
+    'Ainda não há histórico suficiente para avaliar evolução executiva com segurança.',
+  signals: [],
+};
+
+if (allPeriods.length >= 2) {
+  const orderedEvolution = [...allPeriods].reverse();
+
+  const firstPeriod = orderedEvolution[0];
+  const lastPeriod = orderedEvolution[orderedEvolution.length - 1];
+
+  const incomeChange =
+    firstPeriod.totalIncome > 0
+      ? ((lastPeriod.totalIncome - firstPeriod.totalIncome) /
+          firstPeriod.totalIncome) *
+        100
+      : 0;
+
+  const expenseChange =
+    firstPeriod.totalExpenses > 0
+      ? ((lastPeriod.totalExpenses - firstPeriod.totalExpenses) /
+          firstPeriod.totalExpenses) *
+        100
+      : 0;
+
+  const balanceImproved =
+    lastPeriod.balance > firstPeriod.balance;
+
+  if (incomeChange > 10) {
+    executiveEvolution.signals.push(
+      `A receita cresceu ${incomeChange.toFixed(1)}% nos períodos analisados.`
+    );
+  }
+
+  if (incomeChange < -10) {
+    executiveEvolution.signals.push(
+      `A receita caiu ${Math.abs(incomeChange).toFixed(1)}% nos períodos analisados.`
+    );
+  }
+
+  if (expenseChange > 10) {
+    executiveEvolution.signals.push(
+      `As despesas cresceram ${expenseChange.toFixed(1)}% nos períodos analisados.`
+    );
+  }
+
+  if (expenseChange < -10) {
+    executiveEvolution.signals.push(
+      `As despesas caíram ${Math.abs(expenseChange).toFixed(1)}% nos períodos analisados.`
+    );
+  }
+
+  if (balanceImproved) {
+    executiveEvolution.signals.push(
+      'O saldo operacional melhorou em relação ao primeiro período analisado.'
+    );
+  } else {
+    executiveEvolution.signals.push(
+      'O saldo operacional piorou em relação ao primeiro período analisado.'
+    );
+  }
+
+  const positiveSignals = [];
+  const negativeSignals = [];
+
+  if (incomeChange > 10) positiveSignals.push('receita');
+  if (expenseChange < -10) positiveSignals.push('despesas');
+  if (balanceImproved) positiveSignals.push('saldo');
+
+  if (incomeChange < -10) negativeSignals.push('receita');
+  if (expenseChange > 10) negativeSignals.push('despesas');
+  if (!balanceImproved) negativeSignals.push('saldo');
+
+  if (positiveSignals.length > negativeSignals.length) {
+    executiveEvolution.status = 'Evolução positiva';
+    executiveEvolution.summary =
+      'Os sinais históricos indicam melhora operacional nos períodos analisados.';
+  } else if (negativeSignals.length > positiveSignals.length) {
+    executiveEvolution.status = 'Evolução negativa';
+    executiveEvolution.summary =
+      'Os sinais históricos indicam piora operacional nos períodos analisados.';
+  } else {
+    executiveEvolution.status = 'Evolução mista';
+    executiveEvolution.summary =
+      'Os sinais históricos estão mistos, sem conclusão forte de melhora ou piora.';
+  }
+}
+  
   return {
     available: true,
     periodsAnalyzed: allPeriods.length,
     confidence,
     direction,
     patternStrength,
+    executiveEvolution,
     memories:
       memories.length > 0
         ? memories

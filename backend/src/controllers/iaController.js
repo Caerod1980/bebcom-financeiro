@@ -1993,6 +1993,68 @@ const buildExecutiveResponseStyle = (
   return 'normal';
 };
 
+const buildSmartGoal = (
+  ctx,
+  operationalScore,
+  actionPlan,
+  strategicSimulations
+) => {
+  let mainGoal = 'Manter crescimento com equilíbrio operacional.';
+  let financialGoal = 'Preservar caixa e manter despesas proporcionais às entradas.';
+  let operationalGoal = 'Manter giro saudável, controle de compras e estabilidade operacional.';
+  let successIndicator = 'Manter score operacional saudável.';
+  let period = 'curto prazo';
+
+  if (ctx.balance < 0) {
+    mainGoal = `Eliminar o saldo negativo de ${formatCurrency(Math.abs(ctx.balance))}.`;
+    financialGoal = `Gerar pelo menos ${formatCurrency(Math.abs(ctx.balance))} adicionais sem aumentar despesas.`;
+    operationalGoal = 'Reduzir compras temporariamente e acelerar o giro do estoque atual.';
+    successIndicator = 'Voltar o caixa para saldo positivo.';
+    period = 'imediato';
+  }
+
+  const purchases = ctx.expenseCategories.find(
+    (item) => item.category === 'compras_mercadorias'
+  );
+
+  if (purchases && ctx.totalIncome > 0) {
+    const purchaseShare = (purchases.amount / ctx.totalIncome) * 100;
+
+    if (purchaseShare > 70) {
+      operationalGoal =
+        'Reduzir o peso das compras para uma faixa mais saudável e priorizar venda do estoque atual.';
+
+      successIndicator =
+        'Compras abaixo de 60% das entradas e caixa em recuperação.';
+    }
+  }
+
+  if (operationalScore?.score < 60) {
+    period = 'urgente';
+    mainGoal = 'Recuperar saúde operacional antes de expandir.';
+    successIndicator = 'Elevar o score operacional para pelo menos 70/100.';
+  }
+
+  if (
+    ctx.balance > 0 &&
+    ctx.pendingPayable < ctx.totalIncome * 0.3
+  ) {
+    mainGoal = 'Crescer com controle e preservar margem.';
+    financialGoal = 'Manter saldo positivo e evitar aumento desnecessário de despesas.';
+    operationalGoal = 'Aumentar vendas sem elevar compras acima do ritmo de giro.';
+    successIndicator = 'Manter caixa positivo, compras controladas e score saudável.';
+    period = 'mensal';
+  }
+
+  return {
+    period,
+    mainGoal,
+    financialGoal,
+    operationalGoal,
+    successIndicator,
+  };
+};
+
 const buildManagerCopilot = ({
   type,
   currentCtx,
@@ -3087,6 +3149,18 @@ if (
 ) return 'action_plan';
 
 if (
+  lower.includes('meta inteligente') ||
+  lower.includes('minha meta principal') ||
+  lower.includes('qual meta devo perseguir') ||
+  lower.includes('qual meta devo buscar') ||
+  lower.includes('qual objetivo da semana') ||
+  lower.includes('qual objetivo do mês') ||
+  lower.includes('qual objetivo do mes') ||
+  lower.includes('que meta você definiria') ||
+  lower.includes('que meta voce definiria')
+) return 'smart_goal';
+
+if (
   lower.includes('plano') ||
   lower.includes('o que devo fazer') ||
   lower.includes('como recuperar') ||
@@ -3116,6 +3190,7 @@ const buildAdvancedIntentAnswer = ({
   executiveMemory,
   executiveResponseStyle,
   actionPlan,
+  smartGoal,
   operationalPriorities,
   operationalAlerts,
   operationalScore,
@@ -3375,6 +3450,33 @@ Eu executaria essas ações antes de pensar em expansão, novas compras ou inves
 
 Conclusão:
 O objetivo do plano é transformar a análise da IA em ações práticas para proteger caixa, melhorar giro e fortalecer a operação.
+  `.trim();
+}
+
+  if (intent === 'smart_goal') {
+  return `
+Meta inteligente — ${ctx.periodLabel}
+
+Horizonte:
+${smartGoal?.period || 'curto prazo'}
+
+Meta principal:
+${smartGoal?.mainGoal || 'Manter crescimento com equilíbrio operacional.'}
+
+Meta financeira:
+${smartGoal?.financialGoal || 'Preservar caixa e manter despesas proporcionais às entradas.'}
+
+Meta operacional:
+${smartGoal?.operationalGoal || 'Manter giro saudável, controle de compras e estabilidade operacional.'}
+
+Indicador de sucesso:
+${smartGoal?.successIndicator || 'Manter score operacional saudável.'}
+
+Minha visão:
+A meta mais importante agora deve atacar o principal gargalo da operação, sem criar nova pressão financeira.
+
+Conclusão:
+A IA Bebcom deve usar essa meta como referência para orientar compras, despesas, ações comerciais e decisões dos próximos dias.
   `.trim();
 }
 
@@ -3687,6 +3789,7 @@ const askIABebcom = async (req, res) => {
     const operationalPriorities = buildOperationalPriorities(ctx, previousCtx);
     const operationalAlerts = buildOperationalAlerts(ctx, previousCtx);
     const actionPlan = buildActionPlan(ctx, operationalScore, operationalPriorities, strategicRecommendations);
+    const smartGoal = buildSmartGoal(ctx, operationalScore, actionPlan, strategicSimulations);
 
     const lowerQuestion = question.toLowerCase();
     
@@ -3854,6 +3957,7 @@ if (conversationalContextAnswer) {
   executiveMemory,
   executiveResponseStyle,
   actionPlan,
+  smartGoal,
   operationalPriorities,
   operationalAlerts,
   operationalScore,

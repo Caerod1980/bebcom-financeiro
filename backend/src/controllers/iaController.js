@@ -3193,27 +3193,6 @@ if (
   lower.includes('proximo passo')
 ) return 'action_plan';
 
-  const goalHorizon = (() => {
-  if (
-    lower.includes('hoje') ||
-    lower.includes('diária') ||
-    lower.includes('diaria')
-  ) return 'daily';
-
-  if (
-    lower.includes('semana') ||
-    lower.includes('semanal')
-  ) return 'weekly';
-
-  if (
-    lower.includes('mês') ||
-    lower.includes('mes') ||
-    lower.includes('mensal')
-  ) return 'monthly';
-
-  return 'general';
-})();
-
 if (
   lower.includes('meta inteligente') ||
   lower.includes('minha meta principal') ||
@@ -3222,6 +3201,12 @@ if (
   lower.includes('qual objetivo da semana') ||
   lower.includes('qual objetivo do mês') ||
   lower.includes('qual objetivo do mes') ||
+  lower.includes('qual objetivo hoje') ||
+  lower.includes('objetivo hoje') ||
+  lower.includes('meta diária') ||
+  lower.includes('meta diaria') ||
+  lower.includes('meta semanal') ||
+  lower.includes('meta mensal') ||
   lower.includes('que meta você definiria') ||
   lower.includes('que meta voce definiria')
 ) return 'smart_goal';
@@ -3855,9 +3840,30 @@ const askIABebcom = async (req, res) => {
     const operationalPriorities = buildOperationalPriorities(ctx, previousCtx);
     const operationalAlerts = buildOperationalAlerts(ctx, previousCtx);
     const actionPlan = buildActionPlan(ctx, operationalScore, operationalPriorities, strategicRecommendations);
-    const smartGoal = buildSmartGoal(ctx, operationalScore, actionPlan, strategicSimulations);
+    const smartGoal = buildSmartGoal(ctx, operationalScore, actionPlan, strategicSimulations, goalHorizon);
 
     const lowerQuestion = question.toLowerCase();
+
+    const goalHorizon = (() => {
+  if (
+    lowerQuestion.includes('hoje') ||
+    lowerQuestion.includes('diária') ||
+    lowerQuestion.includes('diaria')
+  ) return 'daily';
+
+  if (
+    lowerQuestion.includes('semana') ||
+    lowerQuestion.includes('semanal')
+  ) return 'weekly';
+
+  if (
+    lowerQuestion.includes('mês') ||
+    lowerQuestion.includes('mes') ||
+    lowerQuestion.includes('mensal')
+  ) return 'monthly';
+
+  return 'general';
+})();
     
     const financialIntent = extractFinancialIntent(question);
 

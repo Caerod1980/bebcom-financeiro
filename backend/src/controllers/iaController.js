@@ -3806,12 +3806,58 @@ const buildActionPlan = (
   };
 };
 
+const detectPresidentStyle = (question) => {
+  const lower = question.toLowerCase();
+
+  if (
+    lower.includes('futuro') ||
+    lower.includes('caminho certo') ||
+    lower.includes('onde podemos chegar') ||
+    lower.includes('potencial')
+  ) return 'visionary';
+
+  if (
+    lower.includes('segunda unidade') ||
+    lower.includes('expandiria') ||
+    lower.includes('abriria') ||
+    lower.includes('contrataria') ||
+    lower.includes('investiria') ||
+    lower.includes('vale investir')
+  ) return 'conservative';
+
+  if (
+    lower.includes('preocupação') ||
+    lower.includes('preocupacao') ||
+    lower.includes('preocupa') ||
+    lower.includes('incomoda') ||
+    lower.includes('maior receio') ||
+    lower.includes('pior número') ||
+    lower.includes('pior numero')
+  ) return 'critical';
+
+  if (
+    lower.includes('oportunidade') ||
+    lower.includes('ponto positivo') ||
+    lower.includes('lado bom')
+  ) return 'opportunity';
+
+  if (
+    lower.includes('conselho') ||
+    lower.includes('meu lugar') ||
+    lower.includes('empresa fosse sua') ||
+    lower.includes('o que faria')
+  ) return 'mentor';
+
+  return 'default';
+};
+
 const buildPresidentDecision = (
   ctx,
   operationalScore,
   operationalAlerts,
   strategicRecommendations,
-  smartGoal
+  smartGoal,
+  style = 'default'
 ) => {
   let concerns = [];
   let opportunities = [];
@@ -3981,7 +4027,9 @@ const askIABebcom = async (req, res) => {
 })();
     const smartGoal = buildSmartGoal(ctx, operationalScore, actionPlan, strategicSimulations, goalHorizon);
 
-    const presidentDecision = buildPresidentDecision(ctx, operationalScore, operationalAlerts, strategicRecommendations, smartGoal);
+   const presidentStyle = detectPresidentStyle(question);
+
+   const presidentDecision = buildPresidentDecision(ctx, operationalScore, operationalAlerts, strategicRecommendations, smartGoal, presidentStyle);
     
     const financialIntent = extractFinancialIntent(question);
 

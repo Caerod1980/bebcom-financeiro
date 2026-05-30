@@ -75,6 +75,7 @@ const EntryForm = ({ onSubmit, onClose, initialData = null }) => {
       { value: 'taxas_mercado_pago', label: 'Taxas Mercado Pago', dreGroup: 'despesas_financeiras' },
       { value: 'taxas_ifood', label: 'Taxas iFood', dreGroup: 'despesas_financeiras' },
       { value: 'emprestimos', label: 'Empréstimos', dreGroup: 'despesas_financeiras' },
+      { value: 'juros', label: 'Juros', dreGroup: 'despesas_financeiras' },
       { value: 'impostos', label: 'Impostos', dreGroup: 'deducoes' },
       { value: 'manutencao', label: 'Manutenção', dreGroup: 'despesas_operacionais' },
       { value: 'embalagens', label: 'Embalagens', dreGroup: 'despesas_operacionais' },

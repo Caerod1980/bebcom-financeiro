@@ -65,7 +65,30 @@ const getInventoryBalance = async (req, res) => {
     ]);
 
     const purchases = purchasesResult[0]?.total || 0;
-    const cmv = 0;    
+    const cmv = 0; 
+
+    const stockConsumptionResult = await Entry.aggregate([
+  {
+    $match: {
+      deleted: { $ne: true },
+      type: 'expense',
+      costCenter: 'estoque',
+      date: {
+        $gte: startDate,
+        $lte: endDate,
+      },
+    },
+  },
+  {
+    $group: {
+      _id: null,
+      total: { $sum: '$amount' },
+    },
+  },
+]);
+
+const stockConsumption =
+  stockConsumptionResult[0]?.total || 0;
 
 // Receita líquida do mês
 const revenueResult = await Entry.aggregate([
@@ -119,7 +142,7 @@ const stockBalance =
       }
     }
 
-    const finalStock = initialStock + stockBalance;
+    const finalStock = initialStock + stockBalance - stockConsumption;
 
     if (!inventory) {
       inventory = await InventoryBalance.create({
@@ -150,6 +173,7 @@ const stockBalance =
       netRevenue,
       grossMarginPercent,
       stockBalance,
+      stockConsumption,
       finalStock,
   },
     });
@@ -232,6 +256,29 @@ const saveInventoryBalance = async (req, res) => {
     const purchases = purchasesResult[0]?.total || 0;
     const netRevenue = revenueResult[0]?.total || 0;
 
+    const stockConsumptionResult = await Entry.aggregate([
+  {
+    $match: {
+      deleted: { $ne: true },
+      type: 'expense',
+      costCenter: 'estoque',
+      date: {
+        $gte: startDate,
+        $lte: endDate,
+      },
+    },
+  },
+  {
+    $group: {
+      _id: null,
+      total: { $sum: '$amount' },
+    },
+  },
+]);
+
+const stockConsumption =
+  stockConsumptionResult[0]?.total || 0;
+
     const baseStock = netRevenue - purchases;
 
     const grossMarginPercent =
@@ -254,8 +301,7 @@ const saveInventoryBalance = async (req, res) => {
     inventory.initialStock = previousInventory.finalStock || 0;
   }
 }
-    inventory.finalStock =
-      inventory.initialStock + stockBalance;
+    inventory.finalStock = inventory.initialStock + stockBalance - stockConsumption;
 
     await inventory.save();
 
@@ -269,8 +315,9 @@ const saveInventoryBalance = async (req, res) => {
         netRevenue,
         grossMarginPercent,
         stockBalance,
+        stockConsumption,
         finalStock: inventory.finalStock,
-      },
+     },
     });
   } catch (error) {
     console.error('Erro ao salvar estoque:', error);

@@ -67,12 +67,13 @@ const getInventoryBalance = async (req, res) => {
     const purchases = purchasesResult[0]?.total || 0;
     const cmv = 0; 
 
-    const stockConsumptionResult = await Entry.aggregate([
+const internalConsumptionResult = await Entry.aggregate([
   {
     $match: {
       deleted: { $ne: true },
       type: 'expense',
       costCenter: 'estoque',
+      category: 'funcionarios',
       date: {
         $gte: startDate,
         $lte: endDate,
@@ -87,9 +88,35 @@ const getInventoryBalance = async (req, res) => {
   },
 ]);
 
-const stockConsumption =
-  stockConsumptionResult[0]?.total || 0;
+const internalConsumption =
+  internalConsumptionResult[0]?.total || 0;
 
+  const lossesResult = await Entry.aggregate([
+  {
+    $match: {
+      deleted: { $ne: true },
+      type: 'expense',
+      costCenter: 'estoque',
+      category: 'perdas',
+      date: {
+        $gte: startDate,
+        $lte: endDate,
+      },
+    },
+  },
+  {
+    $group: {
+      _id: null,
+      total: { $sum: '$amount' },
+    },
+  },
+]);
+
+const losses =
+  lossesResult[0]?.total || 0;
+
+const stockConsumption = internalConsumption + losses;
+    
 // Receita líquida do mês
 const revenueResult = await Entry.aggregate([
   {
@@ -173,6 +200,8 @@ const stockBalance =
       netRevenue,
       grossMarginPercent,
       stockBalance,
+      internalConsumption,
+      losses,
       stockConsumption,
       finalStock,
   },
@@ -256,12 +285,13 @@ const saveInventoryBalance = async (req, res) => {
     const purchases = purchasesResult[0]?.total || 0;
     const netRevenue = revenueResult[0]?.total || 0;
 
-    const stockConsumptionResult = await Entry.aggregate([
+   const internalConsumptionResult = await Entry.aggregate([
   {
     $match: {
       deleted: { $ne: true },
       type: 'expense',
       costCenter: 'estoque',
+      category: 'funcionarios',
       date: {
         $gte: startDate,
         $lte: endDate,
@@ -276,8 +306,33 @@ const saveInventoryBalance = async (req, res) => {
   },
 ]);
 
-const stockConsumption =
-  stockConsumptionResult[0]?.total || 0;
+const internalConsumption =
+  internalConsumptionResult[0]?.total || 0;
+
+   const lossesResult = await Entry.aggregate([
+  {
+    $match: {
+      deleted: { $ne: true },
+      type: 'expense',
+      costCenter: 'estoque',
+      category: 'perdas',
+      date: {
+        $gte: startDate,
+        $lte: endDate,
+      },
+    },
+  },
+  {
+    $group: {
+      _id: null,
+      total: { $sum: '$amount' },
+    },
+  },
+]);
+
+const losses = lossesResult[0]?.total || 0; 
+
+const stockConsumption = internalConsumption + losses;
 
     const baseStock = netRevenue - purchases;
 
@@ -315,6 +370,8 @@ const stockConsumption =
         netRevenue,
         grossMarginPercent,
         stockBalance,
+        internalConsumption,
+        losses,
         stockConsumption,
         finalStock: inventory.finalStock,
      },

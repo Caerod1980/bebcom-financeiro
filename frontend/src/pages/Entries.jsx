@@ -33,25 +33,28 @@ const Entries = () => {
       'outras_receitas',
     ],
     expense: [
-      'compras_mercadorias',
-      'funcionarios',
-      'motoboy',
-      'aluguel',
-      'energia',
-      'agua',
-      'internet',
-      'sistema',
-      'contador',
-      'marketing',
-      'taxas_cartao',
-      'taxas_mercado_pago',
-      'taxas_ifood',
-      'emprestimos',
-      'impostos',
-      'manutencao',
-      'embalagens',
-      'outras_despesas',
-    ],
+  'compras_mercadorias',
+  'funcionarios',
+  'perdas',
+  'motoboy',
+  'aluguel',
+  'energia',
+  'agua',
+  'internet',
+  'sistema',
+  'contador',
+  'marketing',
+  'taxas_cartao',
+  'taxas_mercado_pago',
+  'taxas_ifood',
+  'emprestimos',
+  'juros',
+  'impostos',
+  'manutencao',
+  'materiais_limpeza',
+  'embalagens',
+  'outras_despesas',
+],
   };
 
   const channels = [
@@ -79,15 +82,16 @@ const Entries = () => {
   ];
 
   const paymentMethods = [
-    'dinheiro',
-    'pix',
-    'debito',
-    'credito',
-    'mercado_pago',
-    'ifood_repasse',
-    'boleto',
-    'outros',
-  ];
+  'dinheiro',
+  'pix',
+  'debito',
+  'credito',
+  'mercado_pago',
+  'ifood_repasse',
+  'boleto',
+  'voucher',
+  'outros',
+];
 
   useEffect(() => {
     loadEntries();
@@ -181,6 +185,7 @@ const Entries = () => {
 
       compras_mercadorias: 'Compras',
       funcionarios: 'Funcionários',
+      perdas: 'Perdas',
       motoboy: 'Motoboy',
       aluguel: 'Aluguel',
       energia: 'Energia',
@@ -193,8 +198,10 @@ const Entries = () => {
       taxas_mercado_pago: 'Taxas Mercado Pago',
       taxas_ifood: 'Taxas iFood',
       emprestimos: 'Empréstimos',
+      juros: 'Juros',
       impostos: 'Impostos',
       manutencao: 'Manutenção',
+      materiais_limpeza: 'Materiais de Limpeza',
       embalagens: 'Embalagens',
       outras_despesas: 'Outras Despesas',
     };
@@ -244,15 +251,16 @@ const Entries = () => {
 
   const getPaymentMethodLabel = (method) => {
     const labels = {
-      dinheiro: 'Dinheiro',
-      pix: 'PIX',
-      debito: 'Débito',
-      credito: 'Crédito',
-      mercado_pago: 'Mercado Pago',
-      ifood_repasse: 'iFood Repasse',
-      boleto: 'Boleto',
-      outros: 'Outros',
-    };
+  dinheiro: 'Dinheiro',
+  pix: 'PIX',
+  debito: 'Débito',
+  credito: 'Crédito',
+  mercado_pago: 'Mercado Pago',
+  ifood_repasse: 'iFood Repasse',
+  boleto: 'Boleto',
+  voucher: 'Voucher',
+  outros: 'Outros',
+};
 
     return labels[method] || method || '-';
   };

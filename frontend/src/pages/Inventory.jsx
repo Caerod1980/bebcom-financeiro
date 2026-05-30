@@ -33,11 +33,14 @@ const Inventory = () => {
     notes: '',
   });
 
-  const [totals, setTotals] = useState({
+ const [totals, setTotals] = useState({
   initialStock: 0,
   purchases: 0,
   cmv: 0,
+  netRevenue: 0,
+  grossMarginPercent: 0,
   stockBalance: 0,
+  stockConsumption: 0,
   finalStock: 0,
 });
 
@@ -276,6 +279,12 @@ const Inventory = () => {
         {' '}
         {((totals.grossMarginPercent || 0) * 100).toFixed(1)}%
       </p>
+
+      <p className="text-xs text-gray-500">
+        Consumo Interno:
+        {' '}
+        {formatCurrency(totals.stockConsumption || 0)}
+     </p>
     </div>
 
     <div className="bg-red-100 text-red-600 p-3 rounded-xl">

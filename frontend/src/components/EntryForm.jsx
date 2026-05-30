@@ -116,6 +116,7 @@ const EntryForm = ({ onSubmit, onClose, initialData = null }) => {
     { value: 'mercado_pago', label: 'Mercado Pago' },
     { value: 'ifood_repasse', label: 'iFood Repasse' },
     { value: 'boleto', label: 'Boleto' },
+    { value: 'voucher', label: 'Voucher' },
     { value: 'outros', label: 'Outros' },
   ];
 

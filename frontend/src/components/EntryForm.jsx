@@ -78,6 +78,7 @@ const EntryForm = ({ onSubmit, onClose, initialData = null }) => {
       { value: 'juros', label: 'Juros', dreGroup: 'despesas_financeiras' },
       { value: 'impostos', label: 'Impostos', dreGroup: 'deducoes' },
       { value: 'manutencao', label: 'Manutenção', dreGroup: 'despesas_operacionais' },
+      { value: 'materiais_limpeza', label: 'Materiais de Limpeza', dreGroup: 'despesas_operacionais' },
       { value: 'embalagens', label: 'Embalagens', dreGroup: 'despesas_operacionais' },
       { value: 'outras_despesas', label: 'Outras Despesas', dreGroup: 'outras_despesas' },
     ],

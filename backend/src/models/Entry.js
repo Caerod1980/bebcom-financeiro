@@ -70,7 +70,7 @@ const entrySchema = new mongoose.Schema({
     default: '',
   },
 
- paymentMethod: {
+paymentMethod: {
   type: String,
   enum: [
     'dinheiro',
@@ -80,6 +80,7 @@ const entrySchema = new mongoose.Schema({
     'mercado_pago',
     'ifood_repasse',
     'boleto',
+    'voucher',
     'outros',
     '',
   ],

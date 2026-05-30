@@ -62,6 +62,7 @@ const EntryForm = ({ onSubmit, onClose, initialData = null }) => {
     expense: [
       { value: 'compras_mercadorias', label: 'Compras de Mercadorias', dreGroup: 'cmv' },
       { value: 'funcionarios', label: 'Funcionários', dreGroup: 'despesas_operacionais' },
+      { value: 'perdas', label: 'Perdas', dreGroup: 'outras_despesas' },
       { value: 'motoboy', label: 'Motoboy', dreGroup: 'despesas_operacionais' },
       { value: 'aluguel', label: 'Aluguel', dreGroup: 'despesas_operacionais' },
       { value: 'energia', label: 'Energia', dreGroup: 'despesas_operacionais' },

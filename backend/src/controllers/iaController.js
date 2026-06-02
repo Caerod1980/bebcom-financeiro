@@ -508,6 +508,7 @@ const buildContext = async ({ month, year, start, end }) => {
   pendingReceivable,
   managementReport,
   inventory,
+  accounts,
   expenseCategories,
   incomeCategories,
 };

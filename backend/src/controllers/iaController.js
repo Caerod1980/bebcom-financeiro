@@ -828,26 +828,44 @@ O ranking mostra onde está concentrada a maior pressão do contas a pagar. Quan
 const buildPaymentPriorityAnswer = (ctx) => {
   const today = new Date();
 
+  const startOfToday = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+    0,
+    0,
+    0,
+    0
+  );
+
   const accounts = (ctx.accounts || [])
     .filter(
       (account) =>
         account.type === 'payable' &&
-        ['pending', 'overdue'].includes(account.status)
+        ['pending', 'overdue'].includes(account.status) &&
+        account.dueDate &&
+        Number(account.amount || 0) > 0
     )
     .map((account) => {
       const dueDate = new Date(account.dueDate);
 
-      const days =
-        Math.ceil(
-          (dueDate - today) /
+      const days = Math.ceil(
+        (dueDate - startOfToday) /
           (1000 * 60 * 60 * 24)
-        );
+      );
 
       return {
-        ...account,
+        name:
+          account.person ||
+          account.description ||
+          'Conta sem identificação',
+        description: account.description || '',
+        amount: Math.abs(Number(account.amount || 0)),
+        dueDate,
         days,
       };
     })
+    .filter((account) => !Number.isNaN(account.dueDate.getTime()))
     .sort((a, b) => a.days - b.days);
 
   if (!accounts.length) {
@@ -864,24 +882,22 @@ A agenda financeira não possui compromissos em aberto neste momento.
   );
 
   const totalCritical = critical.reduce(
-    (acc, item) =>
-      acc + Math.abs(Number(item.amount || 0)),
+    (acc, item) => acc + item.amount,
     0
   );
 
   const list = critical
     .slice(0, 10)
     .map((item, index) => {
-      const due =
-        new Date(item.dueDate)
-          .toLocaleDateString('pt-BR');
+      const due = item.dueDate.toLocaleDateString('pt-BR');
 
       let priority = 'Baixa';
 
-      if (item.days <= 0) priority = 'Urgente';
+      if (item.days < 0) priority = 'Vencida';
+      else if (item.days === 0) priority = 'Hoje';
       else if (item.days <= 3) priority = 'Alta';
 
-      return `${index + 1}. ${item.person || item.description}
+      return `${index + 1}. ${item.name}
 Vencimento: ${due}
 Valor: ${formatCurrency(item.amount)}
 Prioridade: ${priority}`;

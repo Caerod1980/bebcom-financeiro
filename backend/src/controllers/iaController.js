@@ -1055,31 +1055,53 @@ const buildFlowAnswer = (ctx) => {
     )
     .join('\n');
 
-  return `
-Análise do fluxo de caixa de ${ctx.periodLabel}:
+ return `
+📊 FLUXO DE CAIXA — ${ctx.periodLabel}
 
-Entradas realizadas: ${formatCurrency(ctx.totalIncome)}
-Saídas realizadas: ${formatCurrency(ctx.totalExpenses)}
-Saldo realizado: ${formatCurrency(ctx.balance)}
+━━━━━━━━━━━━━━━━━━
 
-Contas a pagar pendentes/vencidas no sistema: ${formatCurrency(ctx.pendingPayable)}
-Contas a receber pendentes/vencidas no sistema: ${formatCurrency(ctx.pendingReceivable)}
+💰 Entradas realizadas
+${formatCurrency(ctx.totalIncome)}
 
-Leitura gerencial:
+💸 Saídas realizadas
+${formatCurrency(ctx.totalExpenses)}
+
+📈 Resultado do período
+${formatCurrency(ctx.balance)}
+
+━━━━━━━━━━━━━━━━━━
+
+📋 Contas pendentes
+
+A pagar:
+${formatCurrency(ctx.pendingPayable)}
+
+A receber:
+${formatCurrency(ctx.pendingReceivable)}
+
+━━━━━━━━━━━━━━━━━━
+
+🏆 Principais grupos de saída
+
+${topExpenses || 'Ainda não há despesas suficientes classificadas.'}
+
+━━━━━━━━━━━━━━━━━━
+
+💡 Leitura gerencial
+
 ${
   ctx.balance >= 0
-    ? 'O período apresenta saldo realizado positivo. Isso indica que as entradas estão sustentando as saídas registradas.'
-    : 'O período apresenta saldo realizado negativo. Isso exige atenção ao caixa, principalmente antes de assumir novas compras ou despesas.'
+    ? 'O período apresenta resultado positivo. As entradas estão sustentando as saídas registradas.'
+    : 'O período apresenta resultado negativo. É recomendável acompanhar despesas, compras e compromissos financeiros com maior atenção.'
 }
 
-Principais grupos de saída no período:
-${topExpenses || 'Ainda não há despesas suficientes classificadas para destacar.'}
+━━━━━━━━━━━━━━━━━━
 
-Sugestão:
-Acompanhe o fluxo previsto junto com o fluxo realizado. Se as contas a pagar forem altas em relação ao saldo realizado, priorize fornecedores críticos e preserve caixa para operação essencial.
-  `.trim();
-};
+👉 Próxima ação sugerida
 
+Acompanhe o fluxo previsto junto com o realizado. Priorize fornecedores críticos e preserve caixa para a operação essencial.
+`.trim();
+  
 const buildRelativePeriodAnswer = (ctx) => {
   const topExpenses = ctx.expenseCategories
     .slice(0, 3)

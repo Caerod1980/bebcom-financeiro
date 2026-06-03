@@ -155,12 +155,9 @@ const IABebcom = () => {
                 message.role === 'user' ? 'justify-end' : 'justify-start'
               }`}
             >
-              <div
-                className={`max-w-3xl rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                  message.role === 'user'
-                    ? 'bg-amber-600 text-white'
-                    : 'bg-white text-gray-800 border shadow-sm'
-                }`}
+              <div className={`max-w-3xl rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-line ${
+                message.role === 'user' ? 'bg-amber-600 text-white' : 'bg-white text-gray-800 border shadow-sm'
+              }`}
               >
                 {message.content}
               </div>

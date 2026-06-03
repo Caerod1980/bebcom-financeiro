@@ -735,6 +735,96 @@ Esse é o valor previsto de saída para o período informado. Recomendo acompanh
   `.trim();
 };
 
+const buildOpenSupplierRankingAnswer = (ctx) => {
+  const accounts = (ctx.accounts || []).filter(
+    (account) =>
+      account.type === 'payable' &&
+      ['pending', 'overdue'].includes(account.status)
+  );
+
+  if (accounts.length === 0) {
+    return `
+Não encontrei contas a pagar em aberto.
+
+Minha leitura:
+No momento não há fornecedores com compromissos pendentes ou vencidos registrados.
+    `.trim();
+  }
+
+  const grouped = {};
+
+  accounts.forEach((account) => {
+    const supplier =
+      account.person ||
+      account.description ||
+      'Fornecedor não informado';
+
+    if (!grouped[supplier]) {
+      grouped[supplier] = {
+        supplier,
+        total: 0,
+        count: 0,
+        nextDueDate: null,
+      };
+    }
+
+    const amount = Math.abs(Number(account.amount || 0));
+    const dueDate = new Date(account.dueDate);
+
+    grouped[supplier].total += amount;
+    grouped[supplier].count += 1;
+
+    if (
+      !grouped[supplier].nextDueDate ||
+      dueDate < grouped[supplier].nextDueDate
+    ) {
+      grouped[supplier].nextDueDate = dueDate;
+    }
+  });
+
+  const ranking = Object.values(grouped).sort(
+    (a, b) => b.total - a.total
+  );
+
+  const totalOpen = ranking.reduce(
+    (acc, item) => acc + item.total,
+    0
+  );
+
+  const list = ranking
+    .slice(0, 10)
+    .map((item, index) => {
+      const share =
+        totalOpen > 0
+          ? ((item.total / totalOpen) * 100).toFixed(1)
+          : '0.0';
+
+      return `${index + 1}. ${item.supplier} — ${formatCurrency(item.total)} — ${item.count} conta(s) — ${share}% do total`;
+    })
+    .join('\n');
+
+  const leader = ranking[0];
+
+  return `
+Ranking de fornecedores em aberto
+
+Total em contas a pagar:
+${formatCurrency(totalOpen)}
+
+Fornecedores com pendências:
+${ranking.length}
+
+Maiores fornecedores:
+${list}
+
+Fornecedor com maior peso:
+${leader.supplier} — ${formatCurrency(leader.total)}
+
+Minha leitura:
+O ranking mostra onde está concentrada a maior pressão do contas a pagar. Quanto maior a concentração em poucos fornecedores, maior deve ser a atenção na negociação de prazos e priorização de pagamentos.
+  `.trim();
+};
+
 const buildFlowAnswer = (ctx) => {
   const topExpenses = ctx.expenseCategories
     .slice(0, 3)
@@ -5297,6 +5387,24 @@ const isPayablesDueDateQuestion =
     lowerQuestion.includes('quanto tenho para pagar')
   );
 
+    const isOpenSupplierRankingQuestion =
+  (
+    lowerQuestion.includes('ranking') ||
+    lowerQuestion.includes('maiores fornecedores') ||
+    lowerQuestion.includes('fornecedores em aberto') ||
+    lowerQuestion.includes('fornecedor mais pesa') ||
+    lowerQuestion.includes('quem mais pesa') ||
+    lowerQuestion.includes('top fornecedores') ||
+    lowerQuestion.includes('maior fornecedor')
+  ) &&
+  (
+    lowerQuestion.includes('pagar') ||
+    lowerQuestion.includes('contas') ||
+    lowerQuestion.includes('aberto') ||
+    lowerQuestion.includes('pendente') ||
+    lowerQuestion.includes('pendentes')
+  );
+
     const isSuggestionQuestion =
       lowerQuestion.includes('pode sugerir') ||
       lowerQuestion.includes('sugere algum') ||
@@ -5351,7 +5459,9 @@ const isPayablesDueDateQuestion =
         ctx,
         financialIntent.category
       );
-      } else if (isPayablesDueDateQuestion) {
+      } else if (isOpenSupplierRankingQuestion) {
+  answer = buildOpenSupplierRankingAnswer(ctx);
+} else if (isPayablesDueDateQuestion) {
   answer = buildPayablesDueDateAnswer(
     ctx,
     payableDuePeriod

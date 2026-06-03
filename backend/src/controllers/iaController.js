@@ -587,23 +587,35 @@ Pode ser que esse fornecedor esteja cadastrado com outro nome, abreviação ou e
     .join('\n');
 
   return `
-Contas a pagar — ${supplierName}
+🏦 CONTAS A PAGAR — ${supplierName.toUpperCase()}
 
-Total em aberto:
+━━━━━━━━━━━━━━━━━━
+
+💰 Total em aberto
 ${formatCurrency(total)}
 
-Quantidade de contas:
+📋 Quantidade de contas
 ${accounts.length}
 
-Próximo vencimento:
+📅 Próximo vencimento
 ${new Date(nextDue.dueDate).toLocaleDateString('pt-BR')}
 
-Detalhamento:
+━━━━━━━━━━━━━━━━━━
+
+📝 Detalhamento
+
 ${list}
 
-Minha leitura:
-Esse fornecedor possui compromissos pendentes no contas a pagar e deve ser acompanhado junto com o fluxo previsto.
-  `.trim();
+━━━━━━━━━━━━━━━━━━
+
+💡 Minha leitura
+
+Esse fornecedor possui compromissos pendentes e deve ser acompanhado junto com o fluxo previsto de caixa.
+
+👉 Próxima ação sugerida
+
+Verifique se os vencimentos estão alinhados com as entradas previstas dos próximos dias.
+`.trim();
 };
 
 const getPayableDuePeriodFromQuestion = (question) => {
@@ -719,20 +731,32 @@ Não há compromissos pendentes/vencidos cadastrados para esse período no conta
     .join('\n');
 
   return `
-Contas a pagar com vencimento ${duePeriod.label}
+📅 VENCIMENTOS — ${duePeriod.label.toUpperCase()}
 
-Total:
+━━━━━━━━━━━━━━━━━━
+
+💰 Total previsto
 ${formatCurrency(total)}
 
-Quantidade de contas:
+📋 Quantidade de contas
 ${ordered.length}
 
-Detalhamento:
+━━━━━━━━━━━━━━━━━━
+
+📝 Contas previstas
+
 ${list}
 
-Minha leitura:
-Esse é o valor previsto de saída para o período informado. Recomendo acompanhar junto com o saldo de caixa e as entradas previstas.
-  `.trim();
+━━━━━━━━━━━━━━━━━━
+
+💡 Minha leitura
+
+Esse é o valor previsto de saída para o período informado.
+
+👉 Próxima ação sugerida
+
+Compare esses vencimentos com o caixa disponível e priorize pagamentos críticos.
+`.trim();
 };
 
 const buildOpenSupplierRankingAnswer = (ctx) => {

@@ -5286,6 +5286,19 @@ const askIABebcom = async (req, res) => {
       ],
     };
 
+    let seasonalityAnalysis = {
+  available: false,
+  confidence: 'Baixa',
+  currentRank: null,
+  totalPeriods: 0,
+  strongestMonths: [],
+  weakestMonths: [],
+  reading:
+    'Ainda não há meses suficientes para identificar sazonalidade com segurança.',
+  recommendation:
+    'Alimente mais meses completos para melhorar a leitura sazonal.',
+};
+
    let opportunityAnalysis = {
       opportunities: [],
       mainOpportunity: null,

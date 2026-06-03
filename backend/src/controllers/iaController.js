@@ -514,6 +514,98 @@ const buildContext = async ({ month, year, start, end }) => {
 };
 };
 
+const extractSupplierPayableName = (question) => {
+  const lower = question.toLowerCase();
+
+  const patterns = [
+    /quanto tenho de\s+(.+?)\s+(para pagar|pra pagar|a pagar)/i,
+    /quanto devo para\s+(.+?)\??$/i,
+    /quanto tem de\s+(.+?)\s+(para pagar|pra pagar|a pagar)/i,
+    /total de contas a pagar de\s+(.+?)\??$/i,
+    /previsão de contas a pagar\s+(.+?)\??$/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = lower.match(pattern);
+
+    if (match?.[1]) {
+      return match[1]
+        .replace(/\?/g, '')
+        .trim();
+    }
+  }
+
+  return null;
+};
+
+const buildSupplierPayableAnswer = (ctx, supplierName) => {
+  const supplier = String(supplierName || '').toLowerCase().trim();
+
+  if (!supplier) return null;
+
+  const accounts = (ctx.accounts || []).filter((account) => {
+    const person = String(account.person || '').toLowerCase();
+    const description = String(account.description || '').toLowerCase();
+
+    return (
+      account.type === 'payable' &&
+      ['pending', 'overdue'].includes(account.status) &&
+      (
+        person.includes(supplier) ||
+        description.includes(supplier)
+      )
+    );
+  });
+
+  if (accounts.length === 0) {
+    return `
+Não encontrei contas a pagar em aberto para "${supplierName}".
+
+Minha leitura:
+Pode ser que esse fornecedor esteja cadastrado com outro nome, abreviação ou esteja na descrição em vez do campo Pessoa/Empresa.
+    `.trim();
+  }
+
+  const total = accounts.reduce(
+    (acc, item) => acc + Math.abs(Number(item.amount || 0)),
+    0
+  );
+
+  const ordered = [...accounts].sort(
+    (a, b) => new Date(a.dueDate) - new Date(b.dueDate)
+  );
+
+  const nextDue = ordered[0];
+
+  const list = ordered
+    .slice(0, 10)
+    .map((item, index) => {
+      const date = new Date(item.dueDate).toLocaleDateString('pt-BR');
+
+      return `${index + 1}. ${date} — ${item.description} — ${formatCurrency(item.amount)}`;
+    })
+    .join('\n');
+
+  return `
+Contas a pagar — ${supplierName}
+
+Total em aberto:
+${formatCurrency(total)}
+
+Quantidade de contas:
+${accounts.length}
+
+Próximo vencimento:
+${new Date(nextDue.dueDate).toLocaleDateString('pt-BR')}
+
+Detalhamento:
+${list}
+
+Minha leitura:
+Esse fornecedor possui compromissos pendentes no contas a pagar e deve ser acompanhado junto com o fluxo previsto.
+  `.trim();
+};
+
 const buildFlowAnswer = (ctx) => {
   const topExpenses = ctx.expenseCategories
     .slice(0, 3)
@@ -5053,6 +5145,16 @@ if (conversationalContextAnswer) {
       lowerQuestion.includes('pagar da semana') ||
       lowerQuestion.includes('quanto tenho para pagar');
 
+    const supplierPayableName = extractSupplierPayableName(question);
+
+const isSupplierPayableQuestion =
+  !!supplierPayableName &&
+  (
+    lowerQuestion.includes('pagar') ||
+    lowerQuestion.includes('devo') ||
+    lowerQuestion.includes('contas a pagar')
+  );
+
     const isSuggestionQuestion =
       lowerQuestion.includes('pode sugerir') ||
       lowerQuestion.includes('sugere algum') ||
@@ -5107,6 +5209,11 @@ if (conversationalContextAnswer) {
         ctx,
         financialIntent.category
       );
+      } else if (isSupplierPayableQuestion) {
+  answer = buildSupplierPayableAnswer(
+    ctx,
+    supplierPayableName
+  );
     } else if (
       financialIntent.wantsTotal &&
       financialIntent.supplier

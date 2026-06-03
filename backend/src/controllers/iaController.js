@@ -992,6 +992,60 @@ ${
   `.trim();
 };
 
+const buildDecisionSimulationAnswer = (ctx) => {
+  const today = new Date();
+
+  const next7Days = new Date();
+  next7Days.setDate(today.getDate() + 7);
+
+  const payables = (ctx.accounts || []).filter(
+    (account) =>
+      account.type === 'payable' &&
+      ['pending', 'overdue'].includes(account.status) &&
+      new Date(account.dueDate) <= next7Days
+  );
+
+  const totalPayables = payables.reduce(
+    (acc, item) =>
+      acc + Math.abs(Number(item.amount || 0)),
+    0
+  );
+
+  const projectedBalance =
+    Number(ctx.balance || 0) -
+    totalPayables;
+
+  let situation = 'Confortável';
+
+  if (projectedBalance < 0) {
+    situation = 'Atenção';
+  }
+
+  return `
+Simulação de Decisão
+
+Resultado realizado do período:
+${formatCurrency(ctx.balance)}
+
+Pagamentos previstos (7 dias):
+${formatCurrency(totalPayables)}
+
+Saldo após pagamentos:
+${formatCurrency(projectedBalance)}
+
+Situação:
+${situation}
+
+Minha leitura:
+
+${
+  projectedBalance >= 0
+    ? 'Mesmo após os pagamentos previstos, o resultado permanece positivo.'
+    : 'Os pagamentos previstos pressionam o resultado do período. Avalie prioridades, renegociações e preservação de caixa.'
+}
+  `.trim();
+};
+
 const buildFlowAnswer = (ctx) => {
   const topExpenses = ctx.expenseCategories
     .slice(0, 3)
@@ -5605,6 +5659,15 @@ const isCashForecastQuestion =
   lowerQuestion.includes('previsão de caixa') ||
   lowerQuestion.includes('previsao de caixa') ||
   lowerQuestion.includes('saldo projetado');
+
+    const isDecisionSimulationQuestion =
+  lowerQuestion.includes('quanto sobra') ||
+  lowerQuestion.includes('se eu pagar tudo') ||
+  lowerQuestion.includes('após os vencimentos') ||
+  lowerQuestion.includes('apos os vencimentos') ||
+  lowerQuestion.includes('depois dos pagamentos') ||
+  lowerQuestion.includes('saldo após pagamentos') ||
+  lowerQuestion.includes('saldo apos pagamentos');
   
     const isSuggestionQuestion =
       lowerQuestion.includes('pode sugerir') ||
@@ -5660,6 +5723,8 @@ const isCashForecastQuestion =
         ctx,
         financialIntent.category
       );
+      } else if (isDecisionSimulationQuestion) {
+  answer = buildDecisionSimulationAnswer(ctx);
       } else if (isCashForecastQuestion) {
   answer = buildCashForecastAnswer(ctx);
       } else if (isPaymentPriorityQuestion) {

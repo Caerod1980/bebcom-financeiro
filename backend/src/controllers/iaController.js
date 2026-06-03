@@ -922,6 +922,76 @@ Essas contas concentram os compromissos financeiros mais próximos e merecem aco
   `.trim();
 };
 
+const buildCashForecastAnswer = (ctx) => {
+  const today = new Date();
+
+  const next7Days = new Date();
+  next7Days.setDate(today.getDate() + 7);
+
+  const payables = (ctx.accounts || []).filter(
+    (account) =>
+      account.type === 'payable' &&
+      ['pending', 'overdue'].includes(account.status) &&
+      new Date(account.dueDate) <= next7Days
+  );
+
+  const receivables = (ctx.accounts || []).filter(
+    (account) =>
+      account.type === 'receivable' &&
+      ['pending', 'overdue'].includes(account.status) &&
+      new Date(account.dueDate) <= next7Days
+  );
+
+  const totalPayables = payables.reduce(
+    (acc, item) =>
+      acc + Math.abs(Number(item.amount || 0)),
+    0
+  );
+
+  const totalReceivables = receivables.reduce(
+    (acc, item) =>
+      acc + Math.abs(Number(item.amount || 0)),
+    0
+  );
+
+  const projectedCash =
+    Number(ctx.balance || 0) +
+    totalReceivables -
+    totalPayables;
+
+  let status = 'Equilibrado';
+
+  if (projectedCash < 0) {
+    status = 'Atenção';
+  }
+
+  return `
+Previsão de Caixa — Próximos 7 dias
+
+Saldo atual:
+${formatCurrency(ctx.balance)}
+
+Contas a receber:
+${formatCurrency(totalReceivables)}
+
+Contas a pagar:
+${formatCurrency(totalPayables)}
+
+Saldo projetado:
+${formatCurrency(projectedCash)}
+
+Situação:
+${status}
+
+Minha leitura:
+${
+  projectedCash >= 0
+    ? 'O caixa projetado cobre os compromissos previstos para os próximos dias.'
+    : 'Os compromissos previstos superam a disponibilidade projetada. Recomenda-se acompanhar entradas, renegociações e prioridades de pagamento.'
+}
+  `.trim();
+};
+
 const buildFlowAnswer = (ctx) => {
   const topExpenses = ctx.expenseCategories
     .slice(0, 3)
@@ -5515,6 +5585,14 @@ const isPayablesDueDateQuestion =
   lowerQuestion.includes('vencimentos proximos') ||
   lowerQuestion.includes('prioridade de pagamento');
 
+const isCashForecastQuestion =
+  lowerQuestion.includes('consigo pagar') ||
+  lowerQuestion.includes('caixa cobre') ||
+  lowerQuestion.includes('vou faltar dinheiro') ||
+  lowerQuestion.includes('previsão de caixa') ||
+  lowerQuestion.includes('previsao de caixa') ||
+  lowerQuestion.includes('saldo projetado');
+  
     const isSuggestionQuestion =
       lowerQuestion.includes('pode sugerir') ||
       lowerQuestion.includes('sugere algum') ||
@@ -5569,6 +5647,8 @@ const isPayablesDueDateQuestion =
         ctx,
         financialIntent.category
       );
+      } else if (isCashForecastQuestion) {
+  answer = buildCashForecastAnswer(ctx);
       } else if (isPaymentPriorityQuestion) {
   answer = buildPaymentPriorityAnswer(ctx);
       } else if (isOpenSupplierRankingQuestion) {

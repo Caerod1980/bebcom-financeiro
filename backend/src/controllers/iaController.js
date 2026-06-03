@@ -825,6 +825,87 @@ O ranking mostra onde está concentrada a maior pressão do contas a pagar. Quan
   `.trim();
 };
 
+const buildPaymentPriorityAnswer = (ctx) => {
+  const today = new Date();
+
+  const accounts = (ctx.accounts || [])
+    .filter(
+      (account) =>
+        account.type === 'payable' &&
+        ['pending', 'overdue'].includes(account.status)
+    )
+    .map((account) => {
+      const dueDate = new Date(account.dueDate);
+
+      const days =
+        Math.ceil(
+          (dueDate - today) /
+          (1000 * 60 * 60 * 24)
+        );
+
+      return {
+        ...account,
+        days,
+      };
+    })
+    .sort((a, b) => a.days - b.days);
+
+  if (!accounts.length) {
+    return `
+Não existem contas pendentes ou vencidas.
+
+Minha leitura:
+A agenda financeira não possui compromissos em aberto neste momento.
+    `.trim();
+  }
+
+  const critical = accounts.filter(
+    (item) => item.days <= 3
+  );
+
+  const totalCritical = critical.reduce(
+    (acc, item) =>
+      acc + Math.abs(Number(item.amount || 0)),
+    0
+  );
+
+  const list = critical
+    .slice(0, 10)
+    .map((item, index) => {
+      const due =
+        new Date(item.dueDate)
+          .toLocaleDateString('pt-BR');
+
+      let priority = 'Baixa';
+
+      if (item.days <= 0) priority = 'Urgente';
+      else if (item.days <= 3) priority = 'Alta';
+
+      return `${index + 1}. ${item.person || item.description}
+Vencimento: ${due}
+Valor: ${formatCurrency(item.amount)}
+Prioridade: ${priority}`;
+    })
+    .join('\n\n');
+
+  return `
+Priorização Inteligente de Pagamentos
+
+Contas críticas:
+${critical.length}
+
+Valor crítico:
+${formatCurrency(totalCritical)}
+
+Prioridades:
+
+${list}
+
+Minha leitura:
+Essas contas concentram os compromissos financeiros mais próximos e merecem acompanhamento prioritário para evitar atrasos e pressão adicional sobre o caixa.
+  `.trim();
+};
+
 const buildFlowAnswer = (ctx) => {
   const topExpenses = ctx.expenseCategories
     .slice(0, 3)
@@ -5405,6 +5486,19 @@ const isPayablesDueDateQuestion =
     lowerQuestion.includes('pendentes')
   );
 
+    const isPaymentPriorityQuestion =
+  lowerQuestion.includes('quem devo pagar') ||
+  lowerQuestion.includes('pagar primeiro') ||
+  lowerQuestion.includes('quem pagar primeiro') ||
+  lowerQuestion.includes('quais contas são mais urgentes') ||
+  lowerQuestion.includes('quais contas sao mais urgentes') ||
+  lowerQuestion.includes('mais urgentes') ||
+  lowerQuestion.includes('atenção hoje') ||
+  lowerQuestion.includes('atencao hoje') ||
+  lowerQuestion.includes('vencimentos próximos') ||
+  lowerQuestion.includes('vencimentos proximos') ||
+  lowerQuestion.includes('prioridade de pagamento');
+
     const isSuggestionQuestion =
       lowerQuestion.includes('pode sugerir') ||
       lowerQuestion.includes('sugere algum') ||
@@ -5459,6 +5553,8 @@ const isPayablesDueDateQuestion =
         ctx,
         financialIntent.category
       );
+      } else if (isPaymentPriorityQuestion) {
+  answer = buildPaymentPriorityAnswer(ctx);
       } else if (isOpenSupplierRankingQuestion) {
   answer = buildOpenSupplierRankingAnswer(ctx);
 } else if (isPayablesDueDateQuestion) {

@@ -606,6 +606,135 @@ Esse fornecedor possui compromissos pendentes no contas a pagar e deve ser acomp
   `.trim();
 };
 
+const getPayableDuePeriodFromQuestion = (question) => {
+  const lower = question.toLowerCase();
+  const now = new Date();
+
+  const startOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    0,
+    0,
+    0,
+    0
+  );
+
+  const endOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    23,
+    59,
+    59,
+    999
+  );
+
+  if (lower.includes('amanhã') || lower.includes('amanha')) {
+    const start = new Date(startOfToday);
+    start.setDate(start.getDate() + 1);
+
+    const end = new Date(endOfToday);
+    end.setDate(end.getDate() + 1);
+
+    return {
+      label: 'amanhã',
+      start,
+      end,
+    };
+  }
+
+  if (lower.includes('hoje')) {
+    return {
+      label: 'hoje',
+      start: startOfToday,
+      end: endOfToday,
+    };
+  }
+
+  if (
+    lower.includes('esta semana') ||
+    lower.includes('essa semana') ||
+    lower.includes('semana')
+  ) {
+    const start = new Date(startOfToday);
+    const end = new Date(endOfToday);
+    end.setDate(end.getDate() + 7);
+
+    return {
+      label: 'nos próximos 7 dias',
+      start,
+      end,
+    };
+  }
+
+  const specific = getSpecificDatePeriod(question);
+
+  if (specific) {
+    return specific;
+  }
+
+  return null;
+};
+
+const buildPayablesDueDateAnswer = (ctx, duePeriod) => {
+  if (!duePeriod) return null;
+
+  const accounts = (ctx.accounts || []).filter((account) => {
+    const dueDate = new Date(account.dueDate);
+
+    return (
+      account.type === 'payable' &&
+      ['pending', 'overdue'].includes(account.status) &&
+      dueDate >= duePeriod.start &&
+      dueDate <= duePeriod.end
+    );
+  });
+
+  if (accounts.length === 0) {
+    return `
+Não encontrei contas a pagar com vencimento ${duePeriod.label}.
+
+Minha leitura:
+Não há compromissos pendentes/vencidos cadastrados para esse período no contas a pagar.
+    `.trim();
+  }
+
+  const ordered = [...accounts].sort(
+    (a, b) => new Date(a.dueDate) - new Date(b.dueDate)
+  );
+
+  const total = ordered.reduce(
+    (acc, item) => acc + Math.abs(Number(item.amount || 0)),
+    0
+  );
+
+  const list = ordered
+    .map((item, index) => {
+      const date = new Date(item.dueDate).toLocaleDateString('pt-BR');
+      const name = item.person || item.description || 'Conta';
+
+      return `${index + 1}. ${date} — ${name} — ${formatCurrency(item.amount)}`;
+    })
+    .join('\n');
+
+  return `
+Contas a pagar com vencimento ${duePeriod.label}
+
+Total:
+${formatCurrency(total)}
+
+Quantidade de contas:
+${ordered.length}
+
+Detalhamento:
+${list}
+
+Minha leitura:
+Esse é o valor previsto de saída para o período informado. Recomendo acompanhar junto com o saldo de caixa e as entradas previstas.
+  `.trim();
+};
+
 const buildFlowAnswer = (ctx) => {
   const topExpenses = ctx.expenseCategories
     .slice(0, 3)
@@ -5155,6 +5284,19 @@ const isSupplierPayableQuestion =
     lowerQuestion.includes('contas a pagar')
   );
 
+    const payableDuePeriod = getPayableDuePeriodFromQuestion(question);
+
+const isPayablesDueDateQuestion =
+  !!payableDuePeriod &&
+  (
+    lowerQuestion.includes('vence') ||
+    lowerQuestion.includes('vencem') ||
+    lowerQuestion.includes('vencimento') ||
+    lowerQuestion.includes('contas a pagar') ||
+    lowerQuestion.includes('quanto pagar') ||
+    lowerQuestion.includes('quanto tenho para pagar')
+  );
+
     const isSuggestionQuestion =
       lowerQuestion.includes('pode sugerir') ||
       lowerQuestion.includes('sugere algum') ||
@@ -5209,7 +5351,12 @@ const isSupplierPayableQuestion =
         ctx,
         financialIntent.category
       );
-      } else if (isSupplierPayableQuestion) {
+      } else if (isPayablesDueDateQuestion) {
+  answer = buildPayablesDueDateAnswer(
+    ctx,
+    payableDuePeriod
+  );
+} else if (isSupplierPayableQuestion) {
   answer = buildSupplierPayableAnswer(
     ctx,
     supplierPayableName

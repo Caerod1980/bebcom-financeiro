@@ -1101,6 +1101,7 @@ ${
 
 Acompanhe o fluxo previsto junto com o realizado. Priorize fornecedores críticos e preserve caixa para a operação essencial.
 `.trim();
+  };
   
 const buildRelativePeriodAnswer = (ctx) => {
   const topExpenses = ctx.expenseCategories

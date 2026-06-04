@@ -5970,12 +5970,14 @@ const isCashForecastQuestion =
 
     let answer = '';
 
-    if (
-       advancedIntentAnswer &&
-       advancedIntent !== 'educational'
-       ) {
-      answer = advancedIntentAnswer;
-    } else if (isCopilotQuestion) {
+   if (isAlertQuestion) {
+  answer = buildAlertsAnswer(ctx, previousCtx);
+} else if (
+  advancedIntentAnswer &&
+  advancedIntent !== 'educational'
+) {
+  answer = advancedIntentAnswer;
+} else if (isCopilotQuestion) {
       answer = managerCopilot;
     } else if (
       financialIntent.wantsTotal &&
@@ -5985,8 +5987,6 @@ const isCashForecastQuestion =
         ctx,
         financialIntent.category
       );
-      } else if (isAlertQuestion) {
-  answer = buildAlertsAnswer(ctx, previousCtx);
       } else if (isDecisionSimulationQuestion) {
   answer = buildDecisionSimulationAnswer(ctx);
       } else if (isCashForecastQuestion) {

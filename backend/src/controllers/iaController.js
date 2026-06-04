@@ -1656,6 +1656,315 @@ Voltar o resultado do período para positivo, reduzir contas pendentes e diminui
 `.trim();
 };
 
+const buildMotivationalInsight = (
+  currentCtx,
+  previousCtx,
+  operationalScore
+) => {
+  const previousBalance = previousCtx?.balance || 0;
+  const currentBalance = currentCtx.balance || 0;
+
+  const balanceImproved =
+    previousCtx &&
+    currentBalance > previousBalance;
+
+  const incomeImproved =
+    previousCtx &&
+    currentCtx.totalIncome > previousCtx.totalIncome;
+
+  const expensesReduced =
+    previousCtx &&
+    currentCtx.totalExpenses < previousCtx.totalExpenses;
+
+  if (operationalScore.score >= 80) {
+    return `
+💪 Leitura motivacional executiva
+
+A operação demonstra boa saúde gerencial.
+
+Os números indicam que existe base para crescer com responsabilidade, desde que o controle de caixa, compras e despesas continue firme.
+
+O momento é favorável para transformar organização em crescimento.
+`.trim();
+  }
+
+  if (operationalScore.score >= 60) {
+    return `
+💪 Leitura motivacional executiva
+
+A operação exige atenção, mas não está sem direção.
+
+Os dados já mostram onde agir: caixa, compras, contas pendentes e margem.
+
+Com acompanhamento diário e decisões firmes, é possível estabilizar o resultado e melhorar o score operacional.
+`.trim();
+  }
+
+  if (balanceImproved || incomeImproved || expensesReduced) {
+    return `
+💪 Leitura motivacional executiva
+
+O cenário ainda exige firmeza, mas existe sinal de reação nos números.
+
+Isso é importante: quando algum indicador começa a melhorar, a gestão deixa de agir no escuro e passa a ter um caminho real de recuperação.
+
+O foco agora é proteger essa melhora e evitar novas pressões desnecessárias.
+`.trim();
+  }
+
+  return `
+💪 Leitura motivacional executiva
+
+O momento pede controle, não desespero.
+
+A IA já identificou os principais pontos de pressão: caixa, compras, contas pendentes e despesas.
+
+Isso significa que o problema está mapeado. Agora o caminho é agir com método, preservar caixa e acompanhar os números diariamente.
+`.trim();
+};
+
+const buildCEOQuestions = (
+  currentCtx,
+  operationalScore,
+  operationalAlerts,
+  operationalPriorities
+) => {
+  const questions = [];
+
+  if (currentCtx.balance < 0) {
+    questions.push('Como recuperar o caixa?');
+    questions.push('Quanto preciso vender para sair do negativo?');
+  }
+
+  if (currentCtx.pendingPayable > 0) {
+    questions.push('Quem devo pagar primeiro?');
+    questions.push('Quanto vence nos próximos 7 dias?');
+  }
+
+  const purchases = currentCtx.expenseCategories?.find(
+    (item) => item.category === 'compras_mercadorias'
+  );
+
+  if (purchases && currentCtx.totalIncome > 0) {
+    const purchaseShare =
+      (purchases.amount / currentCtx.totalIncome) * 100;
+
+    if (purchaseShare > 60) {
+      questions.push('Como reduzir compras sem prejudicar a loja?');
+      questions.push('Quais fornecedores mais pressionam o caixa?');
+    }
+  }
+
+  const averageTicket =
+    currentCtx.managementReport?.averageTicket || 0;
+
+  if (averageTicket === 0) {
+    questions.push('Como lançar o ticket médio corretamente?');
+  } else {
+    questions.push('Como melhorar o ticket médio?');
+  }
+
+  if (operationalScore.score < 60) {
+    questions.push('O que você faria no meu lugar?');
+    questions.push('Monte um plano para mim');
+  }
+
+  if (operationalAlerts.length > 0) {
+    questions.push('Mostre meus alertas');
+  }
+
+  if (operationalPriorities.length > 0) {
+    questions.push('Quais pontos merecem atenção?');
+  }
+
+  const uniqueQuestions = [...new Set(questions)];
+
+  return `
+🎯 O que eu investigaria agora
+
+${uniqueQuestions
+  .slice(0, 7)
+  .map((item) => `• ${item}`)
+  .join('\n')}
+`.trim();
+};
+
+const buildCEOAnswer = (
+  currentCtx,
+  previousCtx,
+  operationalScore,
+  operationalAlerts,
+  operationalPriorities
+) => {
+  const averageTicket =
+    currentCtx.managementReport?.averageTicket || 0;
+
+  const inventoryFinal =
+    currentCtx.inventory?.finalStock || 0;
+
+  const motivationalInsight = buildMotivationalInsight(
+    currentCtx,
+    previousCtx,
+    operationalScore
+  );
+
+  const ceoQuestions = buildCEOQuestions(
+    currentCtx,
+    operationalScore,
+    operationalAlerts,
+    operationalPriorities
+  );
+
+  const executiveDecisions =
+    buildExecutiveDecision(currentCtx);
+
+  const topExpenses = currentCtx.expenseCategories
+    .slice(0, 3)
+    .map(
+      (item, index) =>
+        `${index + 1}. ${item.category}: ${formatCurrency(item.amount)}`
+    )
+    .join('\n');
+
+  const supplierMap = {};
+
+  (currentCtx.accounts || [])
+    .filter(
+      (account) =>
+        account.type === 'payable' &&
+        ['pending', 'overdue'].includes(account.status)
+    )
+    .forEach((account) => {
+      const name =
+        account.person ||
+        account.description ||
+        'Fornecedor não informado';
+
+      if (!supplierMap[name]) {
+        supplierMap[name] = 0;
+      }
+
+      supplierMap[name] += Math.abs(Number(account.amount || 0));
+    });
+
+  const supplierRanking = Object.entries(supplierMap)
+    .map(([name, amount]) => ({ name, amount }))
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 5)
+    .map(
+      (item, index) =>
+        `${index + 1}. ${item.name}: ${formatCurrency(item.amount)}`
+    )
+    .join('\n');
+
+  return `
+👔 MODO CEO — BEBCOM
+
+━━━━━━━━━━━━━━━━━━
+
+🏅 Score gerencial
+
+${operationalScore.score}/100 — ${operationalScore.status}
+
+━━━━━━━━━━━━━━━━━━
+
+📊 Resumo financeiro
+
+Entradas
+${formatCurrency(currentCtx.totalIncome)}
+
+Saídas
+${formatCurrency(currentCtx.totalExpenses)}
+
+Resultado
+${formatCurrency(currentCtx.balance)}
+
+━━━━━━━━━━━━━━━━━━
+
+💰 Contas pendentes
+
+A pagar
+${formatCurrency(currentCtx.pendingPayable)}
+
+A receber
+${formatCurrency(currentCtx.pendingReceivable)}
+
+━━━━━━━━━━━━━━━━━━
+
+🚨 Alertas principais
+
+${
+  operationalAlerts.length
+    ? operationalAlerts
+        .slice(0, 5)
+        .map((alert) => `• ${alert.message}`)
+        .join('\n')
+    : 'Nenhum alerta crítico identificado.'
+}
+
+━━━━━━━━━━━━━━━━━━
+
+🏆 Maiores grupos de saída
+
+${topExpenses || 'Nenhuma despesa relevante identificada.'}
+
+━━━━━━━━━━━━━━━━━━
+
+🏦 Fornecedores com maior pressão
+
+${supplierRanking || 'Nenhum fornecedor em aberto identificado.'}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Ticket médio
+
+${formatCurrency(averageTicket)}
+
+━━━━━━━━━━━━━━━━━━
+
+📦 Estoque financeiro estimado
+
+${formatCurrency(inventoryFinal)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Decisão executiva
+
+${
+  executiveDecisions.length
+    ? executiveDecisions.map((item) => `• ${item}`).join('\n')
+    : 'Manter acompanhamento do caixa, compras, contas pendentes e margem.'
+}
+
+━━━━━━━━━━━━━━━━━━
+
+🚨 Prioridades executivas
+
+${
+  operationalPriorities.length
+    ? operationalPriorities
+        .slice(0, 5)
+        .map((item) => `• ${item.message}`)
+        .join('\n')
+    : 'Nenhuma prioridade crítica identificada.'
+}
+
+━━━━━━━━━━━━━━━━━━
+
+${motivationalInsight}
+
+━━━━━━━━━━━━━━━━━━
+
+${ceoQuestions}
+
+━━━━━━━━━━━━━━━━━━
+
+👉 Decisão recomendada
+
+Priorizar geração de caixa, giro de estoque, controle de compras e negociação dos maiores fornecedores antes de assumir novos compromissos.
+`.trim();
+};
+
 const buildInventoryAnswer = (ctx) => `
 Análise do estoque financeiro em ${ctx.periodLabel}:
 
@@ -5973,6 +6282,19 @@ const isExecutiveAdviceQuestion =
   lowerQuestion.includes('qual plano voce faria') ||
   lowerQuestion.includes('monte um plano') ||
   lowerQuestion.includes('o que devo fazer agora');
+
+    const isCEOQuestion =
+  lowerQuestion.includes('modo ceo') ||
+  lowerQuestion.includes('análise completa') ||
+  lowerQuestion.includes('analise completa') ||
+  lowerQuestion.includes('analise a empresa') ||
+  lowerQuestion.includes('analise minha empresa') ||
+  lowerQuestion.includes('como está a bebcom') ||
+  lowerQuestion.includes('como esta a bebcom') ||
+  lowerQuestion.includes('reunião gerencial') ||
+  lowerQuestion.includes('reuniao gerencial') ||
+  lowerQuestion.includes('visão geral da empresa') ||
+  lowerQuestion.includes('visao geral da empresa');
     
     const isAttentionQuestion =
       lowerQuestion.includes('o que merece atenção');
@@ -6212,7 +6534,15 @@ const isCashForecastQuestion =
 
     let answer = '';
 
-if (isRecoveryPlanQuestion) {
+if (isCEOQuestion) {
+  answer = buildCEOAnswer(
+    ctx,
+    previousCtx,
+    operationalScore,
+    operationalAlerts,
+    operationalPriorities
+  );
+} else if (isRecoveryPlanQuestion) {
   answer = buildRecoveryPlanAnswer(
     ctx,
     operationalScore,

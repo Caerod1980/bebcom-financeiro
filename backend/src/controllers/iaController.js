@@ -1436,6 +1436,74 @@ Comece corrigindo os alertas críticos antes dos alertas de atenção.
 `.trim();
 };
 
+const buildExecutiveAdviceAnswer = (
+  currentCtx,
+  previousCtx
+) => {
+
+  const decisions =
+    buildExecutiveDecision(currentCtx);
+
+  const recommendations =
+    buildStrategicRecommendations(currentCtx);
+
+  const memory =
+    buildExecutiveMemory(
+      currentCtx,
+      previousCtx
+    );
+
+  return `
+🧠 O QUE EU FARIA NO SEU LUGAR
+
+━━━━━━━━━━━━━━━━━━
+
+📊 Situação atual
+
+Resultado:
+${formatCurrency(currentCtx.balance)}
+
+Contas pendentes:
+${formatCurrency(currentCtx.pendingPayable)}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha decisão
+
+${
+  decisions.length
+    ? decisions.map(item => `• ${item}`).join('\n')
+    : 'Nenhuma ação crítica identificada.'
+}
+
+━━━━━━━━━━━━━━━━━━
+
+📈 Recomendações estratégicas
+
+${
+  recommendations.length
+    ? recommendations.map(item => `• ${item}`).join('\n')
+    : 'Nenhuma recomendação adicional.'
+}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Memória operacional
+
+${
+  memory.length
+    ? memory.map(item => `• ${item}`).join('\n')
+    : 'Ainda não existem períodos suficientes para análise evolutiva.'
+}
+
+━━━━━━━━━━━━━━━━━━
+
+👉 Minha posição
+
+Hoje eu tomaria decisões focadas em caixa, compras, contas pendentes e geração de margem antes de buscar expansão.
+`.trim();
+};
+
 const buildInventoryAnswer = (ctx) => `
 Análise do estoque financeiro em ${ctx.periodLabel}:
 
@@ -5732,6 +5800,17 @@ const askIABebcom = async (req, res) => {
   lowerQuestion.includes('situação crítica') ||
   lowerQuestion.includes('situacao critica');
 
+const isExecutiveAdviceQuestion =
+  lowerQuestion.includes('o que você faria') ||
+  lowerQuestion.includes('o que faria') ||
+  lowerQuestion.includes('sua opinião') ||
+  lowerQuestion.includes('sua opiniao') ||
+  lowerQuestion.includes('qual sua opinião') ||
+  lowerQuestion.includes('qual sua opiniao') ||
+  lowerQuestion.includes('o que devo fazer') ||
+  lowerQuestion.includes('o que você recomenda') ||
+  lowerQuestion.includes('o que recomenda');
+    
     const isAttentionQuestion =
       lowerQuestion.includes('o que merece atenção');
 
@@ -5970,7 +6049,9 @@ const isCashForecastQuestion =
 
     let answer = '';
 
-   if (isAlertQuestion) {
+if (isExecutiveAdviceQuestion) {
+  answer = buildExecutiveAdviceAnswer(ctx, previousCtx);
+} else if (isAlertQuestion) {
   answer = buildAlertsAnswer(ctx, previousCtx);
 } else if (
   advancedIntentAnswer &&

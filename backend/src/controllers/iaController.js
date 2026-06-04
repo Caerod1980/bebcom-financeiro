@@ -1225,27 +1225,44 @@ const buildTicketAnswer = (ctx) => {
   const netRevenue = ctx.managementReport?.netRevenue || 0;
   const totalTickets = ctx.managementReport?.totalTickets || 0;
 
-  return `
-Análise de ticket médio de ${ctx.periodLabel}:
+ return `
+🎯 TICKET MÉDIO — ${ctx.periodLabel}
 
-Receita líquida gerencial: ${formatCurrency(netRevenue)}
-Total de comandas: ${totalTickets}
-Ticket médio: ${formatCurrency(averageTicket)}
+━━━━━━━━━━━━━━━━━━
 
-Leitura gerencial:
+💰 Receita líquida gerencial
+${formatCurrency(netRevenue)}
+
+🧾 Total de comandas
+${totalTickets}
+
+📌 Ticket médio
+${formatCurrency(averageTicket)}
+
+━━━━━━━━━━━━━━━━━━
+
+💡 Leitura gerencial
+
 ${
   averageTicket > 0
-    ? 'O ticket médio já possui dados lançados e pode ser usado para analisar qualidade das vendas.'
+    ? 'O ticket médio já possui dados lançados e pode ser usado para analisar a qualidade das vendas.'
     : 'Ainda não há dados de comandas/receita lançados no Relatório Gerencial deste período. Para uma análise precisa, preencha receita líquida e total de comandas.'
 }
 
-Estratégias para melhorar o ticket médio:
+━━━━━━━━━━━━━━━━━━
+
+🚀 Estratégias para melhorar
+
 1. Criar combos com bebida + energético + gelo.
 2. Oferecer produtos complementares no balcão e delivery.
 3. Destacar itens de maior margem.
 4. Criar faixas de incentivo: “acima de R$ X, leve vantagem”.
 5. Trabalhar kits para fim de semana e datas de maior movimento.
-  `.trim();
+
+👉 Próxima ação sugerida
+
+Acompanhe o ticket médio junto com o volume de comandas para entender se a loja está vendendo mais ou vendendo melhor.
+`.trim();
 };
 
 const buildExpenseAnswer = (ctx) => {
@@ -1257,61 +1274,108 @@ const buildExpenseAnswer = (ctx) => {
     )
     .join('\n');
 
-  return `
-Análise de despesas de ${ctx.periodLabel}:
+return `
+💸 ANÁLISE DE DESPESAS — ${ctx.periodLabel}
 
-Total de despesas no período: ${formatCurrency(ctx.totalExpenses)}
+━━━━━━━━━━━━━━━━━━
 
-Maiores grupos de despesas:
+💰 Total de despesas
+${formatCurrency(ctx.totalExpenses)}
+
+━━━━━━━━━━━━━━━━━━
+
+📊 Maiores grupos de despesas
+
 ${topExpenses || 'Não encontrei despesas classificadas suficientes neste período.'}
 
-Leitura gerencial:
+━━━━━━━━━━━━━━━━━━
+
+💡 Leitura gerencial
+
 Para reduzir despesas sem prejudicar a loja, o ideal é separar o que é essencial para venda do que é administrativo, financeiro ou negociável.
 
-Sugestões práticas:
+━━━━━━━━━━━━━━━━━━
+
+🛠️ Sugestões práticas
+
 1. Renegociar vencimentos para aliviar dias de maior pressão no caixa.
 2. Revisar compras com baixo giro.
 3. Comparar fornecedores recorrentes.
 4. Evitar cortes em produtos que puxam venda.
 5. Atacar primeiro despesas que não afetam atendimento, estoque essencial ou entrega.
-  `.trim();
+
+👉 Próxima ação sugerida
+
+Comece pelo maior grupo de despesa do período, pois pequenos ajustes nele tendem a gerar maior impacto.
+`.trim();
 };
 
 const buildOperationAnswer = (ctx) => {
   const averageTicket = ctx.managementReport?.averageTicket || 0;
   const inventoryFinal = ctx.inventory?.finalStock || 0;
 
-  return `
-Pontos de atenção operacional em ${ctx.periodLabel}:
+ return `
+🧠 PONTOS DE ATENÇÃO OPERACIONAL — ${ctx.periodLabel}
 
-1. Caixa:
-Saldo realizado do período: ${formatCurrency(ctx.balance)}
+━━━━━━━━━━━━━━━━━━
+
+📊 Caixa
+
+Resultado realizado do período
+${formatCurrency(ctx.balance)}
+
 ${
   ctx.balance < 0
-    ? 'Atenção: o caixa realizado está negativo no período analisado.'
-    : 'O caixa realizado está positivo no período analisado.'
+    ? '⚠️ O resultado realizado está negativo no período analisado.'
+    : '🟢 O resultado realizado está positivo no período analisado.'
 }
 
-2. Despesas:
-Saídas realizadas: ${formatCurrency(ctx.totalExpenses)}
+━━━━━━━━━━━━━━━━━━
 
-3. Contas:
-Contas a pagar pendentes/vencidas: ${formatCurrency(ctx.pendingPayable)}
+💸 Despesas
 
-4. Ticket médio:
-Ticket médio registrado: ${formatCurrency(averageTicket)}
+Saídas realizadas
+${formatCurrency(ctx.totalExpenses)}
+
+━━━━━━━━━━━━━━━━━━
+
+📋 Contas
+
+Contas a pagar pendentes/vencidas
+${formatCurrency(ctx.pendingPayable)}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Ticket médio
+
+Ticket médio registrado
+${formatCurrency(averageTicket)}
+
 ${
   averageTicket === 0
-    ? 'O Relatório Gerencial ainda precisa ser alimentado para leitura operacional completa.'
-    : 'Esse indicador já permite avaliar qualidade de venda e comportamento de consumo.'
+    ? '⚠️ O Relatório Gerencial ainda precisa ser alimentado para leitura operacional completa.'
+    : '🟢 Esse indicador já permite avaliar qualidade de venda e comportamento de consumo.'
 }
 
-5. Estoque:
-Estoque financeiro estimado: ${formatCurrency(inventoryFinal)}
+━━━━━━━━━━━━━━━━━━
 
-Minha leitura:
-O ponto principal é acompanhar se o crescimento de vendas está vindo com margem, caixa e controle de compras. Receita alta sem controle de despesas ou estoque pode apertar o caixa.
-  `.trim();
+📦 Estoque
+
+Estoque financeiro estimado
+${formatCurrency(inventoryFinal)}
+
+━━━━━━━━━━━━━━━━━━
+
+💡 Minha leitura
+
+O ponto principal é acompanhar se o crescimento de vendas está vindo com margem, caixa e controle de compras.
+
+Receita alta sem controle de despesas ou estoque pode apertar o caixa.
+
+👉 Próxima ação sugerida
+
+Acompanhe diariamente caixa, compras e contas a pagar para evitar pressão operacional acumulada.
+`.trim();
 };
 
 const buildInventoryAnswer = (ctx) => `

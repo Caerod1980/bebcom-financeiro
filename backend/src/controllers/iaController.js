@@ -1018,31 +1018,42 @@ const buildCashForecastAnswer = (ctx) => {
     status = 'Atenção';
   }
 
-  return `
-Previsão de Caixa — Próximos 7 dias
+ return `
+📈 PREVISÃO DE CAIXA — PRÓXIMOS 7 DIAS
 
-Saldo atual:
+━━━━━━━━━━━━━━━━━━
+
+📊 Resultado realizado do período
 ${formatCurrency(ctx.balance)}
 
-Contas a receber:
+💵 Contas a receber
 ${formatCurrency(totalReceivables)}
 
-Contas a pagar:
+💸 Contas a pagar
 ${formatCurrency(totalPayables)}
 
-Saldo projetado:
+━━━━━━━━━━━━━━━━━━
+
+📌 Saldo projetado
 ${formatCurrency(projectedCash)}
 
-Situação:
+⚠️ Situação
 ${status}
 
-Minha leitura:
+━━━━━━━━━━━━━━━━━━
+
+💡 Minha leitura
+
 ${
   projectedCash >= 0
-    ? 'O caixa projetado cobre os compromissos previstos para os próximos dias.'
-    : 'Os compromissos previstos superam a disponibilidade projetada. Recomenda-se acompanhar entradas, renegociações e prioridades de pagamento.'
+    ? 'O resultado projetado cobre os compromissos previstos para os próximos dias.'
+    : 'Os compromissos previstos superam a disponibilidade projetada. É recomendável acompanhar entradas, renegociações e prioridades de pagamento.'
 }
-  `.trim();
+
+👉 Próxima ação sugerida
+
+Compare os vencimentos dos próximos dias com as entradas previstas e evite assumir novos compromissos antes de estabilizar o caixa.
+`.trim();
 };
 
 const buildDecisionSimulationAnswer = (ctx) => {
@@ -1074,29 +1085,39 @@ const buildDecisionSimulationAnswer = (ctx) => {
     situation = 'Atenção';
   }
 
-  return `
-Simulação de Decisão
+ return `
+🧭 SIMULAÇÃO DE DECISÃO
 
-Resultado realizado do período:
+━━━━━━━━━━━━━━━━━━
+
+📊 Resultado realizado do período
 ${formatCurrency(ctx.balance)}
 
-Pagamentos previstos (7 dias):
+💸 Pagamentos previstos (7 dias)
 ${formatCurrency(totalPayables)}
 
-Saldo após pagamentos:
+━━━━━━━━━━━━━━━━━━
+
+📌 Saldo após pagamentos
 ${formatCurrency(projectedBalance)}
 
-Situação:
+⚠️ Situação
 ${situation}
 
-Minha leitura:
+━━━━━━━━━━━━━━━━━━
+
+💡 Minha leitura
 
 ${
   projectedBalance >= 0
     ? 'Mesmo após os pagamentos previstos, o resultado permanece positivo.'
     : 'Os pagamentos previstos pressionam o resultado do período. Avalie prioridades, renegociações e preservação de caixa.'
 }
-  `.trim();
+
+👉 Próxima ação sugerida
+
+Antes de novas compras ou despesas, confira se os pagamentos prioritários já estão cobertos pelo fluxo previsto.
+`.trim();
 };
 
 const buildFlowAnswer = (ctx) => {

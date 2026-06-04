@@ -1510,42 +1510,108 @@ const buildRecoveryPlanAnswer = (
   operationalPriorities,
   strategicRecommendations
 ) => {
+  const topExpense = currentCtx.expenseCategories?.[0];
+
+  const purchases = currentCtx.expenseCategories?.find(
+    (item) => item.category === 'compras_mercadorias'
+  );
+
+  const purchaseShare =
+    purchases && currentCtx.totalIncome > 0
+      ? (purchases.amount / currentCtx.totalIncome) * 100
+      : 0;
+
+  const decisions = buildExecutiveDecision(currentCtx);
+
+  const sevenDaysActions = [];
+
+  if (currentCtx.balance < 0) {
+    sevenDaysActions.push(
+      `Preservar caixa imediatamente. O resultado atual está negativo em ${formatCurrency(Math.abs(currentCtx.balance))}.`
+    );
+  }
+
+  if (purchaseShare > 60) {
+    sevenDaysActions.push(
+      `Reduzir compras não críticas por 7 dias. Compras representam ${purchaseShare.toFixed(1)}% das entradas.`
+    );
+  }
+
+  if (currentCtx.pendingPayable > 0) {
+    sevenDaysActions.push(
+      `Acompanhar vencimentos diariamente. Contas pendentes somam ${formatCurrency(currentCtx.pendingPayable)}.`
+    );
+  }
+
+  if (topExpense) {
+    sevenDaysActions.push(
+      `Atacar primeiro o maior grupo de saída: ${topExpense.category}, com ${formatCurrency(topExpense.amount)}.`
+    );
+  }
+
+  const thirtyDaysActions = [
+    'Renegociar prazos com fornecedores de maior peso.',
+    'Revisar compras com baixo giro antes de novas reposições.',
+    'Aumentar margem com combos, adicionais e produtos complementares.',
+    'Separar despesas essenciais das despesas negociáveis.',
+  ];
+
+  const ninetyDaysActions = [
+    'Construir reserva operacional mínima.',
+    'Ajustar estoque ao ritmo real de faturamento.',
+    'Criar rotina semanal de análise de caixa, compras e contas a pagar.',
+    'Usar o score gerencial como indicador de saúde da operação.',
+  ];
 
   return `
-🛠️ PLANO DE RECUPERAÇÃO FINANCEIRA
+🛠️ PLANO PERSONALIZADO DE RECUPERAÇÃO — ${currentCtx.periodLabel}
 
 ━━━━━━━━━━━━━━━━━━
 
 🎯 Objetivo principal
 
-Recuperar equilíbrio de caixa e reduzir pressão financeira da operação.
+Recuperar equilíbrio de caixa, reduzir pressão financeira e melhorar a geração de margem da operação.
 
 ━━━━━━━━━━━━━━━━━━
 
-📅 Próximos 7 dias
+📊 Diagnóstico rápido
 
-• Priorizar pagamentos críticos.
-• Evitar novas despesas não essenciais.
-• Monitorar caixa diariamente.
-• Aumentar foco em giro do estoque atual.
+Resultado do período
+${formatCurrency(currentCtx.balance)}
+
+Contas pendentes
+${formatCurrency(currentCtx.pendingPayable)}
+
+Score gerencial
+${operationalScore.score}/100 — ${operationalScore.status}
+
+${
+  purchases
+    ? `Compras de mercadorias\n${formatCurrency(purchases.amount)} — ${purchaseShare.toFixed(1)}% das entradas`
+    : 'Compras de mercadorias\nSem concentração relevante identificada.'
+}
 
 ━━━━━━━━━━━━━━━━━━
 
-📅 Próximos 30 dias
+📅 Próximos 7 dias — Ações imediatas
 
-• Reduzir pressão de compras.
-• Renegociar fornecedores estratégicos.
-• Melhorar margem dos produtos de maior giro.
-• Revisar despesas recorrentes.
+${
+  sevenDaysActions.length
+    ? sevenDaysActions.map((item) => `• ${item}`).join('\n')
+    : '• Manter acompanhamento diário do caixa e evitar novas pressões financeiras.'
+}
 
 ━━━━━━━━━━━━━━━━━━
 
-📅 Próximos 90 dias
+📅 Próximos 30 dias — Ajuste operacional
 
-• Reequilibrar fluxo de caixa.
-• Construir reserva operacional.
-• Ajustar nível de estoque ao faturamento.
-• Melhorar previsibilidade financeira.
+${thirtyDaysActions.map((item) => `• ${item}`).join('\n')}
+
+━━━━━━━━━━━━━━━━━━
+
+📅 Próximos 90 dias — Estabilização
+
+${ninetyDaysActions.map((item) => `• ${item}`).join('\n')}
 
 ━━━━━━━━━━━━━━━━━━
 
@@ -1555,9 +1621,19 @@ ${
   operationalPriorities.length
     ? operationalPriorities
         .slice(0, 5)
-        .map(item => `• ${item.message}`)
+        .map((item) => `• ${item.message}`)
         .join('\n')
     : 'Nenhuma prioridade crítica identificada.'
+}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Decisão executiva
+
+${
+  decisions.length
+    ? decisions.map((item) => `• ${item}`).join('\n')
+    : 'Nenhuma decisão crítica adicional identificada.'
 }
 
 ━━━━━━━━━━━━━━━━━━
@@ -1566,17 +1642,17 @@ ${
 
 ${
   operationalScore.score >= 80
-    ? 'O foco deve ser crescimento sustentável.'
+    ? 'A operação permite foco em crescimento sustentável, mantendo disciplina financeira.'
     : operationalScore.score >= 60
-      ? 'O foco deve ser estabilidade operacional e proteção do caixa.'
-      : 'O foco deve ser recuperação financeira e preservação imediata de caixa.'
+      ? 'A operação precisa de estabilidade, proteção de caixa e controle mais firme das compras.'
+      : 'A operação exige recuperação financeira imediata. O foco deve ser preservar caixa, controlar compras e reduzir pressão de contas pendentes.'
 }
 
 ━━━━━━━━━━━━━━━━━━
 
 👉 Indicador de sucesso
 
-Reduzir contas pendentes, melhorar geração de caixa e aumentar a distância entre entradas e saídas.
+Voltar o resultado do período para positivo, reduzir contas pendentes e diminuir o peso das compras sobre as entradas.
 `.trim();
 };
 

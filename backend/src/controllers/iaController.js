@@ -1378,6 +1378,64 @@ Acompanhe diariamente caixa, compras e contas a pagar para evitar pressão opera
 `.trim();
 };
 
+const buildAlertsAnswer = (
+  currentCtx,
+  previousCtx
+) => {
+
+  const alerts =
+    buildOperationalAlerts(
+      currentCtx,
+      previousCtx
+    );
+
+  if (!alerts.length) {
+    return `
+🚨 ALERTAS GERENCIAIS
+
+━━━━━━━━━━━━━━━━━━
+
+🟢 Nenhum alerta crítico identificado.
+
+A operação não apresenta riscos relevantes neste momento.
+
+👉 Próxima ação sugerida
+
+Continue acompanhando caixa, despesas e compras regularmente.
+`.trim();
+  }
+
+  const list = alerts
+    .map((alert, index) => {
+
+      const icon =
+        alert.level === 'critical'
+          ? '🔴'
+          : '🟡';
+
+      return `${index + 1}. ${icon} ${alert.message}`;
+    })
+    .join('\n\n');
+
+  return `
+🚨 ALERTAS GERENCIAIS
+
+━━━━━━━━━━━━━━━━━━
+
+${list}
+
+━━━━━━━━━━━━━━━━━━
+
+💡 Minha leitura
+
+Os alertas mostram os principais riscos operacionais e financeiros identificados automaticamente pela IA.
+
+👉 Próxima ação sugerida
+
+Comece corrigindo os alertas críticos antes dos alertas de atenção.
+`.trim();
+};
+
 const buildInventoryAnswer = (ctx) => `
 Análise do estoque financeiro em ${ctx.periodLabel}:
 
@@ -5661,6 +5719,19 @@ const askIABebcom = async (req, res) => {
     const isOperationQuestion =
       lowerQuestion.includes('como está a operação');
 
+ const isAlertQuestion =
+  lowerQuestion.includes('alerta') ||
+  lowerQuestion.includes('alertas') ||
+  lowerQuestion.includes('risco') ||
+  lowerQuestion.includes('riscos') ||
+  lowerQuestion.includes('preocupa') ||
+  lowerQuestion.includes('preocupando') ||
+  lowerQuestion.includes('me preocupar') ||
+  lowerQuestion.includes('o que devo me preocupar') ||
+  lowerQuestion.includes('existe algo') ||
+  lowerQuestion.includes('situação crítica') ||
+  lowerQuestion.includes('situacao critica');
+
     const isAttentionQuestion =
       lowerQuestion.includes('o que merece atenção');
 
@@ -5914,6 +5985,8 @@ const isCashForecastQuestion =
         ctx,
         financialIntent.category
       );
+      } else if (isAlertQuestion) {
+  answer = buildAlertsAnswer(ctx, previousCtx);
       } else if (isDecisionSimulationQuestion) {
   answer = buildDecisionSimulationAnswer(ctx);
       } else if (isCashForecastQuestion) {

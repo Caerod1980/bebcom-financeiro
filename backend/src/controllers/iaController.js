@@ -829,24 +829,42 @@ No momento não há fornecedores com compromissos pendentes ou vencidos registra
 
   const leader = ranking[0];
 
-  return `
-Ranking de fornecedores em aberto
+return `
+🏆 RANKING DE FORNECEDORES EM ABERTO
 
-Total em contas a pagar:
+━━━━━━━━━━━━━━━━━━
+
+💰 Total em contas a pagar
 ${formatCurrency(totalOpen)}
 
-Fornecedores com pendências:
+📋 Fornecedores com pendências
 ${ranking.length}
 
-Maiores fornecedores:
+━━━━━━━━━━━━━━━━━━
+
+📊 Maiores fornecedores
+
 ${list}
 
-Fornecedor com maior peso:
-${leader.supplier} — ${formatCurrency(leader.total)}
+━━━━━━━━━━━━━━━━━━
 
-Minha leitura:
-O ranking mostra onde está concentrada a maior pressão do contas a pagar. Quanto maior a concentração em poucos fornecedores, maior deve ser a atenção na negociação de prazos e priorização de pagamentos.
-  `.trim();
+🥇 Fornecedor com maior peso
+
+${leader.supplier}
+${formatCurrency(leader.total)}
+
+━━━━━━━━━━━━━━━━━━
+
+💡 Minha leitura
+
+O ranking mostra onde está concentrada a maior pressão do contas a pagar.
+
+Quanto maior a concentração em poucos fornecedores, maior deve ser a atenção na negociação de prazos e priorização de pagamentos.
+
+👉 Próxima ação sugerida
+
+Avalie os maiores fornecedores e confira quais vencimentos podem ser negociados ou priorizados.
+`.trim();
 };
 
 const buildPaymentPriorityAnswer = (ctx) => {
@@ -928,22 +946,33 @@ Prioridade: ${priority}`;
     })
     .join('\n\n');
 
-  return `
-Priorização Inteligente de Pagamentos
+ return `
+🚨 PRIORIZAÇÃO INTELIGENTE DE PAGAMENTOS
 
-Contas críticas:
+━━━━━━━━━━━━━━━━━━
+
+📋 Contas críticas
 ${critical.length}
 
-Valor crítico:
+💰 Valor crítico
 ${formatCurrency(totalCritical)}
 
-Prioridades:
+━━━━━━━━━━━━━━━━━━
+
+🔥 Prioridades
 
 ${list}
 
-Minha leitura:
+━━━━━━━━━━━━━━━━━━
+
+💡 Minha leitura
+
 Essas contas concentram os compromissos financeiros mais próximos e merecem acompanhamento prioritário para evitar atrasos e pressão adicional sobre o caixa.
-  `.trim();
+
+👉 Próxima ação sugerida
+
+Confira se o caixa comporta esses pagamentos e priorize vencimentos de hoje, vencidos ou fornecedores estratégicos.
+`.trim();
 };
 
 const buildCashForecastAnswer = (ctx) => {

@@ -1504,6 +1504,82 @@ Hoje eu tomaria decisões focadas em caixa, compras, contas pendentes e geraçã
 `.trim();
 };
 
+const buildRecoveryPlanAnswer = (
+  currentCtx,
+  operationalScore,
+  operationalPriorities,
+  strategicRecommendations
+) => {
+
+  return `
+🛠️ PLANO DE RECUPERAÇÃO FINANCEIRA
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Objetivo principal
+
+Recuperar equilíbrio de caixa e reduzir pressão financeira da operação.
+
+━━━━━━━━━━━━━━━━━━
+
+📅 Próximos 7 dias
+
+• Priorizar pagamentos críticos.
+• Evitar novas despesas não essenciais.
+• Monitorar caixa diariamente.
+• Aumentar foco em giro do estoque atual.
+
+━━━━━━━━━━━━━━━━━━
+
+📅 Próximos 30 dias
+
+• Reduzir pressão de compras.
+• Renegociar fornecedores estratégicos.
+• Melhorar margem dos produtos de maior giro.
+• Revisar despesas recorrentes.
+
+━━━━━━━━━━━━━━━━━━
+
+📅 Próximos 90 dias
+
+• Reequilibrar fluxo de caixa.
+• Construir reserva operacional.
+• Ajustar nível de estoque ao faturamento.
+• Melhorar previsibilidade financeira.
+
+━━━━━━━━━━━━━━━━━━
+
+🚨 Prioridades identificadas
+
+${
+  operationalPriorities.length
+    ? operationalPriorities
+        .slice(0, 5)
+        .map(item => `• ${item.message}`)
+        .join('\n')
+    : 'Nenhuma prioridade crítica identificada.'
+}
+
+━━━━━━━━━━━━━━━━━━
+
+💡 Minha leitura
+
+${
+  operationalScore.score >= 80
+    ? 'O foco deve ser crescimento sustentável.'
+    : operationalScore.score >= 60
+      ? 'O foco deve ser estabilidade operacional e proteção do caixa.'
+      : 'O foco deve ser recuperação financeira e preservação imediata de caixa.'
+}
+
+━━━━━━━━━━━━━━━━━━
+
+👉 Indicador de sucesso
+
+Reduzir contas pendentes, melhorar geração de caixa e aumentar a distância entre entradas e saídas.
+`.trim();
+};
+
 const buildInventoryAnswer = (ctx) => `
 Análise do estoque financeiro em ${ctx.periodLabel}:
 
@@ -5810,6 +5886,17 @@ const isExecutiveAdviceQuestion =
   lowerQuestion.includes('o que devo fazer') ||
   lowerQuestion.includes('o que você recomenda') ||
   lowerQuestion.includes('o que recomenda');
+
+    const isRecoveryPlanQuestion =
+  lowerQuestion.includes('como saio dessa situação') ||
+  lowerQuestion.includes('como sair dessa situação') ||
+  lowerQuestion.includes('como recuperar o caixa') ||
+  lowerQuestion.includes('plano de recuperação') ||
+  lowerQuestion.includes('plano de recuperacao') ||
+  lowerQuestion.includes('qual plano você faria') ||
+  lowerQuestion.includes('qual plano voce faria') ||
+  lowerQuestion.includes('monte um plano') ||
+  lowerQuestion.includes('o que devo fazer agora');
     
     const isAttentionQuestion =
       lowerQuestion.includes('o que merece atenção');
@@ -6049,8 +6136,18 @@ const isCashForecastQuestion =
 
     let answer = '';
 
-if (isExecutiveAdviceQuestion) {
-  answer = buildExecutiveAdviceAnswer(ctx, previousCtx);
+if (isRecoveryPlanQuestion) {
+  answer = buildRecoveryPlanAnswer(
+    ctx,
+    operationalScore,
+    operationalPriorities,
+    strategicRecommendations
+  );
+} else if (isExecutiveAdviceQuestion) {
+  answer = buildExecutiveAdviceAnswer(
+    ctx,
+    previousCtx
+  );
 } else if (isAlertQuestion) {
   answer = buildAlertsAnswer(ctx, previousCtx);
 } else if (

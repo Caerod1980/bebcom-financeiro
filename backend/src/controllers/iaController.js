@@ -2935,28 +2935,58 @@ O período mostra comportamento operacional que exige atenção principalmente s
   }
 
   if (type === 'score') {
-    return `
-Saúde operacional do Bebcom:
+  return `
+🏅 SCORE GERENCIAL — ${currentMonth}
+
+━━━━━━━━━━━━━━━━━━
+
+📊 Nota da operação
+
 ${operationalScore.score}/100
 
-Classificação:
+🏷️ Classificação
+
 ${operationalScore.status}
 
-Pontos fortes:
+━━━━━━━━━━━━━━━━━━
+
+🟢 Pontos fortes
+
 ${
   operationalScore.strengths.length > 0
     ? operationalScore.strengths.map((item) => `• ${item}`).join('\n')
     : 'Nenhum ponto forte relevante identificado.'
 }
 
-Pontos críticos:
+━━━━━━━━━━━━━━━━━━
+
+⚠️ Pontos de atenção
+
 ${
   operationalScore.weaknesses.length > 0
     ? operationalScore.weaknesses.map((item) => `• ${item}`).join('\n')
-    : 'Nenhum ponto crítico relevante identificado.'
+    : 'Nenhum ponto crítico identificado.'
 }
+
+━━━━━━━━━━━━━━━━━━
+
+💡 Minha leitura
+
+${
+  operationalScore.score >= 80
+    ? 'A operação demonstra boa saúde financeira e operacional.'
+    : operationalScore.score >= 60
+      ? 'A operação merece acompanhamento, mas ainda apresenta estabilidade.'
+      : 'A operação exige atenção gerencial. O foco deve estar em caixa, compras e controle de despesas.'
+}
+
+━━━━━━━━━━━━━━━━━━
+
+👉 Próxima ação sugerida
+
+Priorize os pontos críticos listados acima. Pequenas melhorias nas maiores pressões financeiras costumam gerar grande impacto no resultado.
     `.trim();
-  }
+}
 
   return `
 Resumo operacional do Bebcom:

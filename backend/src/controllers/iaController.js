@@ -1390,29 +1390,15 @@ ${totalTickets}
 📌 Ticket médio
 ${formatCurrency(averageTicket)}
 
-━━━━━━━━━━━━━━━━━━
+${buildConsultiveClosing({
+  situation:
+    averageTicket > 0
+      ? 'O ticket médio já possui dados suficientes para análise comercial.'
+      : 'Ainda não existem dados suficientes de ticket médio para uma leitura confiável.',
 
-💡 Leitura gerencial
-
-${
-  averageTicket > 0
-    ? 'O ticket médio já possui dados lançados e pode ser usado para analisar a qualidade das vendas.'
-    : 'Ainda não há dados de comandas/receita lançados no Relatório Gerencial deste período. Para uma análise precisa, preencha receita líquida e total de comandas.'
-}
-
-━━━━━━━━━━━━━━━━━━
-
-🚀 Estratégias para melhorar
-
-1. Criar combos com bebida + energético + gelo.
-2. Oferecer produtos complementares no balcão e delivery.
-3. Destacar itens de maior margem.
-4. Criar faixas de incentivo: “acima de R$ X, leve vantagem”.
-5. Trabalhar kits para fim de semana e datas de maior movimento.
-
-👉 Próxima ação sugerida
-
-Acompanhe o ticket médio junto com o volume de comandas para entender se a loja está vendendo mais ou vendendo melhor.
+  recommendation:
+    'Aumente vendas complementares, combos e produtos de maior margem para elevar o valor médio por cliente.'
+})}
 `.trim();
 };
 
@@ -1439,25 +1425,13 @@ ${formatCurrency(ctx.totalExpenses)}
 
 ${topExpenses || 'Não encontrei despesas classificadas suficientes neste período.'}
 
-━━━━━━━━━━━━━━━━━━
+${buildConsultiveClosing({
+  situation:
+    'As despesas mostram onde está concentrada a pressão financeira da operação.',
 
-💡 Leitura gerencial
-
-Para reduzir despesas sem prejudicar a loja, o ideal é separar o que é essencial para venda do que é administrativo, financeiro ou negociável.
-
-━━━━━━━━━━━━━━━━━━
-
-🛠️ Sugestões práticas
-
-1. Renegociar vencimentos para aliviar dias de maior pressão no caixa.
-2. Revisar compras com baixo giro.
-3. Comparar fornecedores recorrentes.
-4. Evitar cortes em produtos que puxam venda.
-5. Atacar primeiro despesas que não afetam atendimento, estoque essencial ou entrega.
-
-👉 Próxima ação sugerida
-
-Comece pelo maior grupo de despesa do período, pois pequenos ajustes nele tendem a gerar maior impacto.
+  recommendation:
+    'Comece revisando o maior grupo de despesa, pois ele tende a gerar o maior impacto financeiro.'
+})}
 `.trim();
 };
 
@@ -1515,17 +1489,13 @@ ${
 Estoque financeiro estimado
 ${formatCurrency(inventoryFinal)}
 
-━━━━━━━━━━━━━━━━━━
+${buildConsultiveClosing({
+  situation:
+    'A operação depende do equilíbrio entre caixa, compras, estoque e vendas.',
 
-💡 Minha leitura
-
-O ponto principal é acompanhar se o crescimento de vendas está vindo com margem, caixa e controle de compras.
-
-Receita alta sem controle de despesas ou estoque pode apertar o caixa.
-
-👉 Próxima ação sugerida
-
-Acompanhe diariamente caixa, compras e contas a pagar para evitar pressão operacional acumulada.
+  recommendation:
+    'Acompanhe diariamente caixa, compras e contas a pagar para evitar pressão operacional acumulada.'
+})}
 `.trim();
 };
 
@@ -1575,15 +1545,13 @@ Continue acompanhando caixa, despesas e compras regularmente.
 
 ${list}
 
-━━━━━━━━━━━━━━━━━━
+${buildConsultiveClosing({
+  situation:
+    'Os alertas representam os principais riscos operacionais e financeiros identificados automaticamente pela IA.',
 
-💡 Minha leitura
-
-Os alertas mostram os principais riscos operacionais e financeiros identificados automaticamente pela IA.
-
-👉 Próxima ação sugerida
-
-Comece corrigindo os alertas críticos antes dos alertas de atenção.
+  recommendation:
+    'Comece corrigindo os alertas críticos antes dos alertas de atenção.'
+})}
 `.trim();
 };
 
@@ -2108,11 +2076,13 @@ ${motivationalInsight}
 
 ${ceoQuestions}
 
-━━━━━━━━━━━━━━━━━━
+${buildConsultiveClosing({
+  situation:
+    'A visão executiva mostra pressão em caixa, compras, contas pendentes e fornecedores estratégicos.',
 
-👉 Decisão recomendada
-
-Priorizar geração de caixa, giro de estoque, controle de compras e negociação dos maiores fornecedores antes de assumir novos compromissos.
+  recommendation:
+    'Priorize geração de caixa, giro de estoque, controle de compras e negociação dos maiores fornecedores antes de assumir novos compromissos.'
+})}
 `.trim();
 };
 

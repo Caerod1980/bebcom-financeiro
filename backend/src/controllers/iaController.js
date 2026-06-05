@@ -448,6 +448,34 @@ const getCategoryTotals = (entries, type) => {
     .sort((a, b) => b.amount - a.amount);
 };
 
+const buildHistoricalContexts = async (currentPeriod, monthsBack = 6) => {
+  const history = [];
+
+  if (!currentPeriod?.month || !currentPeriod?.year) {
+    return history;
+  }
+
+  for (let i = monthsBack - 1; i >= 0; i--) {
+    const date = new Date(currentPeriod.year, currentPeriod.month - 1 - i, 1);
+
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+
+    const period = {
+      month,
+      year,
+      start: new Date(year, month - 1, 1),
+      end: new Date(year, month, 0, 23, 59, 59, 999),
+    };
+
+    const ctx = await buildContext(period);
+
+    history.push(ctx);
+  }
+
+  return history;
+};
+
 const buildContext = async ({ month, year, start, end }) => {
   const entries = await Entry.find({
     deleted: { $ne: true },
@@ -1962,6 +1990,117 @@ ${ceoQuestions}
 👉 Decisão recomendada
 
 Priorizar geração de caixa, giro de estoque, controle de compras e negociação dos maiores fornecedores antes de assumir novos compromissos.
+`.trim();
+};
+
+const buildHistoricalTrendAnswer = (history) => {
+  const orderedHistory = (history || [])
+    .filter((item) => item?.month && item?.year)
+    .sort((a, b) => {
+      const dateA = new Date(a.year, a.month - 1);
+      const dateB = new Date(b.year, b.month - 1);
+
+      return dateA - dateB;
+    });
+
+  if (orderedHistory.length < 2) {
+    return `
+📈 TENDÊNCIAS HISTÓRICAS
+
+━━━━━━━━━━━━━━━━━━
+
+Ainda não existem períodos suficientes para análise histórica.
+
+👉 Próxima ação sugerida
+
+Mantenha os lançamentos mensais para que a IA possa identificar padrões e tendências.
+`.trim();
+  }
+
+  const first = orderedHistory[0];
+  const last = orderedHistory[orderedHistory.length - 1];
+
+  const incomeVariation = calculateVariation(
+    last.totalIncome,
+    first.totalIncome
+  );
+
+  const expenseVariation = calculateVariation(
+    last.totalExpenses,
+    first.totalExpenses
+  );
+
+  const balanceVariation = calculateVariation(
+    last.balance,
+    first.balance
+  );
+
+  const trends = [];
+
+  if (first.totalIncome === 0) {
+    trends.push(
+      'Ainda não existe base suficiente para medir evolução das entradas.'
+    );
+  } else if (incomeVariation > 0) {
+    trends.push(
+      `As entradas cresceram ${incomeVariation.toFixed(1)}% no período analisado.`
+    );
+  } else {
+    trends.push(
+      `As entradas caíram ${Math.abs(incomeVariation).toFixed(1)}% no período analisado.`
+    );
+  }
+
+  if (first.totalExpenses === 0) {
+    trends.push(
+      'Ainda não existe base suficiente para medir evolução das despesas.'
+    );
+  } else if (expenseVariation > 0) {
+    trends.push(
+      `As despesas cresceram ${expenseVariation.toFixed(1)}%.`
+    );
+  } else {
+    trends.push(
+      `As despesas reduziram ${Math.abs(expenseVariation).toFixed(1)}%.`
+    );
+  }
+
+  if (balanceVariation > 0) {
+    trends.push(
+      'O resultado operacional demonstra evolução positiva.'
+    );
+  } else {
+    trends.push(
+      'O resultado operacional demonstra deterioração.'
+    );
+  }
+
+  return `
+📈 TENDÊNCIAS HISTÓRICAS
+
+━━━━━━━━━━━━━━━━━━
+
+📅 Períodos analisados
+
+${orderedHistory.length} meses
+
+━━━━━━━━━━━━━━━━━━
+
+📊 Evolução identificada
+
+${trends.map((item) => `• ${item}`).join('\n')}
+
+━━━━━━━━━━━━━━━━━━
+
+💡 Minha leitura
+
+A análise histórica permite identificar comportamento estrutural da operação, evitando decisões baseadas apenas no mês atual.
+
+━━━━━━━━━━━━━━━━━━
+
+👉 Próxima ação sugerida
+
+Observe principalmente a tendência de caixa, compras e despesas. A direção da curva costuma ser mais importante que o resultado isolado de um único mês.
 `.trim();
 };
 
@@ -6283,6 +6422,17 @@ const isExecutiveAdviceQuestion =
   lowerQuestion.includes('monte um plano') ||
   lowerQuestion.includes('o que devo fazer agora');
 
+    const isHistoricalTrendQuestion =
+  lowerQuestion.includes('tendência histórica') ||
+  lowerQuestion.includes('tendencias historicas') ||
+  lowerQuestion.includes('tendências históricas') ||
+  lowerQuestion.includes('como a empresa evoluiu') ||
+  lowerQuestion.includes('como minha empresa evoluiu') ||
+  lowerQuestion.includes('estou melhorando') ||
+  lowerQuestion.includes('estamos melhorando') ||
+  lowerQuestion.includes('evolução da empresa') ||
+  lowerQuestion.includes('evolucao da empresa');
+
     const isCEOQuestion =
   lowerQuestion.includes('modo ceo') ||
   lowerQuestion.includes('análise completa') ||
@@ -6534,7 +6684,9 @@ const isCashForecastQuestion =
 
     let answer = '';
 
-if (isCEOQuestion) {
+if (isHistoricalTrendQuestion) {
+  answer = buildHistoricalTrendAnswer(historicalContexts);
+} else if (isCEOQuestion) {
   answer = buildCEOAnswer(
     ctx,
     previousCtx,

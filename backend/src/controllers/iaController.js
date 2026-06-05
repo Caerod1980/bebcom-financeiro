@@ -4,13 +4,151 @@ const ManagementReport = require('../models/ManagementReport');
 const InventoryBalance = require('../models/InventoryBalance');
 const iaKnowledgeBase = require('../data/iaKnowledgeBase');
 
-let lastIAContext = null;
+let lastIAContext = {
+  intent: null,
+  topic: null,
+  periodLabel: null,
+  summary: null,
+  recommendedNextStep: null,
+  lastAnswerType: null,
+  updatedAt: null,
+};
 
 const formatCurrency = (value) =>
   Number(value || 0).toLocaleString('pt-BR', {
     style: 'currency',
     currency: 'BRL',
   });
+
+const updateExecutiveContext = ({
+  intent = null,
+  topic = null,
+  periodLabel = null,
+  summary = null,
+  recommendedNextStep = null,
+  lastAnswerType = null,
+}) => {
+  lastIAContext = {
+    intent,
+    topic,
+    periodLabel,
+    summary,
+    recommendedNextStep,
+    lastAnswerType,
+    updatedAt: new Date(),
+  };
+};
+
+const isFollowUpQuestion = (question) => {
+  const lower = String(question || '').toLowerCase().trim();
+
+  return (
+    lower === 'continue' ||
+    lower === 'continua' ||
+    lower === 'explique melhor' ||
+    lower === 'me explique melhor' ||
+    lower === 'detalhe melhor' ||
+    lower === 'detalhe isso' ||
+    lower === 'o que faço primeiro?' ||
+    lower === 'o que faco primeiro?' ||
+    lower === 'qual prioridade?' ||
+    lower === 'qual a prioridade?' ||
+    lower === 'e depois?' ||
+    lower === 'e agora?' ||
+    lower.includes('me explique esse ponto') ||
+    lower.includes('explique esse ponto') ||
+    lower.includes('continua nesse ponto') ||
+    lower.includes('continue nesse ponto')
+  );
+};
+
+const buildFollowUpAnswer = (
+  question,
+  ctx
+) => {
+  if (!lastIAContext || !lastIAContext.topic) {
+    return null;
+  }
+
+  const topic = lastIAContext.topic;
+
+  const topicLabels = {
+    memoria_estrategica: 'memória estratégica',
+    tendencias_historicas: 'tendências históricas',
+    modo_ceo: 'Modo CEO',
+    plano_recuperacao: 'plano de recuperação',
+    decisao_executiva: 'decisão executiva',
+    alertas: 'alertas gerenciais',
+    fluxo_caixa: 'fluxo de caixa',
+    geral: 'análise anterior',
+  };
+
+  const topicLabel =
+    topicLabels[topic] || 'análise anterior';
+
+  let focus = 'caixa, compras, despesas e contas pendentes';
+
+  if (topic === 'memoria_estrategica') {
+    focus = 'padrões que se repetem na operação';
+  }
+
+  if (topic === 'tendencias_historicas') {
+    focus = 'evolução dos números ao longo dos meses';
+  }
+
+  if (topic === 'modo_ceo') {
+    focus = 'prioridades executivas da operação';
+  }
+
+  if (topic === 'plano_recuperacao') {
+    focus = 'ações práticas para recuperar o caixa';
+  }
+
+  if (topic === 'alertas') {
+    focus = 'riscos que exigem atenção imediata';
+  }
+
+  if (topic === 'fluxo_caixa') {
+    focus = 'entradas, saídas, saldo e próximos compromissos';
+  }
+
+  return `
+📌 CONTINUIDADE DA ANÁLISE
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Assunto anterior
+
+${topicLabel}
+
+📍 Foco da continuidade
+
+${focus}
+
+━━━━━━━━━━━━━━━━━━
+
+💡 Minha leitura
+
+Pelo contexto anterior, eu manteria a análise concentrada no ponto mais importante antes de abrir novas frentes.
+
+No momento, a melhor decisão é transformar o diagnóstico em ação prática.
+
+━━━━━━━━━━━━━━━━━━
+
+👉 O que eu faria primeiro
+
+1. Identificar o maior ponto de pressão.
+2. Separar o que é urgente do que pode ser negociado.
+3. Evitar novas decisões que aumentem a pressão no caixa.
+4. Acompanhar o efeito nos próximos lançamentos.
+
+━━━━━━━━━━━━━━━━━━
+
+✅ Próxima pergunta recomendada
+
+“Monte um plano prático para esse ponto.”
+`.trim();
+};
 
 const monthNames = [
   { number: 1, names: ['janeiro', 'jan'] },
@@ -6534,6 +6672,16 @@ const askIABebcom = async (req, res) => {
     const operationalAlerts = buildOperationalAlerts(ctx, previousCtx);
     const actionPlan = buildActionPlan(ctx, operationalScore, operationalPriorities, strategicRecommendations);
     const lowerQuestion = question.toLowerCase();
+    const followUpAnswer =
+  isFollowUpQuestion(question)
+    ? buildFollowUpAnswer(question, ctx)
+    : null;
+
+if (followUpAnswer) {
+  return res.json({
+    answer: followUpAnswer,
+  });
+}
      const goalHorizon = (() => {
   if (
     lowerQuestion.includes('hoje') ||
@@ -7082,11 +7230,39 @@ Você pode perguntar de forma mais específica, por exemplo:
       `.trim();
     }
 
-    lastIAContext = {
+   updateExecutiveContext({
   intent: advancedIntent,
+  topic:
+    isStrategicMemoryQuestion
+      ? 'memoria_estrategica'
+      : isHistoricalTrendQuestion
+        ? 'tendencias_historicas'
+        : isCEOQuestion
+          ? 'modo_ceo'
+          : isRecoveryPlanQuestion
+            ? 'plano_recuperacao'
+            : isExecutiveAdviceQuestion
+              ? 'decisao_executiva'
+              : isAlertQuestion
+                ? 'alertas'
+                : lowerQuestion.includes('fluxo') || lowerQuestion.includes('caixa')
+                  ? 'fluxo_caixa'
+                  : 'geral',
   periodLabel: ctx.periodLabel,
-  question,
-};
+  summary: answer.slice(0, 500),
+  recommendedNextStep:
+    'Continue a análise pelo ponto mais crítico identificado na resposta anterior.',
+  lastAnswerType:
+    isStrategicMemoryQuestion
+      ? 'strategic_memory'
+      : isHistoricalTrendQuestion
+        ? 'historical_trend'
+        : isCEOQuestion
+          ? 'ceo'
+          : isRecoveryPlanQuestion
+            ? 'recovery_plan'
+            : 'general',
+});
 
     return res.json({
       answer,

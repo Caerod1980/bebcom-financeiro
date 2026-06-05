@@ -1989,8 +1989,27 @@ Mantenha os lançamentos mensais para que a IA possa identificar padrões e tend
 `.trim();
   }
 
-  const first = orderedHistory[0];
-  const last = orderedHistory[orderedHistory.length - 1];
+const validHistory = orderedHistory.filter(
+  (item) =>
+    item.totalIncome > 0 ||
+    item.totalExpenses > 0
+);
+
+if (validHistory.length < 2) {
+  return `
+📈 TENDÊNCIAS HISTÓRICAS
+
+━━━━━━━━━━━━━━━━━━
+
+Ainda não existem pelo menos 2 períodos com movimentação financeira para medir evolução real.
+
+👉 Próxima ação sugerida
+
+Continue alimentando os lançamentos mensais. A IA precisa de pelo menos dois meses com entradas ou despesas para comparar tendências.
+`.trim();
+}
+  const first = validHistory[0];
+  const last = validHistory[validHistory.length - 1];
 
   const incomeVariation = calculateVariation(
     last.totalIncome,

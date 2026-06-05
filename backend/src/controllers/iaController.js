@@ -2149,6 +2149,18 @@ Continue alimentando os meses anteriores. A IA precisa de histórico real para i
     );
   }
 
+  const ticketMissingMonths = validHistory.filter(
+    (item) =>
+      !item.managementReport ||
+      !item.managementReport.averageTicket
+  );
+
+  if (ticketMissingMonths.length >= 2) {
+    memories.push(
+      `O ticket médio ainda não foi alimentado em ${ticketMissingMonths.length} períodos analisados.`
+    );
+  }
+
   const purchasePressureMonths = validHistory.filter((item) => {
     const purchases = item.expenseCategories?.find(
       (cat) => cat.category === 'compras_mercadorias'
@@ -2167,20 +2179,46 @@ Continue alimentando os meses anteriores. A IA precisa de histórico real para i
     );
   }
 
-  const ticketMissingMonths = validHistory.filter(
-    (item) =>
-      !item.managementReport ||
-      !item.managementReport.averageTicket
-  );
+  const categoryFrequency = {};
 
-  if (ticketMissingMonths.length >= 2) {
+  validHistory.forEach((item) => {
+    const topCategory = item.expenseCategories?.[0];
+
+    if (!topCategory) return;
+
+    const category = topCategory.category || 'sem_categoria';
+
+    if (!categoryFrequency[category]) {
+      categoryFrequency[category] = {
+        category,
+        count: 0,
+        total: 0,
+      };
+    }
+
+    categoryFrequency[category].count += 1;
+    categoryFrequency[category].total += Math.abs(Number(topCategory.amount || 0));
+  });
+
+  const recurrentCategory = Object.values(categoryFrequency)
+    .sort((a, b) => b.count - a.count || b.total - a.total)[0];
+
+  if (recurrentCategory && recurrentCategory.count >= 2) {
     memories.push(
-      `O ticket médio ainda não foi alimentado em ${ticketMissingMonths.length} períodos analisados.`
+      `A categoria ${recurrentCategory.category} apareceu como maior saída em ${recurrentCategory.count} períodos.`
     );
   }
 
-  const last = validHistory[validHistory.length - 1];
+  const bestMonth = [...validHistory].sort(
+    (a, b) => b.balance - a.balance
+  )[0];
+
+  const worstMonth = [...validHistory].sort(
+    (a, b) => a.balance - b.balance
+  )[0];
+
   const first = validHistory[0];
+  const last = validHistory[validHistory.length - 1];
 
   const incomeVariation = calculateVariation(
     last.totalIncome,
@@ -2222,6 +2260,20 @@ ${memories.map((item) => `• ${item}`).join('\n')}
 
 ━━━━━━━━━━━━━━━━━━
 
+🏆 Melhor mês identificado
+
+${bestMonth.periodLabel}
+Resultado: ${formatCurrency(bestMonth.balance)}
+
+━━━━━━━━━━━━━━━━━━
+
+⚠️ Pior mês identificado
+
+${worstMonth.periodLabel}
+Resultado: ${formatCurrency(worstMonth.balance)}
+
+━━━━━━━━━━━━━━━━━━
+
 💡 Minha leitura
 
 A memória estratégica mostra comportamentos que se repetem na operação. Ela ajuda a separar um problema pontual de um padrão recorrente da empresa.
@@ -2230,7 +2282,7 @@ A memória estratégica mostra comportamentos que se repetem na operação. Ela 
 
 👉 Decisão recomendada
 
-Use esses padrões para definir prioridades fixas de gestão: caixa, compras, vencimentos, ticket médio e margem.
+Use esses padrões para definir prioridades fixas de gestão: caixa, compras, vencimentos, ticket médio, margem e controle da categoria de maior pressão.
 `.trim();
 };
 

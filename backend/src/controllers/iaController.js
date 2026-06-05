@@ -39,6 +39,25 @@ const updateExecutiveContext = ({
   };
 };
 
+const buildConsultiveClosing = ({
+  situation,
+  recommendation,
+}) => {
+  return `
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+${situation}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+${recommendation}
+`.trim();
+};
+
 const isFollowUpQuestion = (question) => {
   const lower = String(question || '').toLowerCase().trim();
 
@@ -1297,21 +1316,15 @@ ${formatCurrency(ctx.pendingReceivable)}
 
 ${topExpenses || 'Ainda não há despesas suficientes classificadas.'}
 
-━━━━━━━━━━━━━━━━━━
+${buildConsultiveClosing({
+  situation:
+    ctx.balance >= 0
+      ? 'As entradas estão sustentando as saídas registradas e o período apresenta resultado positivo.'
+      : 'As saídas estão pressionando o caixa e o período apresenta resultado negativo.',
 
-💡 Leitura gerencial
-
-${
-  ctx.balance >= 0
-    ? 'O período apresenta resultado positivo. As entradas estão sustentando as saídas registradas.'
-    : 'O período apresenta resultado negativo. É recomendável acompanhar despesas, compras e compromissos financeiros com maior atenção.'
-}
-
-━━━━━━━━━━━━━━━━━━
-
-👉 Próxima ação sugerida
-
-Acompanhe o fluxo previsto junto com o realizado. Priorize fornecedores críticos e preserve caixa para a operação essencial.
+  recommendation:
+    'Acompanhe o fluxo previsto junto com o realizado. Priorize fornecedores críticos, vencimentos próximos e preserve caixa para a operação essencial.',
+})}
 `.trim();
   };
   

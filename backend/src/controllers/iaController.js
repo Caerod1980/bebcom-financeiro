@@ -2095,6 +2095,145 @@ Observe principalmente a tendência de caixa, compras e despesas. A direção da
 `.trim();
 };
 
+const buildStrategicMemoryAnswer = (history) => {
+  const validHistory = (history || [])
+    .filter(
+      (item) =>
+        item?.month &&
+        item?.year &&
+        (
+          item.totalIncome > 0 ||
+          item.totalExpenses > 0
+        )
+    )
+    .sort((a, b) => {
+      const dateA = new Date(a.year, a.month - 1);
+      const dateB = new Date(b.year, b.month - 1);
+
+      return dateA - dateB;
+    });
+
+  if (validHistory.length < 2) {
+    return `
+🧠 MEMÓRIA ESTRATÉGICA — BEBCOM
+
+━━━━━━━━━━━━━━━━━━
+
+Ainda não existem períodos suficientes com movimentação financeira para formar uma memória estratégica confiável.
+
+👉 Próxima ação sugerida
+
+Continue alimentando os meses anteriores. A IA precisa de histórico real para identificar padrões repetidos da operação.
+`.trim();
+  }
+
+  const memories = [];
+
+  const negativeCashMonths = validHistory.filter(
+    (item) => item.balance < 0
+  );
+
+  if (negativeCashMonths.length >= 2) {
+    memories.push(
+      `O caixa ficou negativo em ${negativeCashMonths.length} dos ${validHistory.length} períodos analisados.`
+    );
+  }
+
+  const expensePressureMonths = validHistory.filter(
+    (item) => item.totalExpenses > item.totalIncome
+  );
+
+  if (expensePressureMonths.length >= 2) {
+    memories.push(
+      `As despesas superaram as entradas em ${expensePressureMonths.length} períodos.`
+    );
+  }
+
+  const purchasePressureMonths = validHistory.filter((item) => {
+    const purchases = item.expenseCategories?.find(
+      (cat) => cat.category === 'compras_mercadorias'
+    );
+
+    return (
+      purchases &&
+      item.totalIncome > 0 &&
+      purchases.amount / item.totalIncome > 0.6
+    );
+  });
+
+  if (purchasePressureMonths.length >= 2) {
+    memories.push(
+      `Compras de mercadorias ficaram acima de 60% das entradas em ${purchasePressureMonths.length} períodos.`
+    );
+  }
+
+  const ticketMissingMonths = validHistory.filter(
+    (item) =>
+      !item.managementReport ||
+      !item.managementReport.averageTicket
+  );
+
+  if (ticketMissingMonths.length >= 2) {
+    memories.push(
+      `O ticket médio ainda não foi alimentado em ${ticketMissingMonths.length} períodos analisados.`
+    );
+  }
+
+  const last = validHistory[validHistory.length - 1];
+  const first = validHistory[0];
+
+  const incomeVariation = calculateVariation(
+    last.totalIncome,
+    first.totalIncome
+  );
+
+  if (first.totalIncome > 0) {
+    if (incomeVariation > 0) {
+      memories.push(
+        `As entradas evoluíram ${incomeVariation.toFixed(1)}% entre ${first.periodLabel} e ${last.periodLabel}.`
+      );
+    } else if (incomeVariation < 0) {
+      memories.push(
+        `As entradas caíram ${Math.abs(incomeVariation).toFixed(1)}% entre ${first.periodLabel} e ${last.periodLabel}.`
+      );
+    }
+  }
+
+  if (!memories.length) {
+    memories.push(
+      'Ainda não há padrões repetidos fortes. A operação precisa de mais períodos completos para uma leitura estratégica mais profunda.'
+    );
+  }
+
+  return `
+🧠 MEMÓRIA ESTRATÉGICA — BEBCOM
+
+━━━━━━━━━━━━━━━━━━
+
+📅 Períodos com dados analisados
+
+${validHistory.length} períodos
+
+━━━━━━━━━━━━━━━━━━
+
+📌 Padrões identificados
+
+${memories.map((item) => `• ${item}`).join('\n')}
+
+━━━━━━━━━━━━━━━━━━
+
+💡 Minha leitura
+
+A memória estratégica mostra comportamentos que se repetem na operação. Ela ajuda a separar um problema pontual de um padrão recorrente da empresa.
+
+━━━━━━━━━━━━━━━━━━
+
+👉 Decisão recomendada
+
+Use esses padrões para definir prioridades fixas de gestão: caixa, compras, vencimentos, ticket médio e margem.
+`.trim();
+};
+
 const buildInventoryAnswer = (ctx) => `
 Análise do estoque financeiro em ${ctx.periodLabel}:
 
@@ -6413,6 +6552,19 @@ const isExecutiveAdviceQuestion =
   lowerQuestion.includes('monte um plano') ||
   lowerQuestion.includes('o que devo fazer agora');
 
+    const isStrategicMemoryQuestion =
+  lowerQuestion.includes('memória estratégica') ||
+  lowerQuestion.includes('memoria estrategica') ||
+  lowerQuestion.includes('o que a ia percebe') ||
+  lowerQuestion.includes('o que você percebe') ||
+  lowerQuestion.includes('o que voce percebe') ||
+  lowerQuestion.includes('padrões se repetem') ||
+  lowerQuestion.includes('padroes se repetem') ||
+  lowerQuestion.includes('padrão da empresa') ||
+  lowerQuestion.includes('padrao da empresa') ||
+  lowerQuestion.includes('o que acontece com frequência') ||
+  lowerQuestion.includes('o que acontece com frequencia');
+
     const isHistoricalTrendQuestion =
   lowerQuestion.includes('tendência histórica') ||
   lowerQuestion.includes('tendencias historicas') ||
@@ -6675,7 +6827,9 @@ const isCashForecastQuestion =
 
     let answer = '';
 
-if (isHistoricalTrendQuestion) {
+if (isStrategicMemoryQuestion) {
+  answer = buildStrategicMemoryAnswer(historicalContexts);
+} else if (isHistoricalTrendQuestion) {
   answer = buildHistoricalTrendAnswer(historicalContexts);
 } else if (isCEOQuestion) {
   answer = buildCEOAnswer(

@@ -448,34 +448,6 @@ const getCategoryTotals = (entries, type) => {
     .sort((a, b) => b.amount - a.amount);
 };
 
-const buildHistoricalContexts = async (currentPeriod, monthsBack = 6) => {
-  const history = [];
-
-  if (!currentPeriod?.month || !currentPeriod?.year) {
-    return history;
-  }
-
-  for (let i = monthsBack - 1; i >= 0; i--) {
-    const date = new Date(currentPeriod.year, currentPeriod.month - 1 - i, 1);
-
-    const month = date.getMonth() + 1;
-    const year = date.getFullYear();
-
-    const period = {
-      month,
-      year,
-      start: new Date(year, month - 1, 1),
-      end: new Date(year, month, 0, 23, 59, 59, 999),
-    };
-
-    const ctx = await buildContext(period);
-
-    history.push(ctx);
-  }
-
-  return history;
-};
-
 const buildContext = async ({ month, year, start, end }) => {
   const entries = await Entry.find({
     deleted: { $ne: true },

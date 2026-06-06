@@ -2153,6 +2153,66 @@ const buildDeepDiveQuestions = (ctx) => {
   return questions;
 };
 
+const buildDeepDiveAnswer = (
+  question,
+  currentCtx,
+  previousCtx
+) => {
+  const lower = question.toLowerCase();
+
+  const purchases =
+    currentCtx.expenseCategories?.find(
+      (item) =>
+        item.category ===
+        'compras_mercadorias'
+    );
+
+  // Pergunta 1
+  if (
+    lower.includes('compras') &&
+    (
+      lower.includes('transformando em vendas') ||
+      lower.includes('aumentando o estoque')
+    )
+  ) {
+    const inventory =
+      currentCtx.inventory?.finalStock || 0;
+
+    const purchaseValue =
+      purchases?.amount || 0;
+
+    return `
+📦 ANÁLISE DE COMPRAS X ESTOQUE
+
+━━━━━━━━━━━━━━━━━━
+
+Compras registradas
+${formatCurrency(purchaseValue)}
+
+Estoque financeiro estimado
+${formatCurrency(inventory)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Compras elevadas só geram resultado quando se transformam em giro.
+
+Quando o estoque cresce mais rápido que as vendas, o caixa fica pressionado.
+
+Pela experiência histórica da Bebcom, variedade é uma força competitiva, mas precisa estar acompanhada de giro.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Revise os itens de menor saída e priorize reposição dos produtos de maior giro antes de ampliar estoque.
+`.trim();
+  }
+
+  return null;
+};
+
 const buildCEOAnswer = (
   currentCtx,
   previousCtx,
@@ -6921,6 +6981,19 @@ const askIABebcom = async (req, res) => {
 if (followUpAnswer) {
   return res.json({
     answer: followUpAnswer,
+  });
+}
+
+const deepDiveAnswer =
+  buildDeepDiveAnswer(
+    question,
+    ctx,
+    previousCtx
+  );
+
+if (deepDiveAnswer) {
+  return res.json({
+    answer: deepDiveAnswer,
   });
 }
      const goalHorizon = (() => {

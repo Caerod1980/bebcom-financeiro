@@ -2072,6 +2072,9 @@ const buildCEOAnswer = (
     operationalScore
   );
 
+  const institutionalInsights =
+  buildInstitutionalInsight(currentCtx);
+
   const ceoQuestions = buildCEOQuestions(
     currentCtx,
     operationalScore,
@@ -2216,6 +2219,16 @@ ${
 ━━━━━━━━━━━━━━━━━━
 
 ${motivationalInsight}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Leitura institucional da Bebcom
+
+${
+  institutionalInsights.length
+    ? institutionalInsights.map((item) => `• ${item}`).join('\n')
+    : 'Nenhuma leitura institucional adicional identificada.'
+}
 
 ━━━━━━━━━━━━━━━━━━
 

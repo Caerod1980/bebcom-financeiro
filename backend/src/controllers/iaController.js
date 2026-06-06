@@ -2255,7 +2255,13 @@ Alimente pelo menos dois períodos para que eu possa identificar se a pressão e
     }
 
     return `
-📊 DIAGNÓSTICO DE CAUSA RAIZ
+📊 DIAGNÓSTICO DE CAUSA RAIZ — COMPARAÇÃO EQUIVALENTE
+
+Período atual
+${currentCtx.periodLabel}
+
+Período comparado
+${previousCtx.periodLabel || 'Período anterior equivalente'}
 
 ━━━━━━━━━━━━━━━━━━
 
@@ -7061,11 +7067,36 @@ if (followUpAnswer) {
   });
 }
 
+let equivalentPreviousCtx = previousCtx;
+
+if (
+  ctx.month &&
+  ctx.year &&
+  ctx.month === new Date().getMonth() + 1 &&
+  ctx.year === new Date().getFullYear()
+) {
+  const today = new Date();
+  const currentDay = today.getDate();
+
+  const previousMonth = ctx.month === 1 ? 12 : ctx.month - 1;
+  const previousYear = ctx.month === 1 ? ctx.year - 1 : ctx.year;
+
+  const equivalentPreviousPeriod = {
+    month: previousMonth,
+    year: previousYear,
+    start: new Date(previousYear, previousMonth - 1, 1),
+    end: new Date(previousYear, previousMonth - 1, currentDay, 23, 59, 59, 999),
+  };
+
+  equivalentPreviousCtx = await buildContext(equivalentPreviousPeriod);
+  equivalentPreviousCtx.periodLabel = `${getMonthLabel(previousMonth, previousYear)} até dia ${currentDay}`;
+}
+
 const deepDiveAnswer =
   buildDeepDiveAnswer(
     question,
     ctx,
-    previousCtx
+    equivalentPreviousCtx
   );
 
 if (deepDiveAnswer) {

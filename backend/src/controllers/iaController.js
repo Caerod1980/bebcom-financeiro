@@ -1466,6 +1466,9 @@ const buildFlowAnswer = (ctx) => {
     )
     .join('\n');
 
+  const deepQuestions =
+  buildDeepDiveQuestions(ctx);
+
  return `
 📊 FLUXO DE CAIXA — ${ctx.periodLabel}
 
@@ -1510,6 +1513,18 @@ ${buildConsultiveClosing({
   recommendation:
     'Acompanhe o fluxo previsto junto com o realizado. Priorize fornecedores críticos, vencimentos próximos e preserve caixa para a operação essencial.',
 })}
+
+━━━━━━━━━━━━━━━━━━
+
+🤔 O que eu investigaria agora
+
+${
+  deepQuestions.length
+    ? deepQuestions
+        .map((item) => `• ${item}`)
+        .join('\n')
+    : 'Nenhum aprofundamento adicional identificado.'
+}
 `.trim();
   };
   
@@ -2091,6 +2106,51 @@ ${uniqueQuestions
   .map((item) => `• ${item}`)
   .join('\n')}
 `.trim();
+};
+
+const buildDeepDiveQuestions = (ctx) => {
+  const questions = [];
+
+  if (ctx.balance < 0) {
+    questions.push(
+      'O resultado negativo está vindo de queda nas vendas ou aumento das despesas?'
+    );
+  }
+
+  const purchases = ctx.expenseCategories?.find(
+    (item) => item.category === 'compras_mercadorias'
+  );
+
+  if (
+    purchases &&
+    ctx.totalIncome > 0 &&
+    purchases.amount / ctx.totalIncome > 0.6
+  ) {
+    questions.push(
+      'Essas compras já estão se transformando em vendas ou estão aumentando o estoque?'
+    );
+
+    questions.push(
+      'Existe algum fornecedor que pode ser renegociado neste momento?'
+    );
+  }
+
+  if (ctx.pendingPayable > 0) {
+    questions.push(
+      'Todos os vencimentos precisam realmente ser pagos agora ou parte deles pode ser negociada?'
+    );
+  }
+
+  const ticket =
+    ctx.managementReport?.averageTicket || 0;
+
+  if (ticket > 0) {
+    questions.push(
+      'A loja está vendendo mais clientes ou vendendo melhor para os mesmos clientes?'
+    );
+  }
+
+  return questions;
 };
 
 const buildCEOAnswer = (

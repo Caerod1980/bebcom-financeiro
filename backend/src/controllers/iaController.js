@@ -58,6 +58,151 @@ ${recommendation}
 `.trim();
 };
 
+const bebcomBrain = {
+  identity: {
+    name: 'Bebidas & Companhia',
+    brandNickname: 'Bebcom',
+    foundedAt: '27/03/2021',
+    businessType:
+      'Conveniência física e delivery com amplo mix de bebidas, mercearia, tabacaria, drinks e espaço lounge para eventos.',
+    positioning:
+      'Preço justo, cerveja sempre gelada, grande variedade de produtos e atendimento com excelência.',
+    vision:
+      'Tornar-se a maior e melhor rede de conveniência com espaço agregado para festas, eventos e confraternizações, com potencial de expansão por franquias em todo o Brasil.',
+  },
+
+  history: [
+    'A Bebidas & Companhia iniciou suas atividades em 27 de março de 2021.',
+    'A loja nasceu da oportunidade de atender uma região em crescimento com uma conveniência completa.',
+    'No primeiro ano, os empreendedores não realizaram retirada de salário e reinvestiram o lucro em freezers, reformas, mix de produtos e capital de giro.',
+    'A loja cresceu ouvindo os clientes, ampliando produtos com demanda e retirando itens com baixo giro.',
+    'A construção de condomínios próximos à loja impulsionou o fluxo e ajudou a formar uma base fiel de clientes.',
+  ],
+
+  values: [
+    'Preço justo.',
+    'Cerveja sempre gelada.',
+    'Atendimento próximo e de excelência.',
+    'Grande variedade de produtos.',
+    'Adaptação constante ao cliente.',
+    'Controle operacional para sustentar crescimento.',
+  ],
+
+  challenges: [
+    'Restrições operacionais durante a pandemia.',
+    'Dificuldade de obter preços competitivos com fornecedores para pequeno comércio.',
+    'Necessidade de manter estoque para alto volume de vendas.',
+    'Busca por melhores prazos com fornecedores.',
+    'Ajuste de preços no iFood considerando taxas e concorrência.',
+    'Contratação e controle de funcionários de confiança.',
+    'Risco de desvios financeiros e de mercadorias.',
+    'Concorrência próxima com preços agressivos.',
+  ],
+
+  lessons: [
+    'Com funcionários, o estoque deve ser contado frequentemente e comparado com relatórios de venda.',
+    'Câmeras devem ser monitoradas como ferramenta de gestão e prevenção.',
+    'Relatórios mensais revelam falhas administrativas e operacionais invisíveis no dia a dia.',
+    'Focar apenas em vendas pode esconder problemas de margem, estoque, caixa e operação.',
+    'Crescimento sem controle de compras pode pressionar o caixa.',
+    'A Bebcom historicamente reage melhor com eficiência operacional, revisão de preços, fornecedores e mix do que apenas reduzindo preço.',
+  ],
+
+  milestones: {
+    bestRevenueMonth: {
+      period: 'Dezembro/2023',
+      amount: 122524.10,
+      note: 'Maior faturamento mensal registrado na história da loja.',
+    },
+    hardestFinancialMonth: {
+      period: 'Junho/2025',
+      amount: 57062.92,
+      note:
+        'Pior momento financeiro percebido pela gestão, não pelo menor faturamento, mas pelo peso do custo operacional, especialmente funcionários.',
+    },
+  },
+
+  keyCategories: [
+    'Cervejas',
+    'Destilados',
+    'Refrigerantes',
+    'Energético',
+    'Tabacaria',
+  ],
+
+  keyProducts: [
+    'Antarctica Pilsen',
+    'Brahma',
+    'Coca Cola',
+    'Heineken',
+    'Monster',
+  ],
+
+  strategicTurns: [
+    'Implantação de energia solar.',
+    'Redução do quadro de funcionários.',
+    'Reavaliação de preços diante de nova concorrência.',
+    'Expansão do mix de mercearia.',
+    'Reorganização da vitrine da loja.',
+    'Busca por novos fornecedores.',
+  ],
+
+  personality: {
+    tone:
+      'Consultora firme e direta, parceira motivadora e CEO estratégica.',
+    behavior:
+      'A IA deve analisar números com base na história real da Bebcom, evitando respostas genéricas.',
+  },
+};
+
+const buildInstitutionalInsight = (ctx) => {
+  const insights = [];
+
+  if (ctx.balance < 0) {
+    insights.push(
+      'Pela história da Bebcom, caixa pressionado deve ser tratado com firmeza, porque crescimento sem controle de compras e despesas já se mostrou um risco operacional.'
+    );
+  }
+
+  const topExpense = ctx.expenseCategories?.[0];
+
+  if (topExpense?.category === 'compras_mercadorias') {
+    insights.push(
+      'Compras de mercadorias aparecem como ponto sensível. A Bebcom cresceu com variedade, mas a memória institucional mostra que mix forte precisa caminhar junto com giro e controle de estoque.'
+    );
+  }
+
+  const averageTicket =
+    ctx.managementReport?.averageTicket || 0;
+
+  if (averageTicket === 0) {
+    insights.push(
+      'O ticket médio precisa ser alimentado para que a IA consiga analisar se a loja está vendendo apenas volume ou também melhorando qualidade de venda.'
+    );
+  }
+
+  if (ctx.totalIncome > 0) {
+    const distanceFromBest =
+      ((ctx.totalIncome - bebcomBrain.milestones.bestRevenueMonth.amount) /
+        bebcomBrain.milestones.bestRevenueMonth.amount) *
+      100;
+
+    insights.push(
+      `Comparando com o melhor mês histórico (${bebcomBrain.milestones.bestRevenueMonth.period}), o faturamento atual está ${Math.abs(distanceFromBest).toFixed(1)}% ${
+        distanceFromBest >= 0 ? 'acima' : 'abaixo'
+      } do maior marco registrado.`
+    );
+  }
+
+  if (!insights.length) {
+    insights.push(
+      'A memória institucional da Bebcom reforça a importância de manter preço justo, variedade, atendimento forte e controle operacional.'
+    );
+  }
+
+  return insights;
+};
+
 const isFollowUpQuestion = (question) => {
   const lower = String(question || '').toLowerCase().trim();
 

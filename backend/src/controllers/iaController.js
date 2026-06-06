@@ -188,9 +188,9 @@ const buildInstitutionalInsight = (ctx) => {
       100;
 
     insights.push(
-      `Comparando com o melhor mês histórico (${bebcomBrain.milestones.bestRevenueMonth.period}), o faturamento atual está ${Math.abs(distanceFromBest).toFixed(1)}% ${
-        distanceFromBest >= 0 ? 'acima' : 'abaixo'
-      } do maior marco registrado.`
+      `Considerando que o período atual ainda pode estar em andamento, as entradas registradas até agora estão ${Math.abs(distanceFromBest).toFixed(1)}% ${
+  distanceFromBest >= 0 ? 'acima' : 'abaixo'
+} do maior mês histórico (${bebcomBrain.milestones.bestRevenueMonth.period}).`
     );
   }
 

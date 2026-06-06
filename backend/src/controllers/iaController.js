@@ -2163,8 +2163,7 @@ const buildDeepDiveAnswer = (
   const purchases =
     currentCtx.expenseCategories?.find(
       (item) =>
-        item.category ===
-        'compras_mercadorias'
+        item.category === 'compras_mercadorias'
     );
 
   // Pergunta 1
@@ -2207,6 +2206,84 @@ Pela experiência histórica da Bebcom, variedade é uma força competitiva, mas
 🎯 Minha recomendação
 
 Revise os itens de menor saída e priorize reposição dos produtos de maior giro antes de ampliar estoque.
+`.trim();
+  }
+
+  // Pergunta 2
+  if (
+    lower.includes('queda nas vendas') ||
+    lower.includes('aumento das despesas')
+  ) {
+    if (!previousCtx) {
+      return `
+📊 DIAGNÓSTICO DE CAUSA RAIZ
+
+━━━━━━━━━━━━━━━━━━
+
+Ainda não existe período anterior suficiente para comparação.
+
+👉 Minha recomendação
+
+Alimente pelo menos dois períodos para que eu possa identificar se a pressão está vindo das vendas ou das despesas.
+`.trim();
+    }
+
+    const revenueVariation = calculateVariation(
+      currentCtx.totalIncome,
+      previousCtx.totalIncome
+    );
+
+    const expenseVariation = calculateVariation(
+      currentCtx.totalExpenses,
+      previousCtx.totalExpenses
+    );
+
+    let diagnosis = '';
+
+    if (revenueVariation < 0 && expenseVariation > 0) {
+      diagnosis =
+        'O resultado negativo está sendo causado por uma combinação de queda nas vendas e aumento das despesas.';
+    } else if (revenueVariation < 0) {
+      diagnosis =
+        'O principal fator identificado é a redução das vendas.';
+    } else if (expenseVariation > 0) {
+      diagnosis =
+        'O principal fator identificado é o aumento das despesas.';
+    } else {
+      diagnosis =
+        'Os números não apontam uma causa dominante. O resultado parece estar relacionado ao equilíbrio geral da operação.';
+    }
+
+    return `
+📊 DIAGNÓSTICO DE CAUSA RAIZ
+
+━━━━━━━━━━━━━━━━━━
+
+📈 Variação das entradas
+
+${revenueVariation.toFixed(1)}%
+
+📉 Variação das despesas
+
+${expenseVariation.toFixed(1)}%
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+${diagnosis}
+
+━━━━━━━━━━━━━━━━━━
+
+💡 Leitura institucional
+
+A Bebcom historicamente reage melhor quando identifica rapidamente a origem do problema antes de tomar decisões de corte ou expansão.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Corrija primeiro a causa principal identificada antes de atacar sintomas secundários.
 `.trim();
   }
 

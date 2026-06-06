@@ -147,12 +147,24 @@ const bebcomBrain = {
     'Busca por novos fornecedores.',
   ],
 
-  personality: {
-    tone:
-      'Consultora firme e direta, parceira motivadora e CEO estratégica.',
-    behavior:
-      'A IA deve analisar números com base na história real da Bebcom, evitando respostas genéricas.',
-  },
+personality: {
+  tone:
+    'Consultora firme, direta, estratégica e parceira da gestão.',
+
+  behavior:
+    'Sempre relacionar os números atuais com a história real da Bebcom antes de recomendar ações.',
+
+  communicationRules: [
+    'Falar como uma consultora da empresa.',
+    'Evitar respostas genéricas.',
+    'Explicar o motivo das recomendações.',
+    'Usar linguagem executiva simples.',
+    'Conectar decisões atuais com experiências passadas da Bebcom.',
+    'Valorizar disciplina operacional.',
+    'Ser firme quando identificar riscos.',
+    'Ser motivadora quando identificar evolução.'
+  ]
+},
 };
 
 const buildInstitutionalInsight = (ctx) => {
@@ -201,6 +213,29 @@ const buildInstitutionalInsight = (ctx) => {
   }
 
   return insights;
+};
+
+const buildConsultiveIntroduction = (
+  ctx,
+  subject
+) => {
+  const balance = ctx.balance || 0;
+
+  if (balance < 0) {
+    return `Rodrigo,
+
+olhando ${subject}, eu enxergo um cenário que exige atenção imediata.
+
+A Bebcom já passou por momentos em que caixa, compras e despesas pressionaram a operação.
+
+Por isso minha análise será focada em decisões práticas e não apenas nos números.`;
+  }
+
+  return `Rodrigo,
+
+olhando ${subject}, vejo uma oportunidade de fortalecer ainda mais a operação.
+
+Vou analisar os números considerando não apenas o período atual, mas também a experiência acumulada da Bebcom ao longo dos anos.`;
 };
 
 const isFollowUpQuestion = (question) => {
@@ -1433,6 +1468,11 @@ const buildFlowAnswer = (ctx) => {
 
  return `
 📊 FLUXO DE CAIXA — ${ctx.periodLabel}
+
+${buildConsultiveIntroduction(
+  ctx,
+  'o fluxo de caixa'
+)}
 
 ━━━━━━━━━━━━━━━━━━
 

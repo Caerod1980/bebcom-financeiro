@@ -2293,6 +2293,84 @@ Corrija primeiro a causa principal identificada antes de atacar sintomas secund�
 `.trim();
   }
 
+  // Pergunta 3
+if (
+  lower.includes('vencimentos') ||
+  lower.includes('precisam realmente ser pagos') ||
+  lower.includes('parte deles pode ser negociada') ||
+  lower.includes('pode ser negociada')
+) {
+  const today = new Date();
+
+  const next7Days = new Date();
+  next7Days.setDate(today.getDate() + 7);
+
+  const payables = (currentCtx.accounts || []).filter(
+    (account) =>
+      account.type === 'payable' &&
+      ['pending', 'overdue'].includes(account.status)
+  );
+
+  const overdue = payables.filter(
+    (account) => new Date(account.dueDate) < today
+  );
+
+  const nextDue = payables.filter((account) => {
+    const dueDate = new Date(account.dueDate);
+
+    return dueDate >= today && dueDate <= next7Days;
+  });
+
+  const future = payables.filter(
+    (account) => new Date(account.dueDate) > next7Days
+  );
+
+  const sumAccounts = (items) =>
+    items.reduce(
+      (acc, item) => acc + Math.abs(Number(item.amount || 0)),
+      0
+    );
+
+  const totalOpen = sumAccounts(payables);
+  const totalOverdue = sumAccounts(overdue);
+  const totalNextDue = sumAccounts(nextDue);
+  const totalFuture = sumAccounts(future);
+
+  return `
+📅 ANÁLISE DE VENCIMENTOS
+
+━━━━━━━━━━━━━━━━━━
+
+💰 Total em aberto
+${formatCurrency(totalOpen)}
+
+🔴 Vencidos
+${formatCurrency(totalOverdue)}
+
+🟡 Próximos 7 dias
+${formatCurrency(totalNextDue)}
+
+🔵 Após 7 dias
+${formatCurrency(totalFuture)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Nem todos os vencimentos possuem a mesma prioridade.
+
+Com o caixa pressionado, eu separaria o que é crítico do que pode ser negociado.
+
+Prioridade maior deve ir para contas vencidas, fornecedores estratégicos e compromissos que possam gerar juros, bloqueios ou ruptura de abastecimento.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Não trate todas as contas da mesma forma. Priorize vencidos e fornecedores essenciais, negocie prazos onde houver menor risco operacional e preserve caixa para manter a loja funcionando.
+`.trim();
+}
+
   return null;
 };
 

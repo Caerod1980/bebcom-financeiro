@@ -2371,6 +2371,102 @@ Não trate todas as contas da mesma forma. Priorize vencidos e fornecedores esse
 `.trim();
 }
 
+// Pergunta 4
+if (
+  lower.includes('vendendo mais clientes') ||
+  lower.includes('vendendo melhor') ||
+  lower.includes('mesmos clientes')
+) {
+  const currentTicket =
+    currentCtx.managementReport?.averageTicket || 0;
+
+  const previousTicket =
+    previousCtx?.managementReport?.averageTicket || 0;
+
+  const currentSales =
+    currentCtx.managementReport?.salesCount || 0;
+
+  const previousSales =
+    previousCtx?.managementReport?.salesCount || 0;
+
+  const ticketVariation =
+    previousTicket > 0
+      ? calculateVariation(
+          currentTicket,
+          previousTicket
+        )
+      : 0;
+
+  const salesVariation =
+    previousSales > 0
+      ? calculateVariation(
+          currentSales,
+          previousSales
+        )
+      : 0;
+
+  let diagnosis = '';
+
+  if (
+    salesVariation > ticketVariation
+  ) {
+    diagnosis =
+      'O desempenho está sendo impulsionado principalmente pelo volume de clientes.';
+  }
+  else if (
+    ticketVariation > salesVariation
+  ) {
+    diagnosis =
+      'O desempenho está sendo impulsionado principalmente pelo aumento do ticket médio.';
+  }
+  else {
+    diagnosis =
+      'Clientes e ticket médio estão contribuindo de forma semelhante.';
+  }
+
+  return `
+👥 CLIENTES OU TICKET
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Ticket médio atual
+
+${formatCurrency(currentTicket)}
+
+📦 Quantidade de vendas
+
+${currentSales}
+
+━━━━━━━━━━━━━━━━━━
+
+📈 Evolução do ticket
+
+${ticketVariation.toFixed(1)}%
+
+📈 Evolução das vendas
+
+${salesVariation.toFixed(1)}%
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+${diagnosis}
+
+━━━━━━━━━━━━━━━━━━
+
+💡 Leitura institucional
+
+Historicamente a Bebcom cresceu combinando variedade, atendimento e adaptação rápida às necessidades dos clientes.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Observe se o crescimento está vindo de mais clientes ou de compras maiores. As estratégias para cada cenário são diferentes.
+`.trim();
+}   
+  
   return null;
 };
 

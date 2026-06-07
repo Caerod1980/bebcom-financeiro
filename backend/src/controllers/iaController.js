@@ -2407,9 +2407,16 @@ if (
 
   let diagnosis = '';
 
-  if (
-    salesVariation > ticketVariation
-  ) {
+if (
+  currentSales <= 0 &&
+  currentTicket > 0
+) {
+  diagnosis =
+    'Não existem dados suficientes de quantidade de vendas para determinar se o resultado está vindo de mais clientes ou do ticket médio.';
+}
+else if (
+  salesVariation > ticketVariation
+) {
     diagnosis =
       'O desempenho está sendo impulsionado principalmente pelo volume de clientes.';
   }
@@ -2435,7 +2442,11 @@ ${formatCurrency(currentTicket)}
 
 📦 Quantidade de vendas
 
-${currentSales}
+${
+  currentSales > 0
+    ? currentSales
+    : 'Não disponível'
+}
 
 ━━━━━━━━━━━━━━━━━━
 

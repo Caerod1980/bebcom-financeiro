@@ -2383,11 +2383,11 @@ if (
   const previousTicket =
     previousCtx?.managementReport?.averageTicket || 0;
 
-  const currentSales =
-    currentCtx.managementReport?.salesCount || 0;
+ const currentSales =
+  currentCtx.managementReport?.totalTickets || 0;
 
-  const previousSales =
-    previousCtx?.managementReport?.salesCount || 0;
+const previousSales =
+  previousCtx?.managementReport?.totalTickets || 0;
 
   const ticketVariation =
     previousTicket > 0

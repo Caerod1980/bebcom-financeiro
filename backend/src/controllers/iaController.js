@@ -2405,32 +2405,54 @@ const previousSales =
         )
       : 0;
 
-  let diagnosis = '';
+ let diagnosis = '';
 
 if (
-  currentSales <= 0 &&
-  currentTicket > 0
+  salesVariation < 0 &&
+  ticketVariation < 0
 ) {
-  diagnosis =
-    'Não existem dados suficientes de quantidade de vendas para determinar se o resultado está vindo de mais clientes ou do ticket médio.';
-}
-else if (
-  salesVariation > ticketVariation
-) {
-    diagnosis =
-      'O desempenho está sendo impulsionado principalmente pelo volume de clientes.';
-  }
-  else if (
-    ticketVariation > salesVariation
+  if (
+    Math.abs(salesVariation) >
+    Math.abs(ticketVariation)
   ) {
     diagnosis =
-      'O desempenho está sendo impulsionado principalmente pelo aumento do ticket médio.';
-  }
-  else {
+      'O principal problema está na redução do volume de vendas.';
+  } else {
     diagnosis =
-      'Clientes e ticket médio estão contribuindo de forma semelhante.';
+      'O principal problema está na redução do ticket médio.';
   }
-
+}
+else if (
+  salesVariation > 0 &&
+  ticketVariation > 0
+) {
+  if (
+    salesVariation >
+    ticketVariation
+  ) {
+    diagnosis =
+      'O crescimento está sendo impulsionado principalmente pelo aumento do número de vendas.';
+  } else {
+    diagnosis =
+      'O crescimento está sendo impulsionado principalmente pelo aumento do ticket médio.';
+  }
+}
+else if (
+  salesVariation > 0
+) {
+  diagnosis =
+    'A operação está atraindo mais clientes, mesmo sem aumento relevante do ticket médio.';
+}
+else if (
+  ticketVariation > 0
+) {
+  diagnosis =
+    'Os clientes estão comprando mais por venda realizada.';
+}
+else {
+  diagnosis =
+    'Os indicadores apresentam comportamento misto e exigem análise complementar.';
+}
   return `
 👥 CLIENTES OU TICKET
 
@@ -2474,7 +2496,7 @@ Historicamente a Bebcom cresceu combinando variedade, atendimento e adaptação 
 
 🎯 Minha recomendação
 
-Observe se o crescimento está vindo de mais clientes ou de compras maiores. As estratégias para cada cenário são diferentes.
+Use essa leitura para decidir a ação correta: se o problema for queda de vendas, foque em fluxo, divulgação e recorrência; se for queda de ticket médio, foque em combos, adicionais e produtos de maior margem.
 `.trim();
 }   
   

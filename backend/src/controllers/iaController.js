@@ -2293,6 +2293,113 @@ Corrija primeiro a causa principal identificada antes de atacar sintomas secund�
 `.trim();
   }
 
+  // Pergunta 2.5
+if (
+  lower.includes('fornecedor') &&
+  lower.includes('renegoci')
+) {
+
+  const supplierMap = {};
+
+  currentCtx.entries
+    .filter(
+      (entry) =>
+        entry.type === 'expense' &&
+        entry.category === 'compras_mercadorias'
+    )
+    .forEach((entry) => {
+
+      const supplier =
+        entry.person ||
+        entry.description ||
+        'Fornecedor não informado';
+
+      if (!supplierMap[supplier]) {
+        supplierMap[supplier] = 0;
+      }
+
+      supplierMap[supplier] +=
+        Math.abs(Number(entry.amount || 0));
+    });
+
+  const ranking =
+    Object.entries(supplierMap)
+      .map(([name, amount]) => ({
+        name,
+        amount,
+      }))
+      .sort((a, b) => b.amount - a.amount);
+
+  if (!ranking.length) {
+    return `
+Não encontrei fornecedores suficientes para análise.
+`.trim();
+  }
+
+  const leader = ranking[0];
+
+  const totalPurchases =
+    ranking.reduce(
+      (acc, item) => acc + item.amount,
+      0
+    );
+
+  const share =
+    totalPurchases > 0
+      ? (
+          (leader.amount /
+            totalPurchases) *
+          100
+        ).toFixed(1)
+      : '0.0';
+
+  return `
+🏦 FORNECEDOR PRIORITÁRIO
+
+━━━━━━━━━━━━━━━━━━
+
+Fornecedor
+
+${leader.name}
+
+━━━━━━━━━━━━━━━━━━
+
+💰 Valor comprado
+
+${formatCurrency(
+  leader.amount
+)}
+
+📊 Participação
+
+${share}% das compras
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Se eu pudesse negociar apenas um fornecedor hoje, começaria por este.
+
+Ele representa a maior concentração financeira dentro das compras registradas no período.
+
+Pequenas melhorias de prazo, desconto ou condição comercial podem gerar impacto relevante no caixa.
+
+━━━━━━━━━━━━━━━━━━
+
+💡 Leitura institucional
+
+A Bebcom cresceu buscando novos fornecedores e melhores condições comerciais.
+
+Historicamente, negociações bem conduzidas produziram mais resultado do que cortes operacionais extremos.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Revise prazo, desconto, bonificações e frequência de compra antes de reduzir mix ou estoque.
+`.trim();
+}
+
   // Pergunta 3
 if (
   lower.includes('vencimentos') ||

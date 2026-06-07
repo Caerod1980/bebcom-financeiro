@@ -1975,6 +1975,113 @@ Voltar o resultado do período para positivo, reduzir contas pendentes e diminui
 `.trim();
 };
 
+const buildExecutivePlanAnswer = (
+  currentCtx,
+  operationalScore,
+  operationalPriorities
+) => {
+  const purchases = currentCtx.expenseCategories?.find(
+    (item) => item.category === 'compras_mercadorias'
+  );
+
+  const purchaseShare =
+    purchases && currentCtx.totalIncome > 0
+      ? (purchases.amount / currentCtx.totalIncome) * 100
+      : 0;
+
+  const averageTicket =
+    currentCtx.managementReport?.averageTicket || 0;
+
+  return `
+📋 PLANO EXECUTIVO BEBCOM — ${currentCtx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Objetivo estratégico
+
+Organizar a operação para recuperar caixa, reduzir pressão financeira, melhorar giro, proteger margem e evitar que o problema se repita.
+
+━━━━━━━━━━━━━━━━━━
+
+📊 Diagnóstico executivo
+
+Resultado atual
+${formatCurrency(currentCtx.balance)}
+
+Contas pendentes
+${formatCurrency(currentCtx.pendingPayable)}
+
+Score gerencial
+${operationalScore.score}/100 — ${operationalScore.status}
+
+Compras de mercadorias
+${
+  purchases
+    ? `${formatCurrency(purchases.amount)} — ${purchaseShare.toFixed(1)}% das entradas`
+    : 'Sem concentração relevante identificada.'
+}
+
+Ticket médio
+${formatCurrency(averageTicket)}
+
+━━━━━━━━━━━━━━━━━━
+
+📅 Próximos 7 dias — Controle imediato
+
+• Preservar caixa e evitar novas despesas não essenciais.
+• Priorizar contas vencidas e fornecedores estratégicos.
+• Reduzir compras não críticas até estabilizar o resultado.
+• Avaliar se as compras recentes estão virando venda ou apenas aumentando estoque.
+
+━━━━━━━━━━━━━━━━━━
+
+📅 Próximos 30 dias — Ajuste gerencial
+
+• Renegociar fornecedores de maior impacto financeiro.
+• Revisar mix parado e produtos com baixo giro.
+• Melhorar ticket médio com combos, adicionais e produtos de maior margem.
+• Reforçar divulgação para recuperar volume de vendas.
+• Separar despesas essenciais das despesas negociáveis.
+
+━━━━━━━━━━━━━━━━━━
+
+📅 Próximos 90 dias — Estruturação
+
+• Criar rotina semanal de análise: caixa, compras, contas a pagar, ticket médio e estoque.
+• Ajustar compras ao ritmo real de vendas.
+• Construir reserva operacional mínima.
+• Usar o score gerencial como indicador fixo de saúde da empresa.
+• Consolidar processos para reduzir dependência de decisões emergenciais.
+
+━━━━━━━━━━━━━━━━━━
+
+🚨 Prioridades executivas
+
+${
+  operationalPriorities.length
+    ? operationalPriorities
+        .slice(0, 5)
+        .map((item) => `• ${item.message}`)
+        .join('\n')
+    : '• Manter acompanhamento de caixa, compras, estoque, ticket médio e fornecedores.'
+}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha leitura
+
+Este plano não trata apenas de recuperar caixa.
+
+Ele organiza a operação para que a Bebcom volte a crescer com mais controle, mais margem e menor pressão financeira.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Trate os próximos 7 dias como contenção, os próximos 30 dias como ajuste e os próximos 90 dias como construção de uma operação mais previsível.
+`.trim();
+};
+
 const buildMotivationalInsight = (
   currentCtx,
   previousCtx,
@@ -7731,6 +7838,15 @@ const isCashForecastQuestion =
       lowerQuestion.includes('alguma sugestão') ||
       lowerQuestion.includes('alguma sugestao');
 
+    const isExecutivePlanQuestion =
+  lowerQuestion.includes('monte um plano') ||
+  lowerQuestion.includes('plano executivo') ||
+  lowerQuestion.includes('plano geral') ||
+  lowerQuestion.includes('plano completo') ||
+  lowerQuestion.includes('organize um plano') ||
+  lowerQuestion.includes('faça um plano') ||
+  lowerQuestion.includes('faca um plano');
+
     const educationalAnswer = getEducationalAnswer(question);
     
     const knowledgeBaseAnswer = getKnowledgeBaseAnswer(question, ctx);
@@ -7773,6 +7889,12 @@ if (isStrategicMemoryQuestion) {
     previousCtx,
     operationalScore,
     operationalAlerts,
+    operationalPriorities
+  );
+} else if (isExecutivePlanQuestion) {
+  answer = buildExecutivePlanAnswer(
+    ctx,
+    operationalScore,
     operationalPriorities
   );
 } else if (isRecoveryPlanQuestion) {

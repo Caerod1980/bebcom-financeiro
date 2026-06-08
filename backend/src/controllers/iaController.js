@@ -464,6 +464,169 @@ const buildRodrigoExecutiveOpinion = (ctx) => {
   return opinions;
 };
 
+const buildInstitutionalMemoryAnswer = (
+  question,
+  currentCtx
+) => {
+
+  const lower =
+    String(question || '').toLowerCase();
+
+  // ERRO HISTÓRICO
+
+  if (
+    lower.includes('erro histórico') ||
+    lower.includes('erro historico')
+  ) {
+    return `
+🧠 MEMÓRIA INSTITUCIONAL
+
+━━━━━━━━━━━━━━━━━━
+
+O principal erro histórico que eu evitaria repetir neste momento é permitir que o estoque cresça mais rápido do que a capacidade de giro da operação.
+
+A experiência da Bebcom mostrou que excesso de estoque é mais perigoso do que falta de estoque.
+
+Capital parado reduz capacidade de reposição, aumenta risco de perdas e pressiona o caixa.
+
+Além disso, a falta de contagem periódica foi identificada como um dos erros administrativos mais caros da história da empresa.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Antes de ampliar compras, confirme se o estoque atual está realmente se transformando em vendas.
+`.trim();
+  }
+
+  // EXPERIÊNCIA DA BEBCOM
+
+  if (
+    lower.includes('experiência da bebcom') ||
+    lower.includes('experiencia da bebcom')
+  ) {
+    return `
+🧠 EXPERIÊNCIA ACUMULADA DA BEBCOM
+
+━━━━━━━━━━━━━━━━━━
+
+A experiência da empresa ensina que os maiores riscos normalmente não começam nas vendas.
+
+Eles começam quando:
+
+• o estoque cresce sem giro;
+• as contas pendentes aumentam;
+• o gestor perde proximidade com a operação;
+• compras passam a acontecer sem planejamento.
+
+━━━━━━━━━━━━━━━━━━
+
+💡 O que a história da Bebcom mostra
+
+Nos momentos em que a operação esteve mais organizada, a empresa cresceu mantendo controle sobre estoque, compras e atendimento.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Continue acompanhando caixa, estoque e vencimentos antes que os indicadores financeiros mostrem deterioração.
+`.trim();
+  }
+
+  // CRESCIMENTO OU CORREÇÃO
+
+  if (
+    lower.includes('crescimento') &&
+    lower.includes('correção')
+  ) {
+    return `
+🧭 POSICIONAMENTO ESTRATÉGICO
+
+━━━━━━━━━━━━━━━━━━
+
+Hoje eu considero que a Bebcom está mais próxima de uma fase de correção operacional do que de expansão.
+
+━━━━━━━━━━━━━━━━━━
+
+Motivos:
+
+• contas pendentes continuam elevadas;
+• compras ainda possuem peso relevante;
+• ticket médio precisa evoluir;
+• a operação pode ganhar eficiência antes de buscar crescimento adicional.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Primeiro fortalecer a estrutura.
+
+Depois acelerar crescimento.
+
+A história da Bebcom mostra que crescimento sustentável acontece quando caixa, compras e operação estão alinhados.
+`.trim();
+  }
+
+  // O QUE APRENDI
+
+  if (
+    lower.includes('aprendi nesses') ||
+    lower.includes('aprendi nestes') ||
+    lower.includes('aprendi em')
+  ) {
+    return `
+📚 LIÇÕES DA JORNADA BEBCOM
+
+━━━━━━━━━━━━━━━━━━
+
+Ao longo dos anos a Bebcom aprendeu que:
+
+• preço justo vence preço irresponsável;
+• estoque precisa ser controlado continuamente;
+• atendimento fideliza mais que promoções isoladas;
+• capital de giro deve ser acompanhado semanalmente;
+• fornecedores precisam ser constantemente avaliados;
+• crescimento sem controle gera problemas futuros.
+
+━━━━━━━━━━━━━━━━━━
+
+💡 Conclusão
+
+A combinação entre organização, atendimento e disciplina operacional sempre trouxe mais resultado do que decisões impulsivas.
+`.trim();
+  }
+
+  // O QUE FARIA DIFERENTE
+
+  if (
+    lower.includes('faria diferente')
+  ) {
+    return `
+🔎 VISÃO RETROSPECTIVA
+
+━━━━━━━━━━━━━━━━━━
+
+Se pudesse voltar ao início da jornada, algumas decisões seriam antecipadas:
+
+• aplicar margens melhores mais cedo;
+• fortalecer reserva financeira;
+• implantar contagem de estoque antes;
+• acompanhar capital de giro semanalmente;
+• revisar mix de produtos com maior frequência.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha leitura
+
+Essas mudanças não alterariam a essência da Bebcom.
+
+Elas apenas permitiriam chegar mais rápido ao nível de organização atual.
+`.trim();
+  }
+
+  return null;
+};
+
 const buildConsultiveIntroduction = (
   ctx,
   subject
@@ -7757,6 +7920,30 @@ const askIABebcom = async (req, res) => {
     const operationalAlerts = buildOperationalAlerts(ctx, previousCtx);
     const actionPlan = buildActionPlan(ctx, operationalScore, operationalPriorities, strategicRecommendations);
     const lowerQuestion = question.toLowerCase();
+    const institutionalAnswer =
+  buildInstitutionalMemoryAnswer(
+    question,
+    ctx
+  );
+
+if (institutionalAnswer) {
+
+  updateExecutiveContext({
+    intent: 'institutional_memory',
+    topic: 'institutional_memory',
+    periodLabel: ctx.periodLabel,
+    summary:
+      'Resposta baseada na memória institucional da Bebcom.',
+    recommendedNextStep:
+      'Relacionar experiência histórica com situação atual.',
+    lastAnswerType:
+      'institutional_memory',
+  });
+
+  return res.json({
+    answer: institutionalAnswer,
+  });
+}
     const followUpAnswer =
   isFollowUpQuestion(question)
     ? buildFollowUpAnswer(question, ctx)

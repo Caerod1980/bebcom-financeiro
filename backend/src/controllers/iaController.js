@@ -139,13 +139,139 @@ const bebcomBrain = {
   ],
 
   strategicTurns: [
-    'Implantação de energia solar.',
+    'Implantação de energia solar em 2023.',
     'Redução do quadro de funcionários.',
     'Reavaliação de preços diante de nova concorrência.',
     'Expansão do mix de mercearia.',
     'Reorganização da vitrine da loja.',
     'Busca por novos fornecedores.',
   ],
+
+  timeline: [
+  {
+    year: 2021,
+    event: 'Fundação da Bebidas & Companhia em 27/03/2021.',
+    lesson:
+      'O início exigiu reinvestimento, construção de estrutura, formação de mix e foco total em crescimento sustentável.',
+  },
+  {
+    year: 2022,
+    event: 'Ação de fidelização com camisas comemorativas da Copa do Mundo.',
+    lesson:
+      'Marketing com vínculo emocional fortalece relacionamento e ajuda na fidelização dos clientes.',
+  },
+  {
+    year: 2023,
+    event: 'Maior faturamento mensal da história em Dezembro/2023.',
+    lesson:
+      'A Bebcom mostrou capacidade real de alto faturamento quando estoque, demanda, atendimento e operação trabalham alinhados.',
+  },
+  {
+    year: 2023,
+    event: 'Implantação da energia solar.',
+    lesson:
+      'Decisões estruturais que reduzem custos fixos aumentam a resistência financeira da operação.',
+  },
+  {
+    year: 2025,
+    event: 'Junho/2025 foi percebido como o pior momento financeiro.',
+    lesson:
+      'Alto custo operacional, especialmente com funcionários, pode comprometer a saúde financeira mesmo quando o faturamento não é o menor.',
+  },
+  {
+    year: 2025,
+    event: 'Abertura de concorrente próximo em Dezembro/2025.',
+    lesson:
+      'Preço baixo do concorrente não substitui relacionamento, atendimento, variedade e confiança construída com o cliente.',
+  },
+  {
+    year: 2026,
+    event: 'Fechamento do concorrente próximo em Maio/2026.',
+    lesson:
+      'A permanência dos clientes reforçou a força da identidade, atendimento e padrão próprio da Bebcom.',
+  },
+],
+
+managementPhilosophy: [
+  'Planejamento, execução e controle são os três pilares da gestão da Bebcom.',
+  'Crescimento rápido pode gerar ânimo e recursos, mas precisa acontecer com segurança e escala responsável.',
+  'Quando o caixa aperta, a primeira reação deve ser procurar melhorias dentro da operação.',
+  'A operação nunca deve ficar sem contagem periódica de estoque.',
+  'O capital de giro deve ser acompanhado semanalmente, não apenas mensalmente.',
+],
+
+purchaseAndInventoryRules: [
+  'Produto novo deve nascer de pedido real de cliente, análise de demanda, margem, caixa disponível e aderência ao mix.',
+  'Faltar produto essencial é perigoso, mas sobrar produto é ainda mais perigoso porque prende capital e gera risco de perda.',
+  'Produtos com baixa procura, pouca margem, custo próximo ao de marcas fortes ou preço fora da realidade devem sair do mix.',
+  'Antes de comprar, a Bebcom deve cotar preço, entrega e prazo em todos os fornecedores possíveis.',
+  'Estocar demais para fim de ano foi um erro que não deve ser repetido.',
+],
+
+customerPrinciples: [
+  'Cliente volta por bom atendimento, produto gelado e mix de produtos.',
+  'Mau atendimento, falta de produto, preço fora da realidade e clima desfavorável afastam clientes.',
+  'O cliente da Bebcom valoriza ambiente familiar, fachada, público, padrão de atendimento e cerveja gelada.',
+  'Quando compra em grande quantidade, o cliente espera desconto.',
+  'A marca deve transmitir: tudo que eu preciso perto de mim.',
+],
+
+competitionLessons: [
+  'Concorrência de preço baixo pode impactar, mas preço insustentável não mantém uma operação com custos altos.',
+  'A resposta da Bebcom à concorrência deve ser qualidade, preço justo, atendimento personalizado e fidelização.',
+  'Quando um concorrente baixa preço, a Bebcom deve analisar perda de volume e buscar compensação com promoções em produtos de melhor margem.',
+  'A Bebcom não deve sacrificar vida pessoal e identidade apenas para vender mais.',
+],
+
+teamLessons: [
+  'Funcionários não cuidam naturalmente da empresa como o dono cuidaria.',
+  'Equipe exige controle de estoque, acompanhamento de vendas e monitoramento próximo.',
+  'Bom funcionário executa o que se pede; excelente funcionário executa e questiona onde melhorar.',
+  'Ao contratar, é essencial entender por que a pessoa quer trabalhar na Bebcom e por que essa resposta merece confiança.',
+],
+
+marketingLessons: [
+  'Ação com camisas da Copa de 2022 ajudou no processo de fidelização.',
+  'Instagram fortalece divulgação dos produtos e serviços, atuando junto com o movimento físico diário.',
+  'O iFood vende pela marca consolidada e pela praticidade, não apenas pelo preço.',
+  'O Bebcom Lounge precisa de trabalho de marketing mais consistente.',
+],
+
+failurePatterns: [
+  'Não acumular reserva para comprar mercadorias à vista elevou o custo da mercadoria vendida.',
+  'Trabalhar com espetinho não trouxe o resultado esperado.',
+  'Diversificação sem aderência ao negócio principal pode consumir energia, estoque e capital sem retorno proporcional.',
+  'Falta de mercadoria para trabalhar foi um dos momentos mais críticos da jornada.',
+],
+
+successPatterns: [
+  'Preparar estoque corretamente para eventos locais pode gerar grande resultado.',
+  'Reorganizar a frente da loja com produtos de maior margem melhora a experiência e o resultado.',
+  'Melhorar a exposição visual ajuda o cliente a encontrar produtos e aumenta a eficiência da venda.',
+  'Aplicar margens melhores desde o início teria fortalecido o negócio mais cedo.',
+],
+
+executiveInstinct: [
+  'Problemas podem ser percebidos antes dos números quando o gestor fortalece presença operacional e estuda processos.',
+  'Dias quentes indicam maior chance de bom volume de vendas.',
+  'Chuva e frio em vários dias tendem a reduzir vendas.',
+  'Movimento fraco em comércios de outros ramos pode antecipar queda no fluxo local.',
+  'Relatórios não mostram totalmente o quanto o cliente se sente bem no ambiente familiar da loja.',
+],
+
+worldView: [
+  'Sucesso é o resultado de todo esforço realizado em favor do objetivo.',
+  'Dinheiro é consequência de ação.',
+  'Uma empresa nunca pode perder sua identidade.',
+  'Vender é necessidade; servir é necessário.',
+  'Quem acredita sempre alcança.',
+],
+
+futureVision: [
+  'A Bebcom deve chegar a 2030 onde o trabalho com excelência no presente puder colocá-la.',
+  'Mesmo como franquia, a empresa não pode perder relacionamento com clientes, organização funcional e padrão próprio.',
+  'A IA Bebcom deve ampliar a capacidade de gestão e preservar padrões de análise mesmo na ausência do Rodrigo.',
+],
 
 personality: {
   tone:
@@ -209,6 +335,75 @@ const buildInstitutionalInsight = (ctx) => {
   if (!insights.length) {
     insights.push(
       'A memória institucional da Bebcom reforça a importância de manter preço justo, variedade, atendimento forte e controle operacional.'
+    );
+  }
+
+  return insights;
+};
+
+const buildTemporalMemoryInsight = (ctx) => {
+  const insights = [];
+
+  const purchases =
+    ctx.expenseCategories?.find(
+      (item) =>
+        item.category === 'compras_mercadorias'
+    );
+
+  const purchaseShare =
+    purchases &&
+    ctx.totalIncome > 0
+      ? (
+          purchases.amount /
+          ctx.totalIncome
+        ) * 100
+      : 0;
+
+  if (purchaseShare > 70) {
+    insights.push(
+      'A memória da Bebcom mostra que crescimento sem controle de compras costuma pressionar o caixa.'
+    );
+  }
+
+  if (ctx.balance < 0) {
+    insights.push(
+      'Historicamente, quando o caixa aperta, Rodrigo procura primeiro melhorias dentro da própria operação antes de buscar soluções externas.'
+    );
+  }
+
+  const ticket =
+    ctx.managementReport?.averageTicket || 0;
+
+  if (ticket > 0 && ticket < 20) {
+    insights.push(
+      'A experiência acumulada da Bebcom mostra que aumentar ticket médio costuma gerar resultado mais rápido do que simplesmente tentar aumentar fluxo.'
+    );
+  }
+
+  const inventory =
+    ctx.inventory?.finalStock || 0;
+
+  if (
+    purchases &&
+    inventory > purchases.amount
+  ) {
+    insights.push(
+      'A memória operacional da empresa alerta que excesso de estoque é mais perigoso do que falta de estoque.'
+    );
+  }
+
+  if (
+    ctx.pendingPayable >
+    ctx.totalIncome
+  ) {
+    insights.push(
+      'A Bebcom já enfrentou momentos em que contas pendentes cresceram mais rápido do que as vendas. Isso exige atenção imediata.'
+    );
+  }
+
+  if (!insights.length) {
+    insights.push(
+      'Os indicadores atuais não estão repetindo nenhum padrão crítico já registrado na memória da empresa.'
     );
   }
 
@@ -1992,6 +2187,9 @@ const buildExecutivePlanAnswer = (
   const averageTicket =
     currentCtx.managementReport?.averageTicket || 0;
 
+  const memoryInsights =
+  buildTemporalMemoryInsight(currentCtx);
+
   return `
 📋 PLANO EXECUTIVO BEBCOM — ${currentCtx.periodLabel}
 
@@ -2068,12 +2266,23 @@ ${
 
 ━━━━━━━━━━━━━━━━━━
 
+🧠 Memória temporal da Bebcom
+
+${
+  memoryInsights.length
+    ? memoryInsights
+        .map(item => `• ${item}`)
+        .join('\n')
+    : 'Nenhum padrão histórico relevante identificado.'
+}
+
+━━━━━━━━━━━━━━━━━━
+
 🧠 Minha leitura
 
 Este plano não trata apenas de recuperar caixa.
 
 Ele organiza a operação para que a Bebcom volte a crescer com mais controle, mais margem e menor pressão financeira.
-
 ━━━━━━━━━━━━━━━━━━
 
 🎯 Minha recomendação

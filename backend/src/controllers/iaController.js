@@ -410,6 +410,60 @@ const buildTemporalMemoryInsight = (ctx) => {
   return insights;
 };
 
+const buildRodrigoExecutiveOpinion = (ctx) => {
+  const opinions = [];
+
+  const purchases =
+    ctx.expenseCategories?.find(
+      item =>
+        item.category === 'compras_mercadorias'
+    );
+
+  const purchaseShare =
+    purchases &&
+    ctx.totalIncome > 0
+      ? (
+          purchases.amount /
+          ctx.totalIncome
+        ) * 100
+      : 0;
+
+  if (ctx.balance < 0) {
+    opinions.push(
+      'Quando o caixa aperta, a primeira reação deve ser procurar melhorias dentro da própria operação antes de buscar soluções externas.'
+    );
+  }
+
+  if (purchaseShare > 60) {
+    opinions.push(
+      'Pela experiência da Bebcom, excesso de estoque costuma ser mais perigoso do que falta de estoque.'
+    );
+  }
+
+  if (ctx.pendingPayable > ctx.totalIncome) {
+    opinions.push(
+      'Contas pendentes crescendo mais rápido que vendas exigem disciplina financeira imediata.'
+    );
+  }
+
+  if (
+    ctx.managementReport?.averageTicket > 0 &&
+    ctx.managementReport.averageTicket < 20
+  ) {
+    opinions.push(
+      'Eu procuraria aumentar o ticket médio antes de buscar crescimento apenas por volume.'
+    );
+  }
+
+  if (!opinions.length) {
+    opinions.push(
+      'Os números atuais não indicam repetição de erros históricos da Bebcom.'
+    );
+  }
+
+  return opinions;
+};
+
 const buildConsultiveIntroduction = (
   ctx,
   subject
@@ -2190,6 +2244,11 @@ const buildExecutivePlanAnswer = (
   const memoryInsights =
   buildTemporalMemoryInsight(currentCtx);
 
+  const executiveOpinion =
+  buildRodrigoExecutiveOpinion(
+    currentCtx
+  );
+
   return `
 📋 PLANO EXECUTIVO BEBCOM — ${currentCtx.periodLabel}
 
@@ -2274,6 +2333,18 @@ ${
         .map(item => `• ${item}`)
         .join('\n')
     : 'Nenhum padrão histórico relevante identificado.'
+}
+
+━━━━━━━━━━━━━━━━━━
+
+🧭 Opinião executiva do Rodrigo
+
+${
+  executiveOpinion.length
+    ? executiveOpinion
+        .map(item => `• ${item}`)
+        .join('\n')
+    : 'Nenhuma opinião executiva disponível.'
 }
 
 ━━━━━━━━━━━━━━━━━━

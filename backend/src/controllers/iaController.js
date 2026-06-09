@@ -2323,6 +2323,406 @@ ${buildConsultiveClosing({
 `.trim();
 };
 
+const buildOperationalAnalyticsAnswer = (
+  question,
+  ctx
+) => {
+  const lower = normalizeText(question);
+
+  const wantsIncome =
+    lower.includes('recebi') ||
+    lower.includes('receita') ||
+    lower.includes('faturamento') ||
+    lower.includes('entrada') ||
+    lower.includes('venda');
+
+  const wantsExpense =
+  lower.includes('gastei') ||
+  lower.includes('gasto') ||
+  lower.includes('despesa') ||
+  lower.includes('paguei') ||
+  lower.includes('pago') ||
+  lower.includes('saida');
+
+  const wantsTotal =
+    lower.includes('quanto') ||
+    lower.includes('total') ||
+    lower.includes('somar') ||
+    lower.includes('soma');
+
+  // TOTAL DE FATURAMENTO / RECEITA / ENTRADAS
+  if (
+    wantsTotal &&
+    (
+      lower.includes('faturamento') ||
+      lower.includes('receita') ||
+      lower.includes('entrada') ||
+      lower.includes('vendas')
+    )
+  ) {
+    return `
+📈 TOTAL DE ENTRADAS — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+💰 Total recebido
+${formatCurrency(ctx.totalIncome)}
+
+📋 Quantidade de lançamentos
+${
+  (ctx.entries || []).filter(
+    (entry) => entry.type === 'income'
+  ).length
+}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Esse valor representa o total de entradas registradas no período analisado.
+`.trim();
+  }
+
+  // TOTAL DE DESPESAS / SAÍDAS / PAGO
+  if (
+    wantsTotal &&
+    (
+      lower.includes('despesa') ||
+      lower.includes('despesas') ||
+      lower.includes('saida') ||
+      lower.includes('saidas') ||
+      lower.includes('pago') ||
+      lower.includes('paguei')
+    )
+  ) {
+    return `
+💸 TOTAL DE SAÍDAS — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+💰 Total pago/lançado
+${formatCurrency(ctx.totalExpenses)}
+
+📋 Quantidade de lançamentos
+${
+  (ctx.entries || []).filter(
+    (entry) => entry.type === 'expense'
+  ).length
+}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Esse valor representa o total de saídas registradas no período analisado.
+`.trim();
+  }
+
+  // FORMA DE PAGAMENTO — PIX / DINHEIRO / CRÉDITO / DÉBITO
+  const paymentTerms = [
+    'pix',
+    'dinheiro',
+    'credito',
+    'crédito',
+    'debito',
+    'débito',
+    'cartao',
+    'cartão',
+  ];
+
+  const paymentTerm = paymentTerms.find((term) =>
+    lower.includes(normalizeText(term))
+  );
+
+  if (paymentTerm && wantsIncome) {
+    const result = sumGroupedItems(
+      ctx.incomeByPaymentMethod,
+      paymentTerm
+    );
+
+    return `
+💳 RECEBIMENTOS POR FORMA DE PAGAMENTO — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Forma de pagamento
+${paymentTerm.toUpperCase()}
+
+💰 Total recebido
+${formatCurrency(result.amount)}
+
+📋 Quantidade de lançamentos
+${result.count}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Esse valor representa quanto entrou por essa forma de pagamento no período analisado.
+`.trim();
+  }
+
+  if (paymentTerm && wantsExpense) {
+    const result = sumGroupedItems(
+      ctx.expensesByPaymentMethod,
+      paymentTerm
+    );
+
+    return `
+💳 PAGAMENTOS POR FORMA DE PAGAMENTO — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Forma de pagamento
+${paymentTerm.toUpperCase()}
+
+💰 Total pago
+${formatCurrency(result.amount)}
+
+📋 Quantidade de lançamentos
+${result.count}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Esse valor representa quanto saiu por essa forma de pagamento no período analisado.
+`.trim();
+  }
+
+  // CANAL DE VENDA — IFOOD / DELIVERY / LOJA
+  const channelTerms = [
+    'ifood',
+    'delivery',
+    'loja',
+    'loja fisica',
+    'loja física',
+    'balcao',
+    'balcão',
+  ];
+
+  const channelTerm = channelTerms.find((term) =>
+    lower.includes(normalizeText(term))
+  );
+
+  if (channelTerm && wantsIncome) {
+    const result = sumGroupedItems(
+      ctx.incomeByChannel,
+      channelTerm
+    );
+
+    return `
+🛒 RECEBIMENTOS POR CANAL — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Canal
+${channelTerm.toUpperCase()}
+
+💰 Total recebido
+${formatCurrency(result.amount)}
+
+📋 Quantidade de lançamentos
+${result.count}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Esse valor mostra quanto entrou por esse canal de venda no período analisado.
+`.trim();
+  }
+
+  // MELHOR DIA DE VENDAS
+  if (
+    (
+      lower.includes('melhor dia') ||
+      lower.includes('maior dia')
+    ) &&
+    (
+      lower.includes('venda') ||
+      lower.includes('faturamento') ||
+      lower.includes('receita')
+    )
+  ) {
+    const bestDay = ctx.incomeByDay?.[0];
+
+    if (!bestDay) {
+      return `
+Não encontrei entradas suficientes para identificar o melhor dia de vendas em ${ctx.periodLabel}.
+`.trim();
+    }
+
+    return `
+🏆 MELHOR DIA DE VENDAS — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+📅 Dia
+${bestDay.name}
+
+💰 Total recebido
+${formatCurrency(bestDay.amount)}
+
+📋 Quantidade de lançamentos
+${bestDay.count}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Esse foi o dia com maior volume financeiro registrado em entradas no período analisado.
+`.trim();
+  }
+
+  // RANKINGS
+  if (
+    lower.includes('ranking') ||
+    lower.includes('top 10') ||
+    lower.includes('maiores')
+  ) {
+    if (lower.includes('fornecedor')) {
+      return `
+🏆 RANKING DE FORNECEDORES — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+${formatRanking(ctx.expensesByPerson)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Esse ranking mostra os fornecedores ou pessoas com maior volume de saídas registradas no período.
+`.trim();
+    }
+
+    if (
+      lower.includes('categoria') ||
+      lower.includes('despesa') ||
+      lower.includes('gasto')
+    ) {
+      return `
+🏆 RANKING DE CATEGORIAS DE DESPESA — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+${formatRanking(
+  (ctx.expenseCategories || []).map((item) => ({
+    name: item.category,
+    amount: item.amount,
+    count: 0,
+  }))
+)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Esse ranking mostra as categorias que mais consumiram recursos no período.
+`.trim();
+    }
+  }
+
+  // BUSCA POR FORNECEDOR / DESCRIÇÃO GENÉRICA
+  if (wantsTotal || lower.includes('total de')) {
+    const cleaned = lower
+      .replace('quanto', '')
+      .replace('total de', '')
+      .replace('total', '')
+      .replace('somar', '')
+      .replace('soma', '')
+      .replace('recebi de', '')
+      .replace('gastei com', '')
+      .replace('gasto com', '')
+      .replace('paguei para', '')
+      .replace('paguei de', '')
+      .replace('pago em', '')
+      .replace('em junho', '')
+      .replace('em maio', '')
+      .replace('essa semana', '')
+      .replace('nesta semana', '')
+      .replace('semana passada', '')
+      .replace('mes passado', '')
+      .replace('mês passado', '')
+      .replace('do mes', '')
+      .replace('do mês', '')
+      .replace('do ano', '')
+      .replace('?', '')
+      .trim();
+
+    if (cleaned.length >= 3) {
+      const source =
+        wantsIncome
+          ? ctx.incomeByDescription
+          : ctx.expensesByDescription;
+
+      const result = sumGroupedItems(
+        source,
+        cleaned
+      );
+
+      if (result.amount > 0 || result.count > 0) {
+        return `
+🔎 TOTAL POR DESCRIÇÃO — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Busca
+${cleaned}
+
+💰 Total
+${formatCurrency(result.amount)}
+
+📋 Quantidade de lançamentos
+${result.count}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Esse valor foi encontrado somando lançamentos cuja descrição contém o termo pesquisado.
+`.trim();
+      }
+
+      const personSource =
+        wantsIncome
+          ? ctx.incomeByPerson
+          : ctx.expensesByPerson;
+
+      const personResult = sumGroupedItems(
+        personSource,
+        cleaned
+      );
+
+      if (personResult.amount > 0 || personResult.count > 0) {
+        return `
+🔎 TOTAL POR PESSOA/FORNECEDOR — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Busca
+${cleaned}
+
+💰 Total
+${formatCurrency(personResult.amount)}
+
+📋 Quantidade de lançamentos
+${personResult.count}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Esse valor foi encontrado somando lançamentos vinculados a pessoa/fornecedor correspondente.
+`.trim();
+      }
+    }
+  }
+
+  return null;
+};
+
 const buildOperationAnswer = (ctx) => {
   const averageTicket = ctx.managementReport?.averageTicket || 0;
   const inventoryFinal = ctx.inventory?.finalStock || 0;
@@ -8268,6 +8668,18 @@ if (deepDiveAnswer) {
     answer: deepDiveAnswer,
   });
 }
+const operationalAnalyticsAnswer =
+  buildOperationalAnalyticsAnswer(
+    question,
+    ctx
+  );
+
+if (operationalAnalyticsAnswer) {
+  return res.json({
+    answer: operationalAnalyticsAnswer,
+  });
+}
+    
      const goalHorizon = (() => {
   if (
     lowerQuestion.includes('hoje') ||

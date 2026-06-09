@@ -1425,6 +1425,36 @@ const groupEntriesByDay = (entries, type) => {
     .sort((a, b) => b.amount - a.amount);
 };
 
+const sumGroupedItems = (group, searchTerm) => {
+  const normalizedSearch =
+    normalizeText(searchTerm);
+
+  const items = (group || []).filter((item) =>
+    normalizeText(item.name).includes(normalizedSearch)
+  );
+
+  return {
+    items,
+    amount: items.reduce(
+      (acc, item) => acc + Number(item.amount || 0),
+      0
+    ),
+    count: items.reduce(
+      (acc, item) => acc + Number(item.count || 0),
+      0
+    ),
+  };
+};
+
+const formatRanking = (items, limit = 10) =>
+  (items || [])
+    .slice(0, limit)
+    .map(
+      (item, index) =>
+        `${index + 1}. ${item.name} — ${formatCurrency(item.amount)} — ${item.count} lançamento(s)`
+    )
+    .join('\n');
+
 const buildContext = async ({ month, year, start, end }) => {
   const entries = await Entry.find({
     deleted: { $ne: true },

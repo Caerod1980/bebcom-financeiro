@@ -1267,7 +1267,8 @@ const extractFinancialIntent = (question) => {
 
   const categoryAliases = [
     { category: 'energia', terms: ['energia', 'cpfl', 'luz'] },
-    { category: 'imposto', terms: ['imposto', 'impostos', 'taxa', 'tributo'] },
+    { category: 'imposto', terms: ['imposto', 'impostos', 'tributo'] },
+    { category: 'taxas', terms: ['taxa', 'taxas'] },
     { category: 'funcionarios', terms: ['funcionario', 'funcionário', 'funcionarios', 'funcionários', 'folha', 'salario', 'salário'] },
     { category: 'aluguel', terms: ['aluguel'] },
     { category: 'emprestimos', terms: ['emprestimo', 'empréstimo', 'emprestimos', 'empréstimos'] },
@@ -2380,6 +2381,42 @@ const buildOperationalAnalyticsAnswer = (
     lower.includes('somar') ||
     lower.includes('soma');
 
+  // CONTAS PAGAS / BOLETOS / PAGAMENTOS REALIZADOS
+if (
+  lower.includes('contas pagas') ||
+  lower.includes('boletos') ||
+  lower.includes('pagamentos realizados')
+) {
+  const paidEntries = (ctx.entries || []).filter(
+    (entry) => entry.type === 'expense'
+  );
+
+  const totalPaid = paidEntries.reduce(
+    (acc, entry) => acc + Math.abs(Number(entry.amount || 0)),
+    0
+  );
+
+  return `
+💸 PAGAMENTOS REALIZADOS — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+💰 Total pago
+${formatCurrency(totalPaid)}
+
+📋 Quantidade de lançamentos
+${paidEntries.length}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Esse valor representa o total de pagamentos/despesas já lançados no período analisado.
+
+Se a intenção for contas ainda em aberto, use: "Total de contas a pagar".
+`.trim();
+}
+
   // TOTAL DE FATURAMENTO / RECEITA / ENTRADAS
   if (
     wantsTotal &&
@@ -2413,19 +2450,20 @@ Esse valor representa o total de entradas registradas no período analisado.
 `.trim();
   }
 
-  // TOTAL DE DESPESAS / SAÍDAS / PAGO
-  if (
-    wantsTotal &&
-    (
-      lower.includes('despesa') ||
-      lower.includes('despesas') ||
-      lower.includes('saida') ||
-      lower.includes('saidas') ||
-      lower.includes('pago') ||
-      lower.includes('paguei')
-    )
-  ) {
-    return `
+ // TOTAL DE DESPESAS / SAÍDAS / PAGO
+if (
+  wantsTotal &&
+  (
+    lower.includes('despesa') ||
+    lower.includes('despesas') ||
+    lower.includes('saida') ||
+    lower.includes('saidas') ||
+    lower.includes('pago') ||
+    lower.includes('paguei') ||
+    lower.includes('gastos')
+  )
+) {
+  return `
 💸 TOTAL DE SAÍDAS — ${ctx.periodLabel}
 
 ━━━━━━━━━━━━━━━━━━
@@ -2446,7 +2484,7 @@ ${
 
 Esse valor representa o total de saídas registradas no período analisado.
 `.trim();
-  }
+}
 
   // FORMA DE PAGAMENTO — PIX / DINHEIRO / CRÉDITO / DÉBITO
   const paymentTerms = [

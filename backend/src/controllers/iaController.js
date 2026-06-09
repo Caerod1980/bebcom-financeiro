@@ -8732,11 +8732,18 @@ Essa análise agrupa as entradas por semana e identifica o maior ou menor fatura
   }
 
   // PIOR DIA / DIA MAIS CRÍTICO
-  if (
+ if (
+  (
     lower.includes('pior dia') ||
+    lower.includes('menor dia') ||
     lower.includes('dia mais critico') ||
-    lower.includes('menor dia')
-  ) {
+    lower.includes('dia foi o mais critico') ||
+    (
+      lower.includes('dia') &&
+      lower.includes('mais critico')
+    )
+  )
+) {
     const days = [...(ctx.incomeByDay || [])].sort(
       (a, b) => a.amount - b.amount
     );
@@ -8776,6 +8783,15 @@ Esse foi o dia com menor volume financeiro de entradas registradas no período.
 
 const buildBebcomHistoryAnswer = (question) => {
   const lower = normalizeText(question);
+
+  if (
+  lower.includes('final de semana') ||
+  lower.includes('fim de semana') ||
+  lower.includes('semana') ||
+  lower.includes('dia')
+) {
+  return null;
+}
 
   if (
     lower.includes('pior mes da historia') ||

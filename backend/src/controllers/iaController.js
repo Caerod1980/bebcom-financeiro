@@ -624,6 +624,171 @@ Elas apenas permitiriam chegar mais rápido ao nível de organização atual.
 `.trim();
   }
 
+  // FILOSOFIA DE GESTÃO
+
+if (
+  lower.includes('filosofia de gestão') ||
+  lower.includes('filosofia de gestao') ||
+  lower.includes('filosofia da bebcom') ||
+  lower.includes('gestão da bebcom') ||
+  lower.includes('gestao da bebcom')
+) {
+  return `
+🧭 FILOSOFIA DE GESTÃO DA BEBCOM
+
+━━━━━━━━━━━━━━━━━━
+
+A filosofia de gestão da Bebcom se apoia em três pilares:
+
+• planejamento;
+• execução;
+• controle.
+
+Neste cenário, a recomendação mais coerente com a história da empresa é não tomar decisões apenas pelo saldo atual.
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha leitura
+
+A Bebcom cresceu quando manteve proximidade com a operação, controle de estoque, atenção ao caixa e adaptação ao cliente.
+
+Quando esses pontos ficam soltos, o risco aumenta mesmo com vendas acontecendo.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Antes de buscar crescimento, fortaleça controle de compras, estoque, contas pendentes e margem.
+`.trim();
+}
+
+  // LIMITAÇÃO DO CRESCIMENTO
+
+if (
+  lower.includes('limitando') &&
+  lower.includes('crescimento')
+) {
+  const purchases = currentCtx.expenseCategories?.find(
+    (item) => item.category === 'compras_mercadorias'
+  );
+
+  const purchaseShare =
+    purchases && currentCtx.totalIncome > 0
+      ? (purchases.amount / currentCtx.totalIncome) * 100
+      : 0;
+
+  return `
+🚧 O QUE LIMITA O CRESCIMENTO DA BEBCOM AGORA
+
+━━━━━━━━━━━━━━━━━━
+
+O crescimento da Bebcom neste momento parece limitado menos pela falta de potencial comercial e mais pela necessidade de controle operacional.
+
+━━━━━━━━━━━━━━━━━━
+
+📊 Pontos que pressionam
+
+• Contas pendentes: ${formatCurrency(currentCtx.pendingPayable)}
+• Compras de mercadorias: ${
+    purchases
+      ? `${formatCurrency(purchases.amount)} — ${purchaseShare.toFixed(1)}% das entradas`
+      : 'sem concentração relevante identificada'
+  }
+• Resultado atual: ${formatCurrency(currentCtx.balance)}
+• Ticket médio: ${formatCurrency(currentCtx.managementReport?.averageTicket || 0)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha leitura
+
+A Bebcom tem força de marca, atendimento e variedade. O limite atual não é identidade comercial.
+
+O limite está em transformar vendas, estoque e compras em caixa saudável.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Trate este momento como correção operacional antes de acelerar expansão.
+`.trim();
+}
+
+  // APRENDIZADO MAIS RELEVANTE
+
+if (
+  lower.includes('aprendizado da história') ||
+  lower.includes('aprendizado da historia') ||
+  lower.includes('mais relevante para este momento') ||
+  lower.includes('mais relevante para esse momento')
+) {
+  return `
+📌 APRENDIZADO MAIS RELEVANTE DA HISTÓRIA DA BEBCOM
+
+━━━━━━━━━━━━━━━━━━
+
+O aprendizado mais relevante para este momento é:
+
+crescimento só é saudável quando compras, estoque, caixa e operação caminham juntos.
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 O que a história mostra
+
+A Bebcom cresceu quando ouviu clientes, organizou o mix, manteve bom atendimento e controlou melhor a operação.
+
+Mas os maiores riscos apareceram quando estoque, capital de giro, funcionários e compras ficaram menos acompanhados.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Use o resultado atual para fortalecer controle, não para criar falsa sensação de folga.
+`.trim();
+}
+
+  // AUSÊNCIA DO RODRIGO
+
+if (
+  lower.includes('rodrigo') &&
+  (
+    lower.includes('ausentar') ||
+    lower.includes('ausência') ||
+    lower.includes('ausencia') ||
+    lower.includes('30 dias')
+  )
+) {
+  return `
+🛡️ PROTEÇÃO DA BEBCOM NA AUSÊNCIA DO RODRIGO
+
+━━━━━━━━━━━━━━━━━━
+
+Se Rodrigo se ausentasse por 30 dias, eu monitoraria diariamente:
+
+• saldo de caixa;
+• contas a pagar vencidas e próximas;
+• compras de mercadorias;
+• estoque físico versus relatório de vendas;
+• ticket médio;
+• comandas;
+• consumo interno;
+• fornecedores críticos;
+• produtos de maior giro;
+• divergências operacionais.
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha leitura
+
+A história da Bebcom mostra que a ausência de acompanhamento próximo pode abrir espaço para perda de controle em estoque, compras e operação.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Criar uma rotina diária simples: caixa, vendas, compras, estoque e vencimentos. Esses cinco pontos protegem a operação.
+`.trim();
+}
+
   return null;
 };
 

@@ -1362,6 +1362,69 @@ const getCategoryTotals = (entries, type) => {
     .sort((a, b) => b.amount - a.amount);
 };
 
+const normalizeText = (value) =>
+  String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+
+const groupEntriesByField = (
+  entries,
+  type,
+  field,
+  fallback = 'não informado'
+) => {
+  const grouped = {};
+
+  entries
+    .filter((entry) => entry.type === type)
+    .forEach((entry) => {
+      const key =
+        entry[field] ||
+        fallback;
+
+      if (!grouped[key]) {
+        grouped[key] = {
+          name: key,
+          amount: 0,
+          count: 0,
+        };
+      }
+
+      grouped[key].amount += Math.abs(Number(entry.amount || 0));
+      grouped[key].count += 1;
+    });
+
+  return Object.values(grouped)
+    .sort((a, b) => b.amount - a.amount);
+};
+
+const groupEntriesByDay = (entries, type) => {
+  const grouped = {};
+
+  entries
+    .filter((entry) => entry.type === type)
+    .forEach((entry) => {
+      const date = new Date(entry.date)
+        .toLocaleDateString('pt-BR');
+
+      if (!grouped[date]) {
+        grouped[date] = {
+          name: date,
+          amount: 0,
+          count: 0,
+        };
+      }
+
+      grouped[date].amount += Math.abs(Number(entry.amount || 0));
+      grouped[date].count += 1;
+    });
+
+  return Object.values(grouped)
+    .sort((a, b) => b.amount - a.amount);
+};
+
 const buildContext = async ({ month, year, start, end }) => {
   const entries = await Entry.find({
     deleted: { $ne: true },
@@ -1407,6 +1470,42 @@ const buildContext = async ({ month, year, start, end }) => {
   const expenseCategories = getCategoryTotals(entries, 'expense');
   const incomeCategories = getCategoryTotals(entries, 'income');
 
+  const expensesByDescription =
+  groupEntriesByField(entries, 'expense', 'description');
+
+const incomeByDescription =
+  groupEntriesByField(entries, 'income', 'description');
+
+const expensesByPerson =
+  groupEntriesByField(entries, 'expense', 'person');
+
+const incomeByPerson =
+  groupEntriesByField(entries, 'income', 'person');
+
+const expensesByPaymentMethod =
+  groupEntriesByField(entries, 'expense', 'paymentMethod');
+
+const incomeByPaymentMethod =
+  groupEntriesByField(entries, 'income', 'paymentMethod');
+
+const expensesByCostCenter =
+  groupEntriesByField(entries, 'expense', 'costCenter');
+
+const incomeByCostCenter =
+  groupEntriesByField(entries, 'income', 'costCenter');
+
+const expensesByChannel =
+  groupEntriesByField(entries, 'expense', 'channel');
+
+const incomeByChannel =
+  groupEntriesByField(entries, 'income', 'channel');
+
+const incomeByDay =
+  groupEntriesByDay(entries, 'income');
+
+const expensesByDay =
+  groupEntriesByDay(entries, 'expense');
+
   return {
   month,
   year,
@@ -1425,6 +1524,18 @@ const buildContext = async ({ month, year, start, end }) => {
   accounts,
   expenseCategories,
   incomeCategories,
+  expensesByDescription,
+  incomeByDescription,
+  expensesByPerson,
+  incomeByPerson,
+  expensesByPaymentMethod,
+  incomeByPaymentMethod,
+  expensesByCostCenter,
+  incomeByCostCenter,
+  expensesByChannel,
+  incomeByChannel,
+  incomeByDay,
+  expensesByDay,
 };
 };
 

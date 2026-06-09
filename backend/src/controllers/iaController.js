@@ -2354,6 +2354,20 @@ ${buildConsultiveClosing({
 `.trim();
 };
 
+const getSharePercent = (value, total) => {
+  if (!total || total <= 0) return '0.0';
+
+  return ((Number(value || 0) / Number(total || 0)) * 100).toFixed(1);
+};
+
+const getTopItem = (items) => {
+  if (!items || !items.length) return null;
+
+  return [...items].sort(
+    (a, b) => Number(b.amount || 0) - Number(a.amount || 0)
+  )[0];
+};
+
 const buildOperationalAnalyticsAnswer = (
   question,
   ctx
@@ -2380,6 +2394,366 @@ const buildOperationalAnalyticsAnswer = (
     lower.includes('total') ||
     lower.includes('somar') ||
     lower.includes('soma');
+
+  // V11.4.97.1 — CATEGORIA QUE MAIS PRESSIONA
+if (
+  lower.includes('categoria mais pesa') ||
+  lower.includes('categoria mais consome') ||
+  lower.includes('maior despesa') ||
+  lower.includes('maior categoria') ||
+  lower.includes('categorias mais pesaram')
+) {
+  const topCategory = ctx.expenseCategories?.[0];
+
+  if (!topCategory) {
+    return 'Não encontrei categorias de despesas suficientes para essa análise.';
+  }
+
+  return `
+🏆 CATEGORIA QUE MAIS PRESSIONA — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Categoria
+${topCategory.category}
+
+💰 Valor
+${formatCurrency(topCategory.amount)}
+
+📊 Participação nas saídas
+${getSharePercent(topCategory.amount, ctx.totalExpenses)}%
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Essa é a categoria que mais consumiu recursos no período analisado.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Comece por essa categoria antes de tentar cortar pequenas despesas, porque ela tende a gerar o maior impacto no caixa.
+`.trim();
+}
+
+  // V11.4.97.1 — FORNECEDOR QUE MAIS CONSOME CAIXA
+if (
+  lower.includes('fornecedor mais consome') ||
+  lower.includes('fornecedor mais consumiu') ||
+  lower.includes('maior fornecedor') ||
+  lower.includes('quem mais recebeu') ||
+  lower.includes('fornecedor que mais pesa')
+) {
+  const topSupplier = getTopItem(ctx.expensesByPerson);
+
+  if (!topSupplier) {
+    return 'Não encontrei fornecedores suficientes para essa análise.';
+  }
+
+  return `
+🏦 FORNECEDOR QUE MAIS CONSUMIU CAIXA — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Fornecedor
+${topSupplier.name}
+
+💰 Valor
+${formatCurrency(topSupplier.amount)}
+
+📋 Lançamentos
+${topSupplier.count}
+
+📊 Participação nas saídas
+${getSharePercent(topSupplier.amount, ctx.totalExpenses)}%
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Esse fornecedor concentra a maior saída financeira registrada no período.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Revise prazo, frequência de compra, necessidade real de reposição e possibilidade de negociação.
+`.trim();
+}
+
+  // V11.4.97.1 — CANAL QUE MAIS VENDE
+if (
+  lower.includes('canal vende mais') ||
+  lower.includes('canal que mais vende') ||
+  lower.includes('canal mais vendeu') ||
+  lower.includes('quem vende mais') ||
+  lower.includes('maior canal de venda')
+) {
+  const topChannel = getTopItem(ctx.incomeByChannel);
+
+  if (!topChannel) {
+    return 'Não encontrei canais de venda suficientes para essa análise.';
+  }
+
+  return `
+🛒 CANAL QUE MAIS VENDE — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Canal
+${topChannel.name}
+
+💰 Faturamento
+${formatCurrency(topChannel.amount)}
+
+📋 Lançamentos
+${topChannel.count}
+
+📊 Participação nas entradas
+${getSharePercent(topChannel.amount, ctx.totalIncome)}%
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Esse foi o canal com maior volume financeiro de entradas no período.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Fortaleça esse canal, mas observe se ele também preserva margem e recorrência.
+`.trim();
+}
+
+  // V11.4.97.1 — FORMA DE PAGAMENTO DOMINANTE
+if (
+  lower.includes('forma de pagamento domina') ||
+  lower.includes('forma de pagamento dominante') ||
+  lower.includes('recebo mais em') ||
+  lower.includes('pagamento mais usado') ||
+  lower.includes('maior forma de pagamento')
+) {
+  const topPayment = getTopItem(ctx.incomeByPaymentMethod);
+
+  if (!topPayment) {
+    return 'Não encontrei formas de pagamento suficientes para essa análise.';
+  }
+
+  return `
+💳 FORMA DE PAGAMENTO DOMINANTE — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Forma de pagamento
+${topPayment.name}
+
+💰 Total recebido
+${formatCurrency(topPayment.amount)}
+
+📋 Lançamentos
+${topPayment.count}
+
+📊 Participação nas entradas
+${getSharePercent(topPayment.amount, ctx.totalIncome)}%
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Essa foi a forma de pagamento mais representativa no faturamento registrado.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Acompanhe taxas, prazos de recebimento e impacto no caixa real.
+`.trim();
+}
+
+  // V11.4.97.2 — O QUE MAIS PRESSIONA O CAIXA
+if (
+  lower.includes('o que mais pressiona meu caixa') ||
+  lower.includes('maior pressão do caixa') ||
+  lower.includes('maior pressao do caixa') ||
+  lower.includes('o que pressiona o caixa')
+) {
+  const topCategory = ctx.expenseCategories?.[0];
+
+  if (!topCategory) {
+    return 'Não encontrei despesas suficientes para identificar a pressão principal do caixa.';
+  }
+
+  return `
+🚨 PRINCIPAL PRESSÃO DO CAIXA — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Categoria principal
+${topCategory.category}
+
+💰 Valor
+${formatCurrency(topCategory.amount)}
+
+📊 Peso nas saídas
+${getSharePercent(topCategory.amount, ctx.totalExpenses)}%
+
+━━━━━━━━━━━━━━━━━━
+
+📌 Situação do período
+
+Entradas: ${formatCurrency(ctx.totalIncome)}
+Saídas: ${formatCurrency(ctx.totalExpenses)}
+Resultado: ${formatCurrency(ctx.balance)}
+Contas pendentes: ${formatCurrency(ctx.pendingPayable)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Hoje a maior pressão do caixa está concentrada nessa categoria.
+
+Pela memória da Bebcom, o ponto de atenção não é apenas vender, mas transformar venda em caixa saudável.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Ataque primeiro essa categoria e acompanhe se ela está gerando giro real ou apenas aumentando pressão financeira.
+`.trim();
+}
+
+  // V11.4.97.2 — ONDE ESTOU PERDENDO DINHEIRO
+if (
+  lower.includes('onde estou perdendo dinheiro') ||
+  lower.includes('onde perco dinheiro') ||
+  lower.includes('onde a operação perde dinheiro') ||
+  lower.includes('onde a operacao perde dinheiro')
+) {
+  const topCategory = ctx.expenseCategories?.[0];
+
+  return `
+🔎 ONDE A OPERAÇÃO ESTÁ PERDENDO FORÇA — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+📊 Resultado do período
+${formatCurrency(ctx.balance)}
+
+💸 Maior grupo de saída
+${topCategory ? `${topCategory.category} — ${formatCurrency(topCategory.amount)}` : 'Não identificado'}
+
+💰 Contas pendentes
+${formatCurrency(ctx.pendingPayable)}
+
+🎯 Ticket médio
+${formatCurrency(ctx.managementReport?.averageTicket || 0)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+A perda de força não está necessariamente apenas nas vendas.
+
+Ela pode estar na combinação entre compras, despesas, contas pendentes, margem e giro de estoque.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Procure primeiro onde há maior saída recorrente e compare com o retorno real em vendas, margem e giro.
+`.trim();
+}
+
+  // V11.4.97.2 — PRIMEIRA AÇÃO EXECUTIVA
+if (
+  lower.includes('qual seria minha primeira ação') ||
+  lower.includes('qual seria minha primeira acao') ||
+  lower.includes('o que faço primeiro') ||
+  lower.includes('o que faco primeiro') ||
+  lower.includes('primeira ação') ||
+  lower.includes('primeira acao')
+) {
+  const topCategory = ctx.expenseCategories?.[0];
+
+  let firstAction =
+    'Organizar caixa, revisar compras e acompanhar vencimentos.';
+
+  if (ctx.pendingPayable > ctx.totalIncome) {
+    firstAction =
+      'Mapear contas a pagar, priorizar vencimentos críticos e negociar prazos antes de assumir novas compras.';
+  } else if (ctx.balance < 0) {
+    firstAction =
+      'Conter novas despesas e entender por que as saídas superaram as entradas.';
+  } else if (topCategory?.category === 'compras_mercadorias') {
+    firstAction =
+      'Revisar compras de mercadorias e confirmar se o estoque comprado está realmente virando venda.';
+  }
+
+  return `
+🎯 PRIMEIRA AÇÃO EXECUTIVA — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Minha primeira ação seria:
+
+${firstAction}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+A Bebcom historicamente melhora quando Rodrigo começa pela operação: caixa, compras, estoque, vencimentos e giro.
+
+━━━━━━━━━━━━━━━━━━
+
+✅ Próximo passo prático
+
+Hoje eu separaria:
+
+1. contas urgentes;
+2. compras indispensáveis;
+3. produtos parados;
+4. fornecedores negociáveis;
+5. ações rápidas para gerar caixa.
+`.trim();
+}
+
+  // V11.4.97.2 — SE EU FOSSE O RODRIGO
+if (
+  lower.includes('se fosse o rodrigo') ||
+  lower.includes('o que eu faria como rodrigo') ||
+  lower.includes('o que você faria se fosse o rodrigo') ||
+  lower.includes('o que voce faria se fosse o rodrigo')
+) {
+  return `
+🧭 VISÃO EXECUTIVA DO RODRIGO — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Se eu pensasse com a experiência acumulada da Bebcom, eu faria nesta ordem:
+
+1. Conferir caixa e vencimentos próximos.
+2. Revisar compras de mercadorias.
+3. Verificar se o estoque está girando.
+4. Observar ticket médio e comandas.
+5. Negociar fornecedores com maior peso.
+6. Evitar decisões que aumentem pressão no caixa.
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+A história da Bebcom mostra que os melhores ajustes vieram de controle operacional, revisão de preços, fornecedores, mix e atendimento — não de decisões impulsivas.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Agir com firmeza, mas sem perder a identidade da Bebcom: preço justo, atendimento forte, produto gelado, variedade e controle.
+`.trim();
+}
 
   // CONTAS PAGAS / BOLETOS / PAGAMENTOS REALIZADOS
 if (

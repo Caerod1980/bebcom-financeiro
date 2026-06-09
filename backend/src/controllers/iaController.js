@@ -8540,6 +8540,355 @@ const buildOpportunityAnalysis = (
   };
 };
 
+const getWeekdayName = (date) =>
+  new Date(date).toLocaleDateString('pt-BR', {
+    weekday: 'long',
+  });
+
+const getWeekendKey = (date) => {
+  const d = new Date(date);
+  const day = d.getDay();
+
+  // Sexta, sábado e domingo
+  if (![5, 6, 0].includes(day)) {
+    return null;
+  }
+
+  const friday = new Date(d);
+
+  if (day === 6) friday.setDate(d.getDate() - 1);
+  if (day === 0) friday.setDate(d.getDate() - 2);
+
+  const sunday = new Date(friday);
+  sunday.setDate(friday.getDate() + 2);
+
+  return {
+    key: friday.toISOString().slice(0, 10),
+    label: `${friday.toLocaleDateString('pt-BR')} a ${sunday.toLocaleDateString('pt-BR')}`,
+  };
+};
+
+const buildWeekendRanking = (entries, type = 'income') => {
+  const grouped = {};
+
+  entries
+    .filter((entry) => entry.type === type)
+    .forEach((entry) => {
+      const weekend = getWeekendKey(entry.date);
+
+      if (!weekend) return;
+
+      if (!grouped[weekend.key]) {
+        grouped[weekend.key] = {
+          label: weekend.label,
+          amount: 0,
+          count: 0,
+        };
+      }
+
+      grouped[weekend.key].amount += Math.abs(Number(entry.amount || 0));
+      grouped[weekend.key].count += 1;
+    });
+
+  return Object.values(grouped).sort(
+    (a, b) => b.amount - a.amount
+  );
+};
+
+const buildWeekRanking = (entries, type = 'income') => {
+  const grouped = {};
+
+  entries
+    .filter((entry) => entry.type === type)
+    .forEach((entry) => {
+      const date = new Date(entry.date);
+      const day = date.getDay();
+
+      const weekStart = new Date(date);
+      weekStart.setDate(date.getDate() - day);
+
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+
+      const key = weekStart.toISOString().slice(0, 10);
+      const label = `${weekStart.toLocaleDateString('pt-BR')} a ${weekEnd.toLocaleDateString('pt-BR')}`;
+
+      if (!grouped[key]) {
+        grouped[key] = {
+          label,
+          amount: 0,
+          count: 0,
+        };
+      }
+
+      grouped[key].amount += Math.abs(Number(entry.amount || 0));
+      grouped[key].count += 1;
+    });
+
+  return Object.values(grouped).sort(
+    (a, b) => b.amount - a.amount
+  );
+};
+
+const buildTemporalAnalyticsAnswer = (question, ctx) => {
+  const lower = normalizeText(question);
+
+  const wantsBest =
+    lower.includes('melhor') ||
+    lower.includes('maior') ||
+    lower.includes('mais vendeu') ||
+    lower.includes('maior faturamento');
+
+  const wantsWorst =
+    lower.includes('pior') ||
+    lower.includes('menor') ||
+    lower.includes('mais critico') ||
+    lower.includes('critico');
+
+  // FINAL DE SEMANA
+  if (
+    lower.includes('final de semana') ||
+    lower.includes('fim de semana')
+  ) {
+    const weekends = buildWeekendRanking(
+      ctx.entries,
+      'income'
+    );
+
+    if (!weekends.length) {
+      return `
+Não encontrei vendas registradas em finais de semana em ${ctx.periodLabel}.
+`.trim();
+    }
+
+    const selected = wantsWorst
+      ? [...weekends].sort((a, b) => a.amount - b.amount)[0]
+      : weekends[0];
+
+    return `
+🏆 ${wantsWorst ? 'PIOR' : 'MELHOR'} FINAL DE SEMANA — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+📅 Período
+${selected.label}
+
+💰 Faturamento
+${formatCurrency(selected.amount)}
+
+📋 Lançamentos
+${selected.count}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Para esta análise, considerei final de semana como sexta, sábado e domingo.
+`.trim();
+  }
+
+  // SEMANA
+  if (
+    lower.includes('melhor semana') ||
+    lower.includes('pior semana') ||
+    lower.includes('semana vendeu mais') ||
+    lower.includes('semana teve maior faturamento')
+  ) {
+    const weeks = buildWeekRanking(
+      ctx.entries,
+      'income'
+    );
+
+    if (!weeks.length) {
+      return `
+Não encontrei vendas suficientes para analisar semanas em ${ctx.periodLabel}.
+`.trim();
+    }
+
+    const selected = wantsWorst
+      ? [...weeks].sort((a, b) => a.amount - b.amount)[0]
+      : weeks[0];
+
+    return `
+📅 ${wantsWorst ? 'PIOR' : 'MELHOR'} SEMANA — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Período
+${selected.label}
+
+💰 Faturamento
+${formatCurrency(selected.amount)}
+
+📋 Lançamentos
+${selected.count}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Essa análise agrupa as entradas por semana e identifica o maior ou menor faturamento semanal.
+`.trim();
+  }
+
+  // PIOR DIA / DIA MAIS CRÍTICO
+  if (
+    lower.includes('pior dia') ||
+    lower.includes('dia mais critico') ||
+    lower.includes('menor dia')
+  ) {
+    const days = [...(ctx.incomeByDay || [])].sort(
+      (a, b) => a.amount - b.amount
+    );
+
+    const selected = days[0];
+
+    if (!selected) {
+      return `
+Não encontrei entradas suficientes para identificar o pior dia em ${ctx.periodLabel}.
+`.trim();
+    }
+
+    return `
+🚨 DIA MAIS CRÍTICO DE VENDAS — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+📅 Dia
+${selected.name}
+
+💰 Faturamento
+${formatCurrency(selected.amount)}
+
+📋 Lançamentos
+${selected.count}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Esse foi o dia com menor volume financeiro de entradas registradas no período.
+`.trim();
+  }
+
+  return null;
+};
+
+const buildBebcomHistoryAnswer = (question) => {
+  const lower = normalizeText(question);
+
+  if (
+    lower.includes('pior mes da historia') ||
+    lower.includes('periodo mais critico') ||
+    lower.includes('periodo mais dificil') 
+  ) {
+    const milestone =
+      bebcomBrain.milestones.hardestFinancialMonth;
+
+    return `
+🧠 PERÍODO MAIS CRÍTICO DA HISTÓRIA DA BEBCOM
+
+━━━━━━━━━━━━━━━━━━
+
+📅 Período
+${milestone.period}
+
+💰 Faturamento registrado
+${formatCurrency(milestone.amount)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+${milestone.note}
+
+O ponto mais importante é que o pior momento financeiro não foi definido apenas pelo faturamento.
+
+A leitura correta considera custo operacional, pressão de caixa, funcionários, compras e capacidade de sustentar a operação.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Aprendizado institucional
+
+A Bebcom aprendeu que faturamento sozinho não representa saúde financeira.
+
+O que define a segurança da empresa é a relação entre vendas, margem, despesas, estoque e contas pendentes.
+`.trim();
+  }
+
+  if (
+    lower.includes('melhor mes da historia') ||
+    lower.includes('maior faturamento') ||
+    lower.includes('recorde de faturamento')
+  ) {
+    const milestone =
+      bebcomBrain.milestones.bestRevenueMonth;
+
+    return `
+🏆 MAIOR FATURAMENTO DA HISTÓRIA DA BEBCOM
+
+━━━━━━━━━━━━━━━━━━
+
+📅 Período
+${milestone.period}
+
+💰 Faturamento
+${formatCurrency(milestone.amount)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+${milestone.note}
+
+Esse marco mostra a capacidade da Bebcom quando estoque, demanda, atendimento, variedade e operação trabalham alinhados.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Aprendizado institucional
+
+O objetivo não é apenas repetir o faturamento recorde.
+
+O objetivo é repetir o alinhamento operacional que permitiu esse resultado.
+`.trim();
+  }
+
+  if (
+    lower.includes('maior virada') ||
+    lower.includes('virada da empresa') ||
+    lower.includes('decisao mudou') 
+  ) {
+    return `
+🔁 MAIORES VIRADAS ESTRATÉGICAS DA BEBCOM
+
+━━━━━━━━━━━━━━━━━━
+
+• Implantação de energia solar em 2023.
+• Redução do quadro de funcionários.
+• Reavaliação de preços diante de nova concorrência.
+• Expansão do mix de mercearia.
+• Reorganização da vitrine da loja.
+• Busca por novos fornecedores.
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+As maiores viradas da Bebcom não vieram de uma única ação isolada.
+
+Elas vieram de decisões que melhoraram estrutura, margem, compras, exposição de produtos e controle operacional.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Aprendizado institucional
+
+A Bebcom evolui melhor quando transforma pressão em ajuste de gestão.
+`.trim();
+  }
+
+  return null;
+};
+
 // @desc    Ask IA Bebcom
 // @route   POST /api/ia/ask
 const askIABebcom = async (req, res) => {
@@ -8736,6 +9085,7 @@ if (deepDiveAnswer) {
     answer: deepDiveAnswer,
   });
 }
+    
 const operationalAnalyticsAnswer =
   buildOperationalAnalyticsAnswer(
     question,
@@ -9069,6 +9419,27 @@ const isCashForecastQuestion =
   lowerQuestion.includes('organize um plano') ||
   lowerQuestion.includes('faça um plano') ||
   lowerQuestion.includes('faca um plano');
+
+    const bebcomHistoryAnswer =
+  buildBebcomHistoryAnswer(question);
+
+if (bebcomHistoryAnswer) {
+  return res.json({
+    answer: bebcomHistoryAnswer,
+  });
+}
+
+const temporalAnalyticsAnswer =
+  buildTemporalAnalyticsAnswer(
+    question,
+    ctx
+  );
+
+if (temporalAnalyticsAnswer) {
+  return res.json({
+    answer: temporalAnalyticsAnswer,
+  });
+}
 
     const educationalAnswer = getEducationalAnswer(question);
     

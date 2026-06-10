@@ -5196,12 +5196,6 @@ Sugestão:
 Use essa informação para equilibrar compra, giro e disponibilidade dos produtos mais importantes.
 `.trim();
 
-const calculateVariation = (current, previous) => {
-  if (!previous || previous === 0) return 0;
-
-  return ((current - previous) / previous) * 100;
-};
-
 const buildAnalyticalInsights = (currentCtx, previousCtx) => {
   const insights = [];
 

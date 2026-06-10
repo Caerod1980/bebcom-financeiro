@@ -2660,11 +2660,24 @@ ${canBuy
     .slice(0, 5);
 
   const list = suppliers
-    .map(
-      (item, index) =>
-        `${index + 1}. ${item.name} — ${formatCurrency(item.amount)} — ${item.count} lançamento(s)`
-    )
-    .join('\n');
+  .map((item, index) => {
+    const share = getSharePercent(item.amount, ctx.totalExpenses);
+
+    let reason = 'Concentração financeira relevante no período.';
+
+    if (index === 0) {
+      reason = 'Maior concentração financeira entre fornecedores/descrições.';
+    } else if (item.count >= 3) {
+      reason = 'Recorrência elevada de lançamentos no período.';
+    }
+
+    return `${index + 1}. ${item.name}
+Valor: ${formatCurrency(item.amount)}
+Participação nas saídas: ${share}%
+Lançamentos: ${item.count}
+Motivo: ${reason}`;
+  })
+  .join('\n\n');
 
   return `
 🏦 FORNECEDORES PARA RENEGOCIAÇÃO — ${ctx.periodLabel}
@@ -2692,16 +2705,16 @@ Comece negociando prazo, frequência de compra, bonificação ou condição come
   lower.includes('canal que mais cresceu')
 ) {
   const results = getGrowthRanking(
-    ctx.incomeByChannel,
-    previousCtx?.incomeByChannel
-  );
+  ctx.incomeByChannel,
+  previousCtx?.incomeByChannel
+).filter((item) => item.variation > 0);
 
-  results.sort((a, b) => b.variation - a.variation);
+results.sort((a, b) => b.variation - a.variation);
 
-  const winner = results[0];
+const winner = results[0];
 
   if (!winner) {
-    return 'Não encontrei base suficiente para comparar canais com o período anterior.';
+    return 'Nenhum canal apresentou crescimento em relação ao período anterior.';
   }
 
   return buildSimpleEvolutionAnswer({
@@ -9921,6 +9934,25 @@ const buildTemporalAnalyticsAnswer = (question, ctx) => {
       return `
 Não encontrei vendas registradas em finais de semana em ${ctx.periodLabel}.
 `.trim();
+
+if (weekends.length < 2 && wantsWorst) {
+  return `
+📅 ANÁLISE DE FINAL DE SEMANA — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Existe apenas um final de semana registrado no período.
+
+Com apenas um final de semana disponível, não é possível afirmar qual vendeu menos.
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Para comparar melhor ou pior final de semana, preciso de pelo menos dois finais de semana com vendas registradas.
+`.trim();
+}
+      
     }
 
     const selected = wantsWorst

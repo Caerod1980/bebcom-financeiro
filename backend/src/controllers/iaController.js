@@ -2368,9 +2368,91 @@ const getTopItem = (items) => {
   )[0];
 };
 
+const calculateVariation = (current, previous) => {
+  current = Number(current || 0);
+  previous = Number(previous || 0);
+
+  if (previous === 0) {
+    return null;
+  }
+
+  return ((current - previous) / previous) * 100;
+};
+
+const getItemAmountByName = (items, searchTerm) => {
+  const normalizedSearch = normalizeText(searchTerm);
+
+  const item = (items || []).find((entry) =>
+    normalizeText(entry.name || entry.category).includes(normalizedSearch)
+  );
+
+  return item ? Number(item.amount || 0) : 0;
+};
+
+const buildEvolutionLineAnswer = ({
+  title,
+  label,
+  currentAmount,
+  previousAmount,
+  currentLabel,
+  previousLabel,
+}) => {
+  const variation = calculateVariation(
+    currentAmount,
+    previousAmount
+  );
+
+  if (variation === null) {
+    return `
+${title}
+
+━━━━━━━━━━━━━━━━━━
+
+${label}
+
+Período atual: ${formatCurrency(currentAmount)}
+Período anterior: ${formatCurrency(previousAmount)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Não há base suficiente no período anterior para calcular evolução percentual.
+`.trim();
+  }
+
+  const trend =
+    variation > 0
+      ? 'cresceu'
+      : variation < 0
+        ? 'caiu'
+        : 'ficou estável';
+
+  return `
+${title}
+
+━━━━━━━━━━━━━━━━━━
+
+${label}
+
+${currentLabel}: ${formatCurrency(currentAmount)}
+${previousLabel}: ${formatCurrency(previousAmount)}
+
+📊 Variação
+${variation.toFixed(1)}%
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Esse indicador ${trend} em relação ao período anterior.
+`.trim();
+};
+
 const buildOperationalAnalyticsAnswer = (
   question,
-  ctx
+  ctx,
+  previousCtx
 ) => {
   const lower = normalizeText(question);
 
@@ -2440,6 +2522,227 @@ Comece por essa categoria antes de tentar cortar pequenas despesas, porque ela t
 `.trim();
 }
 
+  if (
+  lower.includes('categoria mais cresceu')
+) {
+
+  const growths = [];
+
+  ctx.expenseCategories.forEach((current) => {
+
+    const previous =
+      previousCtx?.expenseCategories?.find(
+        item =>
+          item.category === current.category
+      );
+
+    const variation =
+      calculateVariation(
+        current.amount,
+        previous?.amount || 0
+      );
+
+    if (variation !== null) {
+      growths.push({
+        category: current.category,
+        variation,
+        current: current.amount,
+      });
+    }
+  });
+
+  growths.sort(
+    (a, b) => b.variation - a.variation
+  );
+
+  const winner = growths[0];
+  if (!winner) {
+  return 'Não encontrei base suficiente para comparar categorias com o período anterior.';
+}
+
+  return `
+📈 CATEGORIA QUE MAIS CRESCEU
+
+━━━━━━━━━━━━━━━━━━
+
+Categoria
+${winner.category}
+
+📊 Crescimento
+${winner.variation.toFixed(1)}%
+
+💰 Valor atual
+${formatCurrency(winner.current)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Essa foi a categoria com maior crescimento em relação ao mês anterior.
+`.trim();
+}
+
+  if (
+  lower.includes('categoria mais caiu')
+) {
+
+  const growths = [];
+
+  ctx.expenseCategories.forEach((current) => {
+
+    const previous =
+      previousCtx?.expenseCategories?.find(
+        item =>
+          item.category === current.category
+      );
+
+    const variation =
+      calculateVariation(
+        current.amount,
+        previous?.amount || 0
+      );
+
+    if (variation !== null) {
+      growths.push({
+        category: current.category,
+        variation,
+        current: current.amount,
+      });
+    }
+  });
+
+ growths.sort(
+  (a, b) => a.variation - b.variation
+);
+
+  const winner = growths[0];
+  if (!winner) {
+  return 'Não encontrei base suficiente para comparar categorias com o período anterior.';
+}
+
+return `
+📉 CATEGORIA QUE MAIS CAIU
+
+━━━━━━━━━━━━━━━━━━
+
+Categoria
+${winner.category}
+
+📊 Variação
+${winner.variation.toFixed(1)}%
+
+💰 Valor atual
+${formatCurrency(winner.current)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Essa foi a categoria com maior queda em relação ao período anterior.
+`.trim();
+}
+  
+  // V11.4.97.3 — COMPRAS ESTÃO AUMENTANDO?
+if (
+  lower.includes('compras estão aumentando') ||
+  lower.includes('compras estao aumentando') ||
+  lower.includes('compras cresceram') ||
+  lower.includes('compras aumentaram')
+) {
+  const currentAmount =
+    ctx.expenseCategories?.find(
+      (item) => item.category === 'compras_mercadorias'
+    )?.amount || 0;
+
+  const previousAmount =
+    previousCtx?.expenseCategories?.find(
+      (item) => item.category === 'compras_mercadorias'
+    )?.amount || 0;
+
+  return buildEvolutionLineAnswer({
+    title: '📦 EVOLUÇÃO DAS COMPRAS DE MERCADORIAS',
+    label: 'Compras de mercadorias',
+    currentAmount,
+    previousAmount,
+    currentLabel: ctx.periodLabel,
+    previousLabel: previousCtx?.periodLabel || 'Período anterior',
+  });
+}
+
+// V11.4.97.3 — FUNCIONÁRIOS ESTÃO PESANDO MAIS?
+if (
+  lower.includes('funcionarios estão pesando') ||
+  lower.includes('funcionarios estao pesando') ||
+  lower.includes('funcionários estao pesando') ||
+  lower.includes('funcionarios pesando mais') ||
+  lower.includes('funcionários pesando mais')
+) {
+  const currentAmount =
+    ctx.expenseCategories?.find(
+      (item) => item.category === 'funcionarios'
+    )?.amount || 0;
+
+  const previousAmount =
+    previousCtx?.expenseCategories?.find(
+      (item) => item.category === 'funcionarios'
+    )?.amount || 0;
+
+  return buildEvolutionLineAnswer({
+    title: '👥 EVOLUÇÃO DE FUNCIONÁRIOS',
+    label: 'Funcionários',
+    currentAmount,
+    previousAmount,
+    currentLabel: ctx.periodLabel,
+    previousLabel: previousCtx?.periodLabel || 'Período anterior',
+  });
+}
+
+// V11.4.97.3 — PIX ESTÁ CRESCENDO?
+if (
+  lower.includes('pix esta crescendo') ||
+  lower.includes('pix cresceu') ||
+  lower.includes('pix aumentando')
+) {
+  const currentAmount =
+    getItemAmountByName(ctx.incomeByPaymentMethod, 'pix');
+
+  const previousAmount =
+    getItemAmountByName(previousCtx?.incomeByPaymentMethod, 'pix');
+
+  return buildEvolutionLineAnswer({
+    title: '💳 EVOLUÇÃO DO PIX',
+    label: 'Recebimentos em PIX',
+    currentAmount,
+    previousAmount,
+    currentLabel: ctx.periodLabel,
+    previousLabel: previousCtx?.periodLabel || 'Período anterior',
+  });
+}
+
+// V11.4.97.3 — IFOOD ESTÁ CRESCENDO?
+if (
+  lower.includes('ifood esta crescendo') ||
+  lower.includes('ifood cresceu') ||
+  lower.includes('ifood aumentando')
+) {
+  const currentAmount =
+    getItemAmountByName(ctx.incomeByChannel, 'ifood');
+
+  const previousAmount =
+    getItemAmountByName(previousCtx?.incomeByChannel, 'ifood');
+
+  return buildEvolutionLineAnswer({
+    title: '🛒 EVOLUÇÃO DO IFOOD',
+    label: 'Canal iFood',
+    currentAmount,
+    previousAmount,
+    currentLabel: ctx.periodLabel,
+    previousLabel: previousCtx?.periodLabel || 'Período anterior',
+  });
+}
+
+  
+
   // V11.4.97.1 — FORNECEDOR QUE MAIS CONSOME CAIXA
 if (
   lower.includes('fornecedor mais consome') ||
@@ -2482,6 +2785,73 @@ Esse fornecedor concentra a maior saída financeira registrada no período.
 🎯 Minha recomendação
 
 Revise prazo, frequência de compra, necessidade real de reposição e possibilidade de negociação.
+`.trim();
+}
+
+  // V11.4.97.3 — FORNECEDOR MAIS CRESCEU / CAIU
+if (
+  lower.includes('fornecedor mais cresceu') ||
+  lower.includes('fornecedor mais caiu')
+) {
+  const results = [];
+
+  (ctx.expensesByDescription || []).forEach((current) => {
+    const previousAmount =
+      getItemAmountByName(
+        previousCtx?.expensesByDescription,
+        current.name
+      );
+
+    const variation =
+      calculateVariation(
+        current.amount,
+        previousAmount
+      );
+
+    if (variation !== null) {
+      results.push({
+        name: current.name,
+        current: current.amount,
+        previous: previousAmount,
+        variation,
+      });
+    }
+  });
+
+  if (!results.length) {
+    return 'Não encontrei base suficiente para comparar fornecedores com o período anterior.';
+  }
+
+  const isDecline =
+    lower.includes('caiu');
+
+  results.sort((a, b) =>
+    isDecline
+      ? a.variation - b.variation
+      : b.variation - a.variation
+  );
+
+  const winner = results[0];
+
+  return `
+${isDecline ? '📉 FORNECEDOR QUE MAIS CAIU' : '📈 FORNECEDOR QUE MAIS CRESCEU'}
+
+━━━━━━━━━━━━━━━━━━
+
+Fornecedor/Descrição
+${winner.name}
+
+${ctx.periodLabel}: ${formatCurrency(winner.current)}
+${previousCtx?.periodLabel || 'Período anterior'}: ${formatCurrency(winner.previous)}
+
+📊 Variação
+${winner.variation.toFixed(1)}%
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Esse foi o fornecedor/descrição com maior ${isDecline ? 'queda' : 'crescimento'} em relação ao período anterior.
 `.trim();
 }
 
@@ -2757,6 +3127,25 @@ A história da Bebcom mostra que os melhores ajustes vieram de controle operacio
 Agir com firmeza, mas sem perder a identidade da Bebcom: preço justo, atendimento forte, produto gelado, variedade e controle.
 `.trim();
 }
+
+  // V11.4.97.3 — COMPARATIVO EVOLUTIVO
+
+const wantsGrowth =
+  lower.includes('mais cresceu') ||
+  lower.includes('cresceu') ||
+  lower.includes('aumentando') ||
+  lower.includes('esta aumentando') ||
+  lower.includes('está aumentando');
+
+const wantsDecline =
+  lower.includes('mais caiu') ||
+  lower.includes('caiu') ||
+  lower.includes('diminuindo') ||
+  lower.includes('esta diminuindo') ||
+  lower.includes('está diminuindo');
+
+const wantsComparison =
+  wantsGrowth || wantsDecline;
 
   // CONTAS PAGAS / BOLETOS / PAGAMENTOS REALIZADOS
 if (
@@ -9482,7 +9871,8 @@ if (deepDiveAnswer) {
 const operationalAnalyticsAnswer =
   buildOperationalAnalyticsAnswer(
     question,
-    ctx
+    ctx,
+    equivalentPreviousCtx
   );
 
 if (operationalAnalyticsAnswer) {

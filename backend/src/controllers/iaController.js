@@ -2401,7 +2401,10 @@ if (
   lower.includes('categoria mais consome') ||
   lower.includes('maior despesa') ||
   lower.includes('maior categoria') ||
-  lower.includes('categorias mais pesaram')
+  lower.includes('categorias mais pesaram')||
+  lower.includes('despesa mais consome') ||
+  lower.includes('despesa que mais consome') ||
+  lower.includes('qual despesa mais consome') 
 ) {
   const topCategory = ctx.expenseCategories?.[0];
 
@@ -2445,7 +2448,7 @@ if (
   lower.includes('quem mais recebeu') ||
   lower.includes('fornecedor que mais pesa')
 ) {
-  const topSupplier = getTopItem(ctx.expensesByPerson);
+  const topSupplier = getTopItem(ctx.expensesByDescription);
 
   if (!topSupplier) {
     return 'Não encontrei fornecedores suficientes para essa análise.';
@@ -2456,7 +2459,7 @@ if (
 
 ━━━━━━━━━━━━━━━━━━
 
-Fornecedor
+Descrição/Fornecedor
 ${topSupplier.name}
 
 💰 Valor

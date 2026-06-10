@@ -2449,6 +2449,71 @@ Esse indicador ${trend} em relação ao período anterior.
 `.trim();
 };
 
+const getGrowthRanking = (currentItems, previousItems, key = 'name') => {
+  const results = [];
+
+  (currentItems || []).forEach((current) => {
+    const currentName = current[key] || current.name || current.category;
+
+    const previous = (previousItems || []).find((item) =>
+      normalizeText(item[key] || item.name || item.category) ===
+      normalizeText(currentName)
+    );
+
+    const variation = calculateVariation(
+      current.amount,
+      previous?.amount || 0
+    );
+
+    if (variation !== null) {
+      results.push({
+        name: currentName,
+        current: current.amount,
+        previous: previous?.amount || 0,
+        variation,
+      });
+    }
+  });
+
+  return results;
+};
+
+const buildSimpleEvolutionAnswer = ({
+  title,
+  name,
+  current,
+  previous,
+  currentLabel,
+  previousLabel,
+  variation,
+  analysis,
+  recommendation,
+}) => `
+${title}
+
+━━━━━━━━━━━━━━━━━━
+
+${name}
+
+${currentLabel}: ${formatCurrency(current)}
+${previousLabel}: ${formatCurrency(previous)}
+
+📊 Variação
+${variation.toFixed(1)}%
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+${analysis}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+${recommendation}
+`.trim();
+
 const buildOperationalAnalyticsAnswer = (
   question,
   ctx,
@@ -2476,6 +2541,447 @@ const buildOperationalAnalyticsAnswer = (
     lower.includes('total') ||
     lower.includes('somar') ||
     lower.includes('soma');
+
+  if (
+  lower.includes('resultado') &&
+  lower.includes('saudavel')
+) {
+  const margin =
+    ctx.totalIncome > 0
+      ? (ctx.balance / ctx.totalIncome) * 100
+      : 0;
+
+  const status =
+    ctx.balance >= 0
+      ? '🟢 Saudável'
+      : margin > -10
+        ? '🟡 Atenção'
+        : '🔴 Não saudável';
+
+  return `
+🏥 SAÚDE DO RESULTADO — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Entradas
+${formatCurrency(ctx.totalIncome)}
+
+Saídas
+${formatCurrency(ctx.totalExpenses)}
+
+Resultado
+${formatCurrency(ctx.balance)}
+
+Margem do período
+${margin.toFixed(1)}%
+
+Classificação
+${status}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+${ctx.balance >= 0
+  ? 'O período está gerando caixa e apresenta resultado positivo.'
+  : 'O período está consumindo caixa. As saídas superaram as entradas.'}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+${ctx.balance >= 0
+  ? 'Mantenha controle de compras e use a folga para proteger próximos vencimentos.'
+  : 'Evite novas despesas, revise compras e priorize recuperação de caixa antes de ampliar compromissos.'}
+`.trim();
+}
+
+  if (
+  lower.includes('caixa suporta') ||
+  lower.includes('suporta novas compras') ||
+  lower.includes('posso comprar') ||
+  lower.includes('comprar mais mercadoria')
+) {
+  const purchases = ctx.expenseCategories?.find(
+    (item) => item.category === 'compras_mercadorias'
+  );
+
+  const purchaseShare =
+    purchases && ctx.totalIncome > 0
+      ? (purchases.amount / ctx.totalIncome) * 100
+      : 0;
+
+  const canBuy =
+    ctx.balance > 0 &&
+    ctx.pendingPayable < ctx.totalIncome &&
+    purchaseShare < 60;
+
+  return `
+🛒 CAPACIDADE PARA NOVAS COMPRAS — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Resultado atual
+${formatCurrency(ctx.balance)}
+
+Contas pendentes
+${formatCurrency(ctx.pendingPayable)}
+
+Compras de mercadorias
+${purchases ? formatCurrency(purchases.amount) : 'Não identificado'}
+
+Peso das compras sobre entradas
+${purchaseShare.toFixed(1)}%
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+${canBuy
+  ? 'O caixa possui alguma capacidade para compras, desde que sejam reposições estratégicas e de alto giro.'
+  : 'Eu não ampliaria compras neste momento. O caixa está pressionado ou as compras já representam peso elevado.'}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+${canBuy
+  ? 'Compre apenas itens essenciais, de giro rápido e com margem clara.'
+  : 'Priorize vender estoque, negociar vencimentos e preservar caixa antes de assumir novas compras.'}
+`.trim();
+}
+
+  if (
+  lower.includes('quem merece renegociacao') ||
+  lower.includes('fornecedores para negociar') ||
+  lower.includes('quem devo renegociar')
+) {
+  const suppliers = (ctx.expensesByDescription || [])
+    .slice(0, 5);
+
+  const list = suppliers
+    .map(
+      (item, index) =>
+        `${index + 1}. ${item.name} — ${formatCurrency(item.amount)} — ${item.count} lançamento(s)`
+    )
+    .join('\n');
+
+  return `
+🏦 FORNECEDORES PARA RENEGOCIAÇÃO — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+${list || 'Não encontrei fornecedores suficientes para análise.'}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Esses fornecedores ou descrições concentram maior saída financeira no período.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Comece negociando prazo, frequência de compra, bonificação ou condição comercial com os maiores impactos antes de cortar itens importantes do mix.
+`.trim();
+}
+
+  if (
+  lower.includes('canal mais cresceu') ||
+  lower.includes('canal que mais cresceu')
+) {
+  const results = getGrowthRanking(
+    ctx.incomeByChannel,
+    previousCtx?.incomeByChannel
+  );
+
+  results.sort((a, b) => b.variation - a.variation);
+
+  const winner = results[0];
+
+  if (!winner) {
+    return 'Não encontrei base suficiente para comparar canais com o período anterior.';
+  }
+
+  return buildSimpleEvolutionAnswer({
+    title: '📈 CANAL QUE MAIS CRESCEU',
+    name: winner.name,
+    current: winner.current,
+    previous: winner.previous,
+    currentLabel: ctx.periodLabel,
+    previousLabel: previousCtx?.periodLabel || 'Período anterior',
+    variation: winner.variation,
+    analysis: 'Esse foi o canal com maior crescimento proporcional em relação ao período anterior.',
+    recommendation: 'Verifique se esse crescimento também preserva margem, recorrência e qualidade do caixa.',
+  });
+}
+
+if (
+  lower.includes('canal mais caiu') ||
+  lower.includes('canal que mais caiu')
+) {
+  const results = getGrowthRanking(
+    ctx.incomeByChannel,
+    previousCtx?.incomeByChannel
+  );
+
+  results.sort((a, b) => a.variation - b.variation);
+
+  const winner = results[0];
+
+  if (!winner) {
+    return 'Não encontrei base suficiente para comparar canais com o período anterior.';
+  }
+
+  return buildSimpleEvolutionAnswer({
+    title: '📉 CANAL QUE MAIS CAIU',
+    name: winner.name,
+    current: winner.current,
+    previous: winner.previous,
+    currentLabel: ctx.periodLabel,
+    previousLabel: previousCtx?.periodLabel || 'Período anterior',
+    variation: winner.variation,
+    analysis: 'Esse foi o canal com maior queda proporcional em relação ao período anterior.',
+    recommendation: 'Investigue se a queda veio de preço, demanda, divulgação, concorrência ou comportamento do cliente.',
+  });
+}
+
+  if (
+  lower.includes('loja fisica esta crescendo') ||
+  lower.includes('loja fisica cresceu') 
+) {
+  const currentAmount =
+    getItemAmountByName(ctx.incomeByChannel, 'loja_fisica');
+
+  const previousAmount =
+    getItemAmountByName(previousCtx?.incomeByChannel, 'loja_fisica');
+
+  return buildEvolutionLineAnswer({
+    title: '🏪 EVOLUÇÃO DA LOJA FÍSICA',
+    label: 'Canal loja física',
+    currentAmount,
+    previousAmount,
+    currentLabel: ctx.periodLabel,
+    previousLabel: previousCtx?.periodLabel || 'Período anterior',
+  });
+}
+
+  if (
+  lower.includes('ticket atual preocupa') ||
+  lower.includes('ticket preocupa') ||
+  lower.includes('ticket esta ajudando') ||
+  lower.includes('ticket está ajudando') ||
+  lower.includes('ticket esta atrapalhando') 
+) {
+  const ticket = ctx.managementReport?.averageTicket || 0;
+  const previousTicket = previousCtx?.managementReport?.averageTicket || 0;
+  const variation = calculateVariation(ticket, previousTicket);
+
+  const status =
+    ticket >= 22
+      ? '🟢 Saudável'
+      : ticket >= 20
+        ? '🟡 Atenção'
+        : '🔴 Crítico';
+
+  return `
+🎯 LEITURA EXECUTIVA DO TICKET — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Ticket atual
+${formatCurrency(ticket)}
+
+Ticket anterior
+${formatCurrency(previousTicket)}
+
+Variação
+${variation === null ? 'Sem base anterior' : `${variation.toFixed(1)}%`}
+
+Classificação
+${status}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+${ticket >= 20
+  ? 'O ticket não é o principal problema isolado, mas ainda pode ajudar mais na recuperação do caixa.'
+  : 'O ticket merece atenção porque está baixo para sustentar margem e geração de caixa.'}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Trabalhe combos, adicionais e produtos de maior margem para elevar o valor médio sem depender apenas de mais fluxo.
+`.trim();
+}
+
+  if (
+  lower.includes('vendendo para mais clientes') ||
+  lower.includes('mais clientes') ||
+  lower.includes('mesmos clientes') ||
+  lower.includes('atraindo mais clientes') ||
+  lower.includes('volume de vendas preocupa')
+) {
+  const currentTickets = ctx.managementReport?.totalTickets || 0;
+  const previousTickets = previousCtx?.managementReport?.totalTickets || 0;
+
+  const currentTicketAvg = ctx.managementReport?.averageTicket || 0;
+  const previousTicketAvg = previousCtx?.managementReport?.averageTicket || 0;
+
+  const ticketVar = calculateVariation(currentTicketAvg, previousTicketAvg);
+  const volumeVar = calculateVariation(currentTickets, previousTickets);
+
+  return `
+👥 CLIENTES, VOLUME E TICKET — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Comandas atuais
+${currentTickets}
+
+Comandas anteriores
+${previousTickets}
+
+Variação de volume
+${volumeVar === null ? 'Sem base anterior' : `${volumeVar.toFixed(1)}%`}
+
+Ticket atual
+${formatCurrency(currentTicketAvg)}
+
+Ticket anterior
+${formatCurrency(previousTicketAvg)}
+
+Variação do ticket
+${ticketVar === null ? 'Sem base anterior' : `${ticketVar.toFixed(1)}%`}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+${
+  volumeVar !== null &&
+  ticketVar !== null &&
+  volumeVar < ticketVar
+    ? 'O ponto mais sensível está no volume de vendas/clientes, não apenas no ticket médio.'
+    : 'O comportamento exige acompanhamento conjunto de fluxo de clientes e valor médio por compra.'
+}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Se o volume caiu mais que o ticket, foque em fluxo, divulgação, recorrência e canais de venda. Se o ticket caiu mais, foque em combos e adicionais.
+`.trim();
+}
+
+  if (
+  lower.includes('despesa mais cresceu') ||
+  lower.includes('despesas mais cresceram')
+) {
+  const results = getGrowthRanking(
+    ctx.expenseCategories,
+    previousCtx?.expenseCategories,
+    'category'
+  );
+
+  results.sort((a, b) => b.variation - a.variation);
+
+  const winner = results[0];
+
+  if (!winner) {
+    return 'Não encontrei base suficiente para comparar despesas com o período anterior.';
+  }
+
+  return buildSimpleEvolutionAnswer({
+    title: '📈 DESPESA QUE MAIS CRESCEU',
+    name: winner.name,
+    current: winner.current,
+    previous: winner.previous,
+    currentLabel: ctx.periodLabel,
+    previousLabel: previousCtx?.periodLabel || 'Período anterior',
+    variation: winner.variation,
+    analysis: 'Essa foi a despesa com maior crescimento proporcional no período.',
+    recommendation: 'Verifique se esse aumento era planejado, recorrente ou pontual. Se for recorrente, merece ação imediata.',
+  });
+}
+
+if (
+  lower.includes('despesa mais caiu') ||
+  lower.includes('despesas mais cairam') ||
+  lower.includes('despesas mais caíram')
+) {
+  const results = getGrowthRanking(
+    ctx.expenseCategories,
+    previousCtx?.expenseCategories,
+    'category'
+  );
+
+  results.sort((a, b) => a.variation - b.variation);
+
+  const winner = results[0];
+
+  if (!winner) {
+    return 'Não encontrei base suficiente para comparar despesas com o período anterior.';
+  }
+
+  return buildSimpleEvolutionAnswer({
+    title: '📉 DESPESA QUE MAIS CAIU',
+    name: winner.name,
+    current: winner.current,
+    previous: winner.previous,
+    currentLabel: ctx.periodLabel,
+    previousLabel: previousCtx?.periodLabel || 'Período anterior',
+    variation: winner.variation,
+    analysis: 'Essa foi a despesa com maior redução proporcional no período.',
+    recommendation: 'Confirme se a queda é economia real ou apenas adiamento de pagamento.',
+  });
+}
+
+  if (
+  lower.includes('caixa esta melhor') ||
+  lower.includes('caixa melhor ou pior') ||
+  lower.includes('situacao financeira melhorou') ||
+  lower.includes('melhorou ou piorou')
+) {
+  const variation = calculateVariation(
+    ctx.balance,
+    previousCtx?.balance || 0
+  );
+
+  return `
+📊 COMPARAÇÃO DE CAIXA
+
+━━━━━━━━━━━━━━━━━━
+
+${ctx.periodLabel}
+${formatCurrency(ctx.balance)}
+
+${previousCtx?.periodLabel || 'Período anterior'}
+${formatCurrency(previousCtx?.balance || 0)}
+
+Variação
+${variation === null ? 'Sem base anterior' : `${variation.toFixed(1)}%`}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+${
+  ctx.balance >= (previousCtx?.balance || 0)
+    ? 'A situação de caixa melhorou em relação ao período anterior.'
+    : 'A situação de caixa piorou em relação ao período anterior.'
+}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Use essa comparação para decidir se o foco deve ser crescimento, contenção ou recuperação de caixa.
+`.trim();
+}
 
   // V11.4.97.1 — CATEGORIA QUE MAIS PRESSIONA
 if (
@@ -2644,7 +3150,6 @@ Essa foi a categoria com maior queda em relação ao período anterior.
   
   // V11.4.97.3 — COMPRAS ESTÃO AUMENTANDO?
 if (
-  lower.includes('compras estão aumentando') ||
   lower.includes('compras estao aumentando') ||
   lower.includes('compras cresceram') ||
   lower.includes('compras aumentaram')
@@ -2671,7 +3176,6 @@ if (
 
 // V11.4.97.3 — FUNCIONÁRIOS ESTÃO PESANDO MAIS?
 if (
-  lower.includes('funcionarios estão pesando') ||
   lower.includes('funcionarios estao pesando') ||
   lower.includes('funcionários estao pesando') ||
   lower.includes('funcionarios pesando mais') ||
@@ -2948,7 +3452,6 @@ Acompanhe taxas, prazos de recebimento e impacto no caixa real.
   // V11.4.97.2 — O QUE MAIS PRESSIONA O CAIXA
 if (
   lower.includes('o que mais pressiona meu caixa') ||
-  lower.includes('maior pressão do caixa') ||
   lower.includes('maior pressao do caixa') ||
   lower.includes('o que pressiona o caixa')
 ) {
@@ -3097,7 +3600,6 @@ Hoje eu separaria:
 if (
   lower.includes('se fosse o rodrigo') ||
   lower.includes('o que eu faria como rodrigo') ||
-  lower.includes('o que você faria se fosse o rodrigo') ||
   lower.includes('o que voce faria se fosse o rodrigo')
 ) {
   return `
@@ -3134,8 +3636,7 @@ const wantsGrowth =
   lower.includes('mais cresceu') ||
   lower.includes('cresceu') ||
   lower.includes('aumentando') ||
-  lower.includes('esta aumentando') ||
-  lower.includes('está aumentando');
+  lower.includes('esta aumentando');
 
 const wantsDecline =
   lower.includes('mais caiu') ||
@@ -9400,10 +9901,11 @@ const buildTemporalAnalyticsAnswer = (question, ctx) => {
     lower.includes('maior faturamento');
 
   const wantsWorst =
-    lower.includes('pior') ||
-    lower.includes('menor') ||
-    lower.includes('mais critico') ||
-    lower.includes('critico');
+  lower.includes('pior') ||
+  lower.includes('menor') ||
+  lower.includes('menos') ||
+  lower.includes('mais critico') ||
+  lower.includes('critico');
 
   // FINAL DE SEMANA
   if (
@@ -9452,6 +9954,8 @@ Para esta análise, considerei final de semana como sexta, sábado e domingo.
     lower.includes('melhor semana') ||
     lower.includes('pior semana') ||
     lower.includes('semana vendeu mais') ||
+    lower.includes('semana vendeu menos') ||
+    lower.includes('semana teve menor faturamento') ||
     lower.includes('semana teve maior faturamento')
   ) {
     const weeks = buildWeekRanking(

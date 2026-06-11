@@ -2715,9 +2715,9 @@ const buildDynamicExecutiveMemoryAnswer = async (question, ctx, previousCtx) => 
     ? calculateVariation(ctx.totalExpenses, previousCtx.totalExpenses)
     : null;
 
-  const balanceVariation = previousCtx
-    ? calculateVariation(ctx.balance, previousCtx.balance)
-    : null;
+ const balanceDifference = previousCtx
+  ? Number(ctx.balance || 0) - Number(previousCtx.balance || 0)
+  : null;
 
   const signals = [];
 
@@ -2733,11 +2733,14 @@ const buildDynamicExecutiveMemoryAnswer = async (question, ctx, previousCtx) => 
     );
   }
 
-  if (balanceVariation !== null) {
-    signals.push(
-      `Resultado: ${balanceVariation.toFixed(1)}% em relação ao período anterior.`
-    );
-  }
+  if (balanceDifference !== null) {
+  const resultSignal =
+    balanceDifference >= 0
+      ? `Resultado melhorou ${formatCurrency(balanceDifference)} em relação ao período anterior.`
+      : `Resultado piorou ${formatCurrency(Math.abs(balanceDifference))} em relação ao período anterior.`;
+
+  signals.push(resultSignal);
+}
 
   let diagnosis =
     'Ainda preciso de mais base comparativa para afirmar uma evolução clara.';

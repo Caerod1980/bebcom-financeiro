@@ -1064,42 +1064,58 @@ const getRelativePeriod = (question) => {
     };
   }
 
-  // Semana passada
-  if (lower.includes('semana passada')) {
-    const day = now.getDay();
+ // Semana passada
+if (lower.includes('semana passada')) {
+  const day = startOfToday.getDay();
 
-    const currentWeekStart = new Date(startOfToday);
-    currentWeekStart.setDate(currentWeekStart.getDate() - day);
+  const mondayOffset =
+    day === 0
+      ? -6
+      : 1 - day;
 
-    const lastWeekStart = new Date(currentWeekStart);
-    lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+  const currentWeekStart = new Date(startOfToday);
+  currentWeekStart.setDate(
+    startOfToday.getDate() + mondayOffset
+  );
 
-    const lastWeekEnd = new Date(currentWeekStart);
-    lastWeekEnd.setMilliseconds(-1);
+  const lastWeekStart = new Date(currentWeekStart);
+  lastWeekStart.setDate(
+    currentWeekStart.getDate() - 7
+  );
 
-    return {
-      label: 'Semana passada',
-      start: lastWeekStart,
-      end: lastWeekEnd,
-    };
-  }
+  const lastWeekEnd = new Date(currentWeekStart);
+  lastWeekEnd.setMilliseconds(-1);
+
+  return {
+    label: 'Semana passada',
+    start: lastWeekStart,
+    end: lastWeekEnd,
+  };
+}
 
   // Esta semana
-  if (
-    lower.includes('esta semana') ||
-    lower.includes('essa semana')
-  ) {
-    const day = now.getDay();
+if (
+  lower.includes('esta semana') ||
+  lower.includes('essa semana')
+) {
+  const day = startOfToday.getDay();
 
-    const weekStart = new Date(startOfToday);
-    weekStart.setDate(weekStart.getDate() - day);
+  const mondayOffset =
+    day === 0
+      ? -6
+      : 1 - day;
 
-    return {
-      label: 'Esta semana',
-      start: weekStart,
-      end: endOfToday,
-    };
-  }
+  const weekStart = new Date(startOfToday);
+  weekStart.setDate(
+    startOfToday.getDate() + mondayOffset
+  );
+
+  return {
+    label: 'Esta semana',
+    start: weekStart,
+    end: endOfToday,
+  };
+}
 
   // Mês passado
   if (
@@ -9943,8 +9959,15 @@ const buildWeekRanking = (
       const date = new Date(entry.date);
       const day = date.getDay();
 
-      const weekStart = new Date(date);
-      weekStart.setDate(date.getDate() - day);
+const mondayOffset =
+  day === 0
+    ? -6
+    : 1 - day;
+
+const weekStart = new Date(date);
+weekStart.setDate(
+  date.getDate() + mondayOffset
+);
 
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekStart.getDate() + 6);

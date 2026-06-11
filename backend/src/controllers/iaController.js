@@ -1456,7 +1456,7 @@ const formatRanking = (items, limit = 10) =>
     )
     .join('\n');
 
-const buildContext = async ({ month, year, start, end }) => {
+const buildContext = async ({ month, year, start, end, customLabel }) => {
   const entries = await Entry.find({
     deleted: { $ne: true },
     date: {
@@ -1541,9 +1541,12 @@ const expensesByDay =
   month,
   year,
   periodLabel:
+  customLabel ||
+  (
     month && year
       ? getMonthLabel(month, year)
-      : 'Período personalizado',
+      : 'Período personalizado'
+  ),
   entries,
   totalIncome,
   totalExpenses,
@@ -9959,6 +9962,135 @@ const buildWeekRanking = (entries, type = 'income') => {
   );
 };
 
+const isAdvancedTemporalQuestion = (question) => {
+  const lower = normalizeText(question);
+
+  const hasTemporalTerm =
+    lower.includes('final de semana') ||
+    lower.includes('fim de semana') ||
+    lower.includes('semana') ||
+    lower.includes('dia');
+
+  const hasRankingTerm =
+    lower.includes('melhor') ||
+    lower.includes('maior') ||
+    lower.includes('pior') ||
+    lower.includes('piro') ||
+    lower.includes('menor') ||
+    lower.includes('menos') ||
+    lower.includes('mais critico') ||
+    lower.includes('critico');
+
+  const hasHistoricalRange =
+    lower.includes('do ano') ||
+    lower.includes('no ano') ||
+    lower.includes('de 2026') ||
+    lower.includes('em 2026') ||
+    lower.includes('desde janeiro') ||
+    lower.includes('janeiro a') ||
+    lower.includes('fevereiro a') ||
+    lower.includes('marco a') ||
+    lower.includes('março a') ||
+    lower.includes('abril a') ||
+    lower.includes('maio a') ||
+    lower.includes('junho a') ||
+    lower.includes('julho a') ||
+    lower.includes('agosto a') ||
+    lower.includes('setembro a') ||
+    lower.includes('outubro a') ||
+    lower.includes('novembro a');
+
+  return hasTemporalTerm && hasRankingTerm && hasHistoricalRange;
+};
+
+const getAdvancedHistoricalPeriod = (question) => {
+  const lower = normalizeText(question);
+  const now = new Date();
+
+  const yearMatch = lower.match(/\b(20\d{2})\b/);
+  const year = yearMatch
+    ? Number(yearMatch[1])
+    : now.getFullYear();
+
+  const monthsFound = [];
+
+  monthNames.forEach((item) => {
+    item.names.forEach((name) => {
+      const normalizedName = normalizeText(name);
+      const regex = new RegExp(`\\b${normalizedName}\\b`, 'i');
+
+      if (regex.test(lower)) {
+        const already = monthsFound.find(
+          (month) => month.number === item.number
+        );
+
+        if (!already) {
+          monthsFound.push({
+            number: item.number,
+            label: getMonthLabel(item.number, year).split('/')[0],
+          });
+        }
+      }
+    });
+  });
+
+  monthsFound.sort((a, b) => a.number - b.number);
+
+  // Exemplo: "janeiro a junho"
+  if (
+    monthsFound.length >= 2 &&
+    lower.includes(' a ')
+  ) {
+    const firstMonth = monthsFound[0];
+    const lastMonth = monthsFound[monthsFound.length - 1];
+
+    return {
+      month: null,
+      year,
+      start: new Date(year, firstMonth.number - 1, 1),
+      end: new Date(year, lastMonth.number, 0, 23, 59, 59, 999),
+      customLabel: `${firstMonth.label} a ${lastMonth.label}/${year}`,
+    };
+  }
+
+  // Exemplo: "desde janeiro"
+  if (
+    lower.includes('desde janeiro')
+  ) {
+    return {
+      month: null,
+      year,
+      start: new Date(year, 0, 1),
+      end:
+        year === now.getFullYear()
+          ? now
+          : new Date(year, 11, 31, 23, 59, 59, 999),
+      customLabel: `Desde Janeiro/${year}`,
+    };
+  }
+
+  // Exemplo: "do ano", "de 2026", "em 2026"
+  if (
+    lower.includes('do ano') ||
+    lower.includes('no ano') ||
+    lower.includes(`de ${year}`) ||
+    lower.includes(`em ${year}`)
+  ) {
+    return {
+      month: null,
+      year,
+      start: new Date(year, 0, 1),
+      end:
+        year === now.getFullYear()
+          ? now
+          : new Date(year, 11, 31, 23, 59, 59, 999),
+      customLabel: `Ano de ${year}`,
+    };
+  }
+
+  return null;
+};
+
 const buildTemporalAnalyticsAnswer = (question, ctx) => {
   const lower = normalizeText(question);
 
@@ -10036,14 +10168,18 @@ Para esta análise, considerei final de semana como sexta, sábado e domingo.
 }
 
   // SEMANA
-  if (
-    lower.includes('melhor semana') ||
-    lower.includes('pior semana') ||
-    lower.includes('semana vendeu mais') ||
-    lower.includes('semana vendeu menos') ||
-    lower.includes('semana teve menor faturamento') ||
-    lower.includes('semana teve maior faturamento')
-  ) {
+if (
+  lower.includes('melhor semana') ||
+  lower.includes('pior semana') ||
+  lower.includes('pior de semana') ||
+  lower.includes('piro de semana') ||
+  lower.includes('pior semana do ano') ||
+  lower.includes('semana do ano') ||
+  lower.includes('semana vendeu mais') ||
+  lower.includes('semana vendeu menos') ||
+  lower.includes('semana teve menor faturamento') ||
+  lower.includes('semana teve maior faturamento')
+) {
     const weeks = buildWeekRanking(
       ctx.entries,
       'income'
@@ -10796,10 +10932,58 @@ if (bebcomHistoryAnswer) {
   });
 }
 
+let temporalCtx = ctx;
+
+if (isAdvancedTemporalQuestion(question)) {
+  const advancedPeriod =
+    getAdvancedHistoricalPeriod(question);
+
+  if (advancedPeriod) {
+    temporalCtx =
+      await buildContext(advancedPeriod);
+  }
+}
+
+let temporalCtx = ctx;
+
+if (isAdvancedTemporalQuestion(question)) {
+  const advancedPeriod =
+    getAdvancedHistoricalPeriod(question);
+
+  if (advancedPeriod) {
+    temporalCtx =
+      await buildContext(advancedPeriod);
+  }
+}
+
+let temporalCtx = ctx;
+
+if (isAdvancedTemporalQuestion(question)) {
+  const advancedPeriod =
+    getAdvancedHistoricalPeriod(question);
+
+  if (advancedPeriod) {
+    temporalCtx =
+      await buildContext(advancedPeriod);
+  }
+}
+
+let temporalCtx = ctx;
+
+if (isAdvancedTemporalQuestion(question)) {
+  const advancedPeriod =
+    getAdvancedHistoricalPeriod(question);
+
+  if (advancedPeriod) {
+    temporalCtx =
+      await buildContext(advancedPeriod);
+  }
+}
+
 const temporalAnalyticsAnswer =
   buildTemporalAnalyticsAnswer(
     question,
-    ctx
+    temporalCtx
   );
 
 if (temporalAnalyticsAnswer) {

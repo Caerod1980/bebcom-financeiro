@@ -2656,8 +2656,17 @@ ${canBuy
   lower.includes('fornecedores para negociar') ||
   lower.includes('quem devo renegociar')
 ) {
-  const suppliers = (ctx.expensesByDescription || [])
-    .slice(0, 5);
+  const purchaseEntries = (ctx.entries || []).filter(
+  (entry) =>
+    entry.type === 'expense' &&
+    entry.category === 'compras_mercadorias'
+);
+
+const suppliers = groupEntriesByField(
+  purchaseEntries,
+  'expense',
+  'description'
+).slice(0, 5);
 
   const list = suppliers
   .map((item, index) => {
@@ -2680,7 +2689,7 @@ Motivo: ${reason}`;
   .join('\n\n');
 
   return `
-🏦 FORNECEDORES PARA RENEGOCIAÇÃO — ${ctx.periodLabel}
+🏦 FORNECEDORES DE MERCADORIAS PARA RENEGOCIAÇÃO — ${ctx.periodLabel}
 
 ━━━━━━━━━━━━━━━━━━
 
@@ -2690,13 +2699,59 @@ ${list || 'Não encontrei fornecedores suficientes para análise.'}
 
 🧠 Minha análise
 
-Esses fornecedores ou descrições concentram maior saída financeira no período.
+Considerei como fornecedor apenas lançamentos de despesa classificados na categoria "compras_mercadorias".
+
+Assim, funcionários, faturas, taxas, empréstimos e outras despesas não entram nesta análise.
 
 ━━━━━━━━━━━━━━━━━━
 
 🎯 Minha recomendação
 
 Comece negociando prazo, frequência de compra, bonificação ou condição comercial com os maiores impactos antes de cortar itens importantes do mix.
+`.trim();
+}
+
+  if (
+  lower.includes('despesas merecem revisao') ||
+  lower.includes('despesas merecem revisão') ||
+  lower.includes('quais despesas revisar') ||
+  lower.includes('despesas para revisar')
+) {
+  const expenses = (ctx.expensesByDescription || [])
+    .filter((item) => item.amount > 0)
+    .slice(0, 5);
+
+  const list = expenses
+    .map((item, index) => {
+      const share = getSharePercent(item.amount, ctx.totalExpenses);
+
+      return `${index + 1}. ${item.name}
+Valor: ${formatCurrency(item.amount)}
+Participação nas saídas: ${share}%
+Lançamentos: ${item.count}`;
+    })
+    .join('\n\n');
+
+  return `
+🔎 DESPESAS QUE MERECEM REVISÃO — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+${list || 'Não encontrei despesas suficientes para análise.'}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Aqui considero todas as despesas, não apenas fornecedores de mercadorias.
+
+Essa visão ajuda a separar negociação comercial de revisão de custos operacionais.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Revise primeiro despesas recorrentes, custos financeiros, folha, taxas e gastos que não estejam gerando retorno direto para a operação.
 `.trim();
 }
 

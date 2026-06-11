@@ -10007,10 +10007,17 @@ const isAdvancedTemporalQuestion = (question) => {
   const lower = normalizeText(question);
 
   const hasTemporalTerm =
-    lower.includes('final de semana') ||
-    lower.includes('fim de semana') ||
-    lower.includes('semana') ||
-    lower.includes('dia');
+  lower.includes('final de semana') ||
+  lower.includes('fim de semana') ||
+  lower.includes('semana') ||
+  lower.includes('dia') ||
+  lower.includes('trimestre') ||
+  lower.includes('semestre') ||
+  lower.includes('ano foi') ||
+  lower.includes('melhor ano') ||
+  lower.includes('pior ano') ||
+  lower.includes('recuperacao') ||
+  lower.includes('piora');
 
   const hasRankingTerm =
     lower.includes('melhor') ||
@@ -10020,6 +10027,8 @@ const isAdvancedTemporalQuestion = (question) => {
     lower.includes('menor') ||
     lower.includes('menos') ||
     lower.includes('mais critico') ||
+    lower.includes('recuperacao') ||
+    lower.includes('piora') ||
     lower.includes('critico');
 
   const hasHistoricalRange =
@@ -10130,6 +10139,328 @@ const getAdvancedHistoricalPeriod = (question) => {
   }
 
   return null;
+};
+
+const buildHistoricalPeriodRanking = (entries, mode = 'quarter') => {
+  const grouped = {};
+
+  (entries || [])
+    .filter((entry) => entry.type === 'income')
+    .forEach((entry) => {
+      const date = new Date(entry.date);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+
+      let key = '';
+      let label = '';
+
+      if (mode === 'quarter') {
+        const quarter = Math.ceil(month / 3);
+        key = `${year}-T${quarter}`;
+        label = `${quarter}º trimestre/${year}`;
+      }
+
+      if (mode === 'semester') {
+        const semester = month <= 6 ? 1 : 2;
+        key = `${year}-S${semester}`;
+        label = `${semester}º semestre/${year}`;
+      }
+
+      if (mode === 'year') {
+        key = `${year}`;
+        label = `${year}`;
+      }
+
+      if (!grouped[key]) {
+        grouped[key] = {
+          label,
+          amount: 0,
+          count: 0,
+        };
+      }
+
+      grouped[key].amount += Math.abs(Number(entry.amount || 0));
+      grouped[key].count += 1;
+    });
+
+  return Object.values(grouped).sort(
+    (a, b) => b.amount - a.amount
+  );
+};
+
+const buildMonthlyHistoricalRanking = (entries) => {
+  const grouped = {};
+
+  (entries || [])
+    .filter((entry) => entry.type === 'income')
+    .forEach((entry) => {
+      const date = new Date(entry.date);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+
+      const key = `${year}-${String(month).padStart(2, '0')}`;
+
+      if (!grouped[key]) {
+        grouped[key] = {
+          key,
+          year,
+          month,
+          label: getMonthLabel(month, year),
+          income: 0,
+          expenses: 0,
+          balance: 0,
+          count: 0,
+        };
+      }
+
+      grouped[key].income += Math.abs(Number(entry.amount || 0));
+      grouped[key].count += 1;
+    });
+
+  (entries || [])
+    .filter((entry) => entry.type === 'expense')
+    .forEach((entry) => {
+      const date = new Date(entry.date);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+
+      const key = `${year}-${String(month).padStart(2, '0')}`;
+
+      if (!grouped[key]) {
+        grouped[key] = {
+          key,
+          year,
+          month,
+          label: getMonthLabel(month, year),
+          income: 0,
+          expenses: 0,
+          balance: 0,
+          count: 0,
+        };
+      }
+
+      grouped[key].expenses += Math.abs(Number(entry.amount || 0));
+    });
+
+  return Object.values(grouped)
+    .map((item) => ({
+      ...item,
+      balance: item.income - item.expenses,
+    }))
+    .sort((a, b) => a.key.localeCompare(b.key));
+};
+
+const buildHistoricalAggregatorAnswer = (question, ctx) => {
+  const lower = normalizeText(question);
+
+  const wantsBest =
+    lower.includes('melhor') ||
+    lower.includes('maior');
+
+  const wantsWorst =
+    lower.includes('pior') ||
+    lower.includes('menor');
+
+  let mode = null;
+  let titleLabel = '';
+
+  if (lower.includes('trimestre')) {
+    mode = 'quarter';
+    titleLabel = 'TRIMESTRE';
+  }
+
+  if (lower.includes('semestre')) {
+    mode = 'semester';
+    titleLabel = 'SEMESTRE';
+  }
+
+  if (
+    lower.includes('ano foi melhor') ||
+    lower.includes('ano foi pior') ||
+    lower.includes('melhor ano') ||
+    lower.includes('pior ano')
+  ) {
+    mode = 'year';
+    titleLabel = 'ANO';
+  }
+
+  if (!mode || (!wantsBest && !wantsWorst)) {
+    return null;
+  }
+
+  const ranking = buildHistoricalPeriodRanking(
+    ctx.entries,
+    mode
+  );
+
+  if (!ranking.length) {
+    return `
+Não encontrei dados suficientes para comparar ${titleLabel.toLowerCase()}s.
+`.trim();
+  }
+
+  const selected = wantsWorst
+    ? [...ranking].sort((a, b) => a.amount - b.amount)[0]
+    : ranking[0];
+
+  return `
+${wantsWorst ? '📉 PIOR' : '🏆 MELHOR'} ${titleLabel} — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+📅 Período
+${selected.label}
+
+💰 Faturamento
+${formatCurrency(selected.amount)}
+
+📋 Lançamentos
+${selected.count}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Essa análise agrupa as entradas por ${titleLabel.toLowerCase()} e identifica o ${wantsWorst ? 'menor' : 'maior'} faturamento do período analisado.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Use essa leitura para entender sazonalidade, períodos fortes e períodos que exigem reforço de caixa, compras e marketing.
+`.trim();
+};
+
+const buildHistoricalTrendAnswer = (question, ctx) => {
+  const lower = normalizeText(question);
+
+  const wantsRecovery =
+    lower.includes('recuperacao') ||
+    lower.includes('recuperou') ||
+    lower.includes('melhora');
+
+  const wantsDecline =
+    lower.includes('piora') ||
+    lower.includes('piorou') ||
+    lower.includes('queda');
+
+  if (!wantsRecovery && !wantsDecline) {
+    return null;
+  }
+
+  const months = buildMonthlyHistoricalRanking(ctx.entries);
+
+  if (months.length < 3) {
+    return `
+Não encontrei meses suficientes para identificar tendência histórica.
+
+Para analisar recuperação ou piora, preciso de pelo menos três meses com lançamentos registrados.
+`.trim();
+  }
+
+  const candidates = [];
+
+  for (let i = 1; i < months.length; i += 1) {
+    const previous = months[i - 1];
+    const current = months[i];
+
+    const incomeVariation =
+      calculateVariation(current.income, previous.income);
+
+    const balanceVariation =
+      calculateVariation(current.balance, previous.balance);
+
+    if (incomeVariation === null) continue;
+
+    if (
+      wantsRecovery &&
+      current.income > previous.income &&
+      current.balance >= previous.balance
+    ) {
+      candidates.push({
+        month: current,
+        previous,
+        incomeVariation,
+        balanceVariation,
+      });
+    }
+
+    if (
+      wantsDecline &&
+      current.income < previous.income &&
+      current.balance <= previous.balance
+    ) {
+      candidates.push({
+        month: current,
+        previous,
+        incomeVariation,
+        balanceVariation,
+      });
+    }
+  }
+
+  const selected = candidates[0];
+
+  if (!selected) {
+    return `
+📊 TENDÊNCIA HISTÓRICA — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Não identifiquei uma sequência clara de ${wantsRecovery ? 'recuperação' : 'piora'} no período analisado.
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Os dados mostram oscilações, mas não um ponto suficientemente claro para afirmar o início de uma tendência consistente.
+`.trim();
+  }
+
+  return `
+${wantsRecovery ? '📈 INÍCIO DE RECUPERAÇÃO' : '📉 INÍCIO DE PIORA'} — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+📅 Ponto identificado
+${selected.month.label}
+
+📊 Comparado com
+${selected.previous.label}
+
+━━━━━━━━━━━━━━━━━━
+
+💰 Faturamento anterior
+${formatCurrency(selected.previous.income)}
+
+💰 Faturamento no ponto identificado
+${formatCurrency(selected.month.income)}
+
+📊 Variação de faturamento
+${selected.incomeVariation.toFixed(1)}%
+
+━━━━━━━━━━━━━━━━━━
+
+📈 Resultado anterior
+${formatCurrency(selected.previous.balance)}
+
+📈 Resultado no ponto identificado
+${formatCurrency(selected.month.balance)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+${wantsRecovery
+  ? 'Esse foi o primeiro ponto em que a operação mostrou melhora simultânea em faturamento e resultado.'
+  : 'Esse foi o primeiro ponto em que a operação mostrou deterioração simultânea em faturamento e resultado.'}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Use esse ponto como referência para entender o que mudou em vendas, compras, despesas, estoque e operação naquele momento.
+`.trim();
 };
 
 const buildTemporalAnalyticsAnswer = (question, ctx) => {
@@ -10988,6 +11319,31 @@ if (isAdvancedTemporalQuestion(question)) {
       await buildContext(advancedPeriod);
   }
 }
+
+const historicalAggregatorAnswer =
+  buildHistoricalAggregatorAnswer(
+    question,
+    temporalCtx
+  );
+
+if (historicalAggregatorAnswer) {
+  return res.json({
+    answer: historicalAggregatorAnswer,
+  });
+}
+
+const historicalTrendAnswer =
+  buildHistoricalTrendAnswer(
+    question,
+    temporalCtx
+  );
+
+if (historicalTrendAnswer) {
+  return res.json({
+    answer: historicalTrendAnswer,
+  });
+}
+    
 const temporalAnalyticsAnswer =
   buildTemporalAnalyticsAnswer(
     question,

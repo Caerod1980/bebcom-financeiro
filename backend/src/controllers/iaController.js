@@ -2689,6 +2689,176 @@ As análises de faturamento, ticket médio e períodos de maior venda já podem 
 `.trim();
 };
 
+const getManagementReportValue = (report) => {
+  return Number(
+    report?.netRevenue ||
+    report?.grossRevenue ||
+    report?.totalIncome ||
+    report?.revenue ||
+    0
+  );
+};
+
+const buildManagementReportComparisonAnswer = async (question, ctx) => {
+  const lower = normalizeText(question);
+
+  const mentionsManagementReport =
+    lower.includes('relatorio gerencial') ||
+    lower.includes('relatório gerencial');
+
+  const asksSalesEvolution =
+    lower.includes('vendendo mais') ||
+    lower.includes('vendas melhorou') ||
+    lower.includes('vendas piorou') ||
+    lower.includes('faturamento melhorou') ||
+    lower.includes('faturamento piorou') ||
+    lower.includes('situacao melhorou') ||
+    lower.includes('situacao piorou') ||
+    lower.includes('situação melhorou') ||
+    lower.includes('situação piorou') ||
+    lower.includes('melhorou ou piorou');
+
+  if (!mentionsManagementReport && !asksSalesEvolution) {
+    return null;
+  }
+
+  if (!ctx.month || !ctx.year) {
+    return null;
+  }
+
+  const currentReport = await ManagementReport.findOne({
+    year: ctx.year,
+    month: ctx.month,
+  });
+
+  const previousMonth = ctx.month === 1 ? 12 : ctx.month - 1;
+  const previousYear = ctx.month === 1 ? ctx.year - 1 : ctx.year;
+
+  const previousReport = await ManagementReport.findOne({
+    year: previousYear,
+    month: previousMonth,
+  });
+
+  if (!currentReport) {
+    return `
+📊 RELATÓRIO GERENCIAL — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Não encontrei Relatório Gerencial cadastrado para este período.
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Para analisar vendas, comandas e ticket médio pelo histórico gerencial, preciso que o relatório mensal esteja lançado.
+`.trim();
+  }
+
+  const currentRevenue = getManagementReportValue(currentReport);
+  const previousRevenue = getManagementReportValue(previousReport);
+
+  const currentTickets = Number(currentReport.totalTickets || 0);
+  const previousTickets = Number(previousReport?.totalTickets || 0);
+
+  const currentTicket = Number(currentReport.averageTicket || 0);
+  const previousTicket = Number(previousReport?.averageTicket || 0);
+
+  const revenueVariation =
+    previousRevenue > 0
+      ? ((currentRevenue - previousRevenue) / previousRevenue) * 100
+      : null;
+
+  const ticketsVariation =
+    previousTickets > 0
+      ? ((currentTickets - previousTickets) / previousTickets) * 100
+      : null;
+
+  const averageTicketVariation =
+    previousTicket > 0
+      ? ((currentTicket - previousTicket) / previousTicket) * 100
+      : null;
+
+  let diagnosis = 'Ainda não há base suficiente para comparar com o mês anterior.';
+
+  if (revenueVariation !== null && ticketsVariation !== null) {
+    if (revenueVariation > 0 && ticketsVariation > 0) {
+      diagnosis =
+        'Pelo Relatório Gerencial, a loja vendeu mais em faturamento e também atendeu mais comandas.';
+    } else if (revenueVariation > 0 && ticketsVariation <= 0) {
+      diagnosis =
+        'Pelo Relatório Gerencial, o faturamento cresceu, mas o volume de comandas não acompanhou. Isso indica venda melhor, não necessariamente mais fluxo.';
+    } else if (revenueVariation < 0 && ticketsVariation < 0) {
+      diagnosis =
+        'Pelo Relatório Gerencial, houve queda em faturamento e em comandas. Isso indica redução de movimento comercial.';
+    } else {
+      diagnosis =
+        'Pelo Relatório Gerencial, os indicadores estão mistos e exigem leitura conjunta de faturamento, comandas e ticket médio.';
+    }
+  }
+
+  return `
+📊 ANÁLISE DO RELATÓRIO GERENCIAL — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+💰 Faturamento gerencial
+${formatCurrency(currentRevenue)}
+
+🧾 Total de comandas
+${currentTickets}
+
+🎯 Ticket médio
+${formatCurrency(currentTicket)}
+
+━━━━━━━━━━━━━━━━━━
+
+📊 Comparação com ${getMonthLabel(previousMonth, previousYear)}
+
+Faturamento anterior:
+${formatCurrency(previousRevenue)}
+
+Comandas anteriores:
+${previousTickets}
+
+Ticket médio anterior:
+${formatCurrency(previousTicket)}
+
+━━━━━━━━━━━━━━━━━━
+
+📈 Evolução
+
+Faturamento:
+${revenueVariation !== null ? `${revenueVariation.toFixed(1)}%` : 'sem base anterior'}
+
+Comandas:
+${ticketsVariation !== null ? `${ticketsVariation.toFixed(1)}%` : 'sem base anterior'}
+
+Ticket médio:
+${averageTicketVariation !== null ? `${averageTicketVariation.toFixed(1)}%` : 'sem base anterior'}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+${diagnosis}
+
+━━━━━━━━━━━━━━━━━━
+
+🔎 Observação importante
+
+Esta análise usa o Relatório Gerencial mensal, não os lançamentos diários.
+
+Por isso ela é a base correta para comparar vendas, comandas, ticket médio e evolução comercial desde 2021.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Use o Relatório Gerencial para medir evolução comercial e os lançamentos diários para medir caixa, despesas, vencimentos e pressão financeira.
+`.trim();
+};
+
 const buildDynamicExecutiveMemoryAnswer = async (question, ctx, previousCtx) => {
   const lower = normalizeText(question);
 
@@ -11361,6 +11531,18 @@ const dataReliabilityAnswer =
 if (dataReliabilityAnswer) {
   return res.json({
     answer: dataReliabilityAnswer,
+  });
+}
+
+const managementReportComparisonAnswer =
+  await buildManagementReportComparisonAnswer(
+    question,
+    ctx
+  );
+
+if (managementReportComparisonAnswer) {
+  return res.json({
+    answer: managementReportComparisonAnswer,
   });
 }
 

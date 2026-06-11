@@ -10243,10 +10243,10 @@ const buildMonthlyHistoricalRanking = (entries) => {
     });
 
   return Object.values(grouped)
-    .map((item) => ({
-      ...item,
-      balance: item.income - item.expenses,
-    }))
+   .map((item) => ({
+  ...item,
+  balance: item.income - item.expenses,
+}))
     .sort((a, b) => a.key.localeCompare(b.key));
 };
 
@@ -10331,7 +10331,7 @@ Use essa leitura para entender sazonalidade, períodos fortes e períodos que ex
 `.trim();
 };
 
-const buildHistoricalTrendAnswer = (question, ctx) => {
+const buildHistoricalTrendPointAnswer = (question, ctx) => {
   const lower = normalizeText(question);
 
   const wantsRecovery =
@@ -11333,7 +11333,7 @@ if (historicalAggregatorAnswer) {
 }
 
 const historicalTrendAnswer =
-  buildHistoricalTrendAnswer(
+  buildHistoricalTrendPointAnswer(
     question,
     temporalCtx
   );

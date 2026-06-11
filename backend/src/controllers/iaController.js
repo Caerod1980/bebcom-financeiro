@@ -9975,23 +9975,24 @@ const buildTemporalAnalyticsAnswer = (question, ctx) => {
   lower.includes('mais critico') ||
   lower.includes('critico');
 
-  // FINAL DE SEMANA
-  if (
-    lower.includes('final de semana') ||
-    lower.includes('fim de semana')
-  ) {
-    const weekends = buildWeekendRanking(
-      ctx.entries,
-      'income'
-    );
+// FINAL DE SEMANA
+if (
+  lower.includes('final de semana') ||
+  lower.includes('fim de semana')
+) {
+  const weekends = buildWeekendRanking(
+    ctx.entries,
+    'income'
+  );
 
-    if (!weekends.length) {
-      return `
+  if (!weekends.length) {
+    return `
 Não encontrei vendas registradas em finais de semana em ${ctx.periodLabel}.
 `.trim();
+  }
 
- if (weekends.length < 2 && wantsWorst) {
-  return `
+  if (weekends.length < 2 && wantsWorst) {
+    return `
 📅 ANÁLISE DE FINAL DE SEMANA — ${ctx.periodLabel}
 
 ━━━━━━━━━━━━━━━━━━
@@ -10005,40 +10006,14 @@ Com apenas um final de semana disponível, não é possível afirmar qual vendeu
 🧠 Minha análise
 
 Para identificar o pior final de semana, preciso comparar pelo menos dois finais de semana dentro do mesmo período.
-
-━━━━━━━━━━━━━━━━━━
-
-🎯 Minha recomendação
-
-Continue acompanhando os próximos finais de semana para que a IA consiga comparar desempenho, fluxo e faturamento com mais segurança.
 `.trim();
-}     
+  }
 
-if (weekends.length < 2 && wantsWorst) {
+  const selected = wantsWorst
+    ? [...weekends].sort((a, b) => a.amount - b.amount)[0]
+    : weekends[0];
+
   return `
-📅 ANÁLISE DE FINAL DE SEMANA — ${ctx.periodLabel}
-
-━━━━━━━━━━━━━━━━━━
-
-Existe apenas um final de semana registrado no período.
-
-Com apenas um final de semana disponível, não é possível afirmar qual vendeu menos.
-
-━━━━━━━━━━━━━━━━━━
-
-🧠 Minha análise
-
-Para comparar melhor ou pior final de semana, preciso de pelo menos dois finais de semana com vendas registradas.
-`.trim();
-}
-      
-    }
-
-    const selected = wantsWorst
-      ? [...weekends].sort((a, b) => a.amount - b.amount)[0]
-      : weekends[0];
-
-    return `
 🏆 ${wantsWorst ? 'PIOR' : 'MELHOR'} FINAL DE SEMANA — ${ctx.periodLabel}
 
 ━━━━━━━━━━━━━━━━━━
@@ -10058,7 +10033,7 @@ ${selected.count}
 
 Para esta análise, considerei final de semana como sexta, sábado e domingo.
 `.trim();
-  }
+}
 
   // SEMANA
   if (

@@ -10943,43 +10943,6 @@ if (isAdvancedTemporalQuestion(question)) {
       await buildContext(advancedPeriod);
   }
 }
-
-let temporalCtx = ctx;
-
-if (isAdvancedTemporalQuestion(question)) {
-  const advancedPeriod =
-    getAdvancedHistoricalPeriod(question);
-
-  if (advancedPeriod) {
-    temporalCtx =
-      await buildContext(advancedPeriod);
-  }
-}
-
-let temporalCtx = ctx;
-
-if (isAdvancedTemporalQuestion(question)) {
-  const advancedPeriod =
-    getAdvancedHistoricalPeriod(question);
-
-  if (advancedPeriod) {
-    temporalCtx =
-      await buildContext(advancedPeriod);
-  }
-}
-
-let temporalCtx = ctx;
-
-if (isAdvancedTemporalQuestion(question)) {
-  const advancedPeriod =
-    getAdvancedHistoricalPeriod(question);
-
-  if (advancedPeriod) {
-    temporalCtx =
-      await buildContext(advancedPeriod);
-  }
-}
-
 const temporalAnalyticsAnswer =
   buildTemporalAnalyticsAnswer(
     question,

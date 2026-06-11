@@ -2535,6 +2535,291 @@ ${analysis}
 ${recommendation}
 `.trim();
 
+const buildDataReliabilityProfile = async (ctx) => {
+  const reports = await ManagementReport.find({})
+    .sort({ year: 1, month: 1 });
+
+  const totalReports = reports.length;
+
+  const reportsWithRevenue = reports.filter((report) =>
+    Number(
+      report.netRevenue ||
+      report.grossRevenue ||
+      report.totalIncome ||
+      report.revenue ||
+      0
+    ) > 0
+  ).length;
+
+  const reportsWithExpenses = reports.filter((report) =>
+    Number(
+      report.totalExpenses ||
+      report.expenses ||
+      0
+    ) > 0
+  ).length;
+
+  const entriesCount = (ctx.entries || []).length;
+
+  const incomeEntries = (ctx.entries || []).filter(
+    (entry) => entry.type === 'income'
+  ).length;
+
+  const expenseEntries = (ctx.entries || []).filter(
+    (entry) => entry.type === 'expense'
+  ).length;
+
+  const expenseCoverage =
+    reportsWithRevenue > 0
+      ? (reportsWithExpenses / reportsWithRevenue) * 100
+      : 0;
+
+  let level = '🟢 Alta';
+  const notes = [];
+
+  if (expenseCoverage < 70) {
+    level = '🟡 Média';
+    notes.push(
+      'O histórico de entradas está mais completo que o histórico de despesas.'
+    );
+  }
+
+  if (expenseCoverage < 40) {
+    level = '🔴 Baixa';
+    notes.push(
+      'As despesas históricas ainda parecem incompletas para uma leitura definitiva de resultado.'
+    );
+  }
+
+  if (entriesCount > 0 && expenseEntries === 0) {
+    level = '🟡 Média';
+    notes.push(
+      'No período atual existem lançamentos, mas não encontrei despesas registradas.'
+    );
+  }
+
+  if (entriesCount < 5) {
+    notes.push(
+      'O período atual ainda possui poucos lançamentos para uma leitura operacional madura.'
+    );
+  }
+
+  return {
+    level,
+    totalReports,
+    reportsWithRevenue,
+    reportsWithExpenses,
+    expenseCoverage,
+    entriesCount,
+    incomeEntries,
+    expenseEntries,
+    notes,
+  };
+};
+
+const buildDataReliabilityAnswer = async (question, ctx) => {
+  const lower = normalizeText(question);
+
+  if (
+    !lower.includes('confiabilidade') &&
+    !lower.includes('base de dados') &&
+    !lower.includes('dados estao completos') &&
+    !lower.includes('dados estão completos') &&
+    !lower.includes('dados incompletos')
+  ) {
+    return null;
+  }
+
+  const profile = await buildDataReliabilityProfile(ctx);
+
+  return `
+🧠 CONFIABILIDADE DA BASE — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Nível de confiabilidade
+${profile.level}
+
+━━━━━━━━━━━━━━━━━━
+
+📊 Histórico gerencial
+
+Relatórios encontrados:
+${profile.totalReports}
+
+Relatórios com entradas:
+${profile.reportsWithRevenue}
+
+Relatórios com despesas:
+${profile.reportsWithExpenses}
+
+Cobertura de despesas históricas:
+${profile.expenseCoverage.toFixed(1)}%
+
+━━━━━━━━━━━━━━━━━━
+
+📋 Lançamentos do período atual
+
+Total de lançamentos:
+${profile.entriesCount}
+
+Entradas:
+${profile.incomeEntries}
+
+Saídas:
+${profile.expenseEntries}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+${
+  profile.notes.length
+    ? profile.notes.map((item) => `• ${item}`).join('\n')
+    : 'A base possui dados suficientes para uma leitura consistente do período.'
+}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Enquanto os dados históricos de despesas ainda estiverem em construção, trate análises de resultado, margem e piora financeira como leituras provisórias.
+
+As análises de faturamento, ticket médio e períodos de maior venda já podem ser consideradas mais fortes quando o Relatório Gerencial estiver completo.
+`.trim();
+};
+
+const buildDynamicExecutiveMemoryAnswer = async (question, ctx, previousCtx) => {
+  const lower = normalizeText(question);
+
+  if (
+    !lower.includes('o que mudou') &&
+    !lower.includes('mudou desde') &&
+    !lower.includes('minha situacao melhorou') &&
+    !lower.includes('minha situação melhorou') &&
+    !lower.includes('a operacao evoluiu') &&
+    !lower.includes('a operação evoluiu') &&
+    !lower.includes('estou melhorando') &&
+    !lower.includes('estou piorando')
+  ) {
+    return null;
+  }
+
+  const profile = await buildDataReliabilityProfile(ctx);
+
+  const incomeVariation = previousCtx
+    ? calculateVariation(ctx.totalIncome, previousCtx.totalIncome)
+    : null;
+
+  const expenseVariation = previousCtx
+    ? calculateVariation(ctx.totalExpenses, previousCtx.totalExpenses)
+    : null;
+
+  const balanceVariation = previousCtx
+    ? calculateVariation(ctx.balance, previousCtx.balance)
+    : null;
+
+  const signals = [];
+
+  if (incomeVariation !== null) {
+    signals.push(
+      `Entradas: ${incomeVariation.toFixed(1)}% em relação ao período anterior.`
+    );
+  }
+
+  if (expenseVariation !== null) {
+    signals.push(
+      `Saídas: ${expenseVariation.toFixed(1)}% em relação ao período anterior.`
+    );
+  }
+
+  if (balanceVariation !== null) {
+    signals.push(
+      `Resultado: ${balanceVariation.toFixed(1)}% em relação ao período anterior.`
+    );
+  }
+
+  let diagnosis =
+    'Ainda preciso de mais base comparativa para afirmar uma evolução clara.';
+
+  if (
+    incomeVariation !== null &&
+    expenseVariation !== null
+  ) {
+    if (
+      incomeVariation > 0 &&
+      expenseVariation <= incomeVariation &&
+      ctx.balance >= previousCtx.balance
+    ) {
+      diagnosis =
+        'A operação mostra sinais de evolução: as entradas melhoraram e as despesas não cresceram acima da receita.';
+    } else if (
+      expenseVariation > incomeVariation ||
+      ctx.balance < previousCtx.balance
+    ) {
+      diagnosis =
+        'A operação exige atenção: as despesas ou o resultado estão piorando em relação ao período anterior.';
+    } else {
+      diagnosis =
+        'A operação está em comportamento misto, com sinais que precisam ser acompanhados nos próximos lançamentos.';
+    }
+  }
+
+  return `
+🧠 MEMÓRIA EXECUTIVA DINÂMICA — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+📊 O que mudou
+
+${
+  signals.length
+    ? signals.map((item) => `• ${item}`).join('\n')
+    : 'Ainda não há comparação suficiente com o período anterior.'
+}
+
+━━━━━━━━━━━━━━━━━━
+
+📌 Leitura atual
+
+Entradas:
+${formatCurrency(ctx.totalIncome)}
+
+Saídas:
+${formatCurrency(ctx.totalExpenses)}
+
+Resultado:
+${formatCurrency(ctx.balance)}
+
+Contas pendentes:
+${formatCurrency(ctx.pendingPayable)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+${diagnosis}
+
+━━━━━━━━━━━━━━━━━━
+
+🔎 Confiabilidade da leitura
+
+${profile.level}
+
+${
+  profile.notes.length
+    ? profile.notes.map((item) => `• ${item}`).join('\n')
+    : 'A base atual permite uma leitura consistente.'
+}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Continue lançando os dados diariamente. A cada novo lançamento, minha leitura pode mudar, porque a memória executiva deve acompanhar a base viva da Bebcom e não repetir conclusões antigas.
+`.trim();
+};
+
 const buildOperationalAnalyticsAnswer = (
   question,
   ctx,
@@ -11061,6 +11346,31 @@ const deepDiveAnswer =
 if (deepDiveAnswer) {
   return res.json({
     answer: deepDiveAnswer,
+  });
+}
+
+const dataReliabilityAnswer =
+  await buildDataReliabilityAnswer(
+    question,
+    ctx
+  );
+
+if (dataReliabilityAnswer) {
+  return res.json({
+    answer: dataReliabilityAnswer,
+  });
+}
+
+const dynamicExecutiveMemoryAnswer =
+ await buildDynamicExecutiveMemoryAnswer(
+  question,
+  ctx,
+  equivalentPreviousCtx
+);
+
+if (dynamicExecutiveMemoryAnswer) {
+  return res.json({
+    answer: dynamicExecutiveMemoryAnswer,
   });
 }
     

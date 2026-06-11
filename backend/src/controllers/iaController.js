@@ -10243,14 +10243,73 @@ const buildMonthlyHistoricalRanking = (entries) => {
     });
 
   return Object.values(grouped)
-   .map((item) => ({
+.map((item) => ({
   ...item,
   balance: item.income - item.expenses,
 }))
     .sort((a, b) => a.key.localeCompare(b.key));
 };
 
-const buildHistoricalAggregatorAnswer = (question, ctx) => {
+const buildManagementReportPeriodRanking = async (mode = 'quarter') => {
+  const reports = await ManagementReport.find({})
+    .sort({ year: 1, month: 1 });
+
+  const grouped = {};
+
+  (reports || [])
+    .filter((report) => report.year && report.month)
+    .forEach((report) => {
+      const year = Number(report.year);
+      const month = Number(report.month);
+
+      const amount = Number(
+        report.netRevenue ||
+        report.grossRevenue ||
+        report.totalIncome ||
+        report.revenue ||
+        0
+      );
+
+      if (amount <= 0) return;
+
+      let key = '';
+      let label = '';
+
+      if (mode === 'quarter') {
+        const quarter = Math.ceil(month / 3);
+        key = `${year}-T${quarter}`;
+        label = `${quarter}º trimestre/${year}`;
+      }
+
+      if (mode === 'semester') {
+        const semester = month <= 6 ? 1 : 2;
+        key = `${year}-S${semester}`;
+        label = `${semester}º semestre/${year}`;
+      }
+
+      if (mode === 'year') {
+        key = `${year}`;
+        label = `${year}`;
+      }
+
+      if (!grouped[key]) {
+        grouped[key] = {
+          label,
+          amount: 0,
+          count: 0,
+        };
+      }
+
+      grouped[key].amount += amount;
+      grouped[key].count += 1;
+    });
+
+  return Object.values(grouped).sort(
+    (a, b) => b.amount - a.amount
+  );
+};
+
+  const buildHistoricalAggregatorAnswer = async (question, ctx) => {
   const lower = normalizeText(question);
 
   const wantsBest =
@@ -10288,10 +10347,7 @@ const buildHistoricalAggregatorAnswer = (question, ctx) => {
     return null;
   }
 
-  const ranking = buildHistoricalPeriodRanking(
-    ctx.entries,
-    mode
-  );
+const ranking = await buildManagementReportPeriodRanking(mode);
 
   if (!ranking.length) {
     return `
@@ -10304,7 +10360,7 @@ Não encontrei dados suficientes para comparar ${titleLabel.toLowerCase()}s.
     : ranking[0];
 
   return `
-${wantsWorst ? '📉 PIOR' : '🏆 MELHOR'} ${titleLabel} — ${ctx.periodLabel}
+${wantsWorst ? '📉 PIOR' : '🏆 MELHOR'} ${titleLabel} — Histórico gerencial
 
 ━━━━━━━━━━━━━━━━━━
 
@@ -11365,7 +11421,7 @@ if (isAdvancedTemporalQuestion(question)) {
 }
 
 const historicalAggregatorAnswer =
-  buildHistoricalAggregatorAnswer(
+  await buildHistoricalAggregatorAnswer(
     question,
     temporalCtx
   );

@@ -10331,7 +10331,51 @@ Use essa leitura para entender sazonalidade, períodos fortes e períodos que ex
 `.trim();
 };
 
-const buildHistoricalTrendPointAnswer = (question, ctx) => {
+const getManagementReportMonthlyHistory = async () => {
+  const reports = await ManagementReport.find({})
+    .sort({ year: 1, month: 1 });
+
+  return (reports || [])
+    .filter((report) => report.year && report.month)
+    .map((report) => {
+      const income =
+        Number(
+          report.netRevenue ||
+          report.grossRevenue ||
+          report.totalIncome ||
+          report.revenue ||
+          0
+        );
+
+      const expenses =
+        Number(
+          report.totalExpenses ||
+          report.expenses ||
+          0
+        );
+
+      const balance =
+        Number(
+          report.balance ||
+          report.result ||
+          income - expenses
+        );
+
+      return {
+        year: report.year,
+        month: report.month,
+        label: getMonthLabel(report.month, report.year),
+        income,
+        expenses,
+        balance,
+        averageTicket: Number(report.averageTicket || 0),
+        totalTickets: Number(report.totalTickets || 0),
+      };
+    })
+    .filter((item) => item.income > 0);
+};
+
+const buildHistoricalTrendPointAnswer = async (question, ctx) => {
   const lower = normalizeText(question);
 
   const wantsRecovery =
@@ -10348,13 +10392,13 @@ const buildHistoricalTrendPointAnswer = (question, ctx) => {
     return null;
   }
 
-  const months = buildMonthlyHistoricalRanking(ctx.entries);
+  const months = await getManagementReportMonthlyHistory();
 
   if (months.length < 3) {
     return `
 Não encontrei meses suficientes para identificar tendência histórica.
 
-Para analisar recuperação ou piora, preciso de pelo menos três meses com lançamentos registrados.
+Para analisar recuperação ou piora, preciso de pelo menos três meses no Relatório Gerencial.
 `.trim();
   }
 
@@ -11333,7 +11377,7 @@ if (historicalAggregatorAnswer) {
 }
 
 const historicalTrendAnswer =
-  buildHistoricalTrendPointAnswer(
+  await buildHistoricalTrendPointAnswer(
     question,
     temporalCtx
   );

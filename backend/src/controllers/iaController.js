@@ -9990,6 +9990,30 @@ const buildTemporalAnalyticsAnswer = (question, ctx) => {
 Não encontrei vendas registradas em finais de semana em ${ctx.periodLabel}.
 `.trim();
 
+ if (weekends.length < 2 && wantsWorst) {
+  return `
+📅 ANÁLISE DE FINAL DE SEMANA — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Existe apenas um final de semana com vendas registradas no período.
+
+Com apenas um final de semana disponível, não é possível afirmar qual vendeu menos.
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Para identificar o pior final de semana, preciso comparar pelo menos dois finais de semana dentro do mesmo período.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Continue acompanhando os próximos finais de semana para que a IA consiga comparar desempenho, fluxo e faturamento com mais segurança.
+`.trim();
+}     
+
 if (weekends.length < 2 && wantsWorst) {
   return `
 📅 ANÁLISE DE FINAL DE SEMANA — ${ctx.periodLabel}

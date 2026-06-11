@@ -1540,6 +1540,8 @@ const expensesByDay =
   return {
   month,
   year,
+  start,
+  end,
   periodLabel:
   customLabel ||
   (
@@ -9927,7 +9929,12 @@ const buildWeekendRanking = (entries, type = 'income') => {
   );
 };
 
-const buildWeekRanking = (entries, type = 'income') => {
+const buildWeekRanking = (
+  entries,
+  type = 'income',
+  periodStart = null,
+  periodEnd = null
+) => {
   const grouped = {};
 
   entries
@@ -9941,6 +9948,17 @@ const buildWeekRanking = (entries, type = 'income') => {
 
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekStart.getDate() + 6);
+
+      if (
+  periodStart &&
+  periodEnd &&
+  (
+    weekStart < periodStart ||
+    weekEnd > periodEnd
+  )
+) {
+  return;
+}
 
       const key = weekStart.toISOString().slice(0, 10);
       const label = `${weekStart.toLocaleDateString('pt-BR')} a ${weekEnd.toLocaleDateString('pt-BR')}`;
@@ -10112,10 +10130,12 @@ if (
   lower.includes('final de semana') ||
   lower.includes('fim de semana')
 ) {
-  const weekends = buildWeekendRanking(
-    ctx.entries,
-    'income'
-  );
+const weeks = buildWeekRanking(
+  ctx.entries,
+  'income',
+  ctx.start,
+  ctx.end
+);
 
   if (!weekends.length) {
     return `
@@ -10181,9 +10201,11 @@ if (
   lower.includes('semana teve maior faturamento')
 ) {
     const weeks = buildWeekRanking(
-      ctx.entries,
-      'income'
-    );
+  ctx.entries,
+  'income',
+  ctx.start,
+  ctx.end
+);
 
     if (!weeks.length) {
       return `

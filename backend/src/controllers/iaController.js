@@ -2708,10 +2708,11 @@ const buildManagementReportComparisonAnswer = async (question, ctx) => {
 
   const asksSalesEvolution =
     lower.includes('vendendo mais') ||
-    lower.includes('vendas melhorou') ||
-    lower.includes('vendas piorou') ||
-    lower.includes('faturamento melhorou') ||
-    lower.includes('faturamento piorou') ||
+    lower.includes('vendas') ||
+    lower.includes('faturamento') ||
+    lower.includes('comandas') ||
+    lower.includes('clientes') ||
+    lower.includes('movimento') ||
     lower.includes('situacao melhorou') ||
     lower.includes('situacao piorou') ||
     lower.includes('situação melhorou') ||
@@ -2726,18 +2727,21 @@ const buildManagementReportComparisonAnswer = async (question, ctx) => {
     return null;
   }
 
-  const currentReport = await ManagementReport.findOne({
-    year: ctx.year,
-    month: ctx.month,
-  });
+  const reports = await ManagementReport.find({})
+    .sort({ year: 1, month: 1 });
 
-  const previousMonth = ctx.month === 1 ? 12 : ctx.month - 1;
-  const previousYear = ctx.month === 1 ? ctx.year - 1 : ctx.year;
+  const validReports = (reports || []).filter(
+    (report) =>
+      report.year &&
+      report.month &&
+      getManagementReportValue(report) > 0
+  );
 
-  const previousReport = await ManagementReport.findOne({
-    year: previousYear,
-    month: previousMonth,
-  });
+  const currentReport = validReports.find(
+    (report) =>
+      Number(report.year) === Number(ctx.year) &&
+      Number(report.month) === Number(ctx.month)
+  );
 
   if (!currentReport) {
     return `
@@ -2756,59 +2760,167 @@ Para analisar vendas, comandas e ticket médio pelo histórico gerencial, precis
   }
 
   const currentRevenue = getManagementReportValue(currentReport);
-  const previousRevenue = getManagementReportValue(previousReport);
-
   const currentTickets = Number(currentReport.totalTickets || 0);
-  const previousTickets = Number(previousReport?.totalTickets || 0);
-
   const currentTicket = Number(currentReport.averageTicket || 0);
+
+  const previousMonth = ctx.month === 1 ? 12 : ctx.month - 1;
+  const previousYear = ctx.month === 1 ? ctx.year - 1 : ctx.year;
+
+  const previousReport = validReports.find(
+    (report) =>
+      Number(report.year) === Number(previousYear) &&
+      Number(report.month) === Number(previousMonth)
+  );
+
+  const previousRevenue = getManagementReportValue(previousReport);
+  const previousTickets = Number(previousReport?.totalTickets || 0);
   const previousTicket = Number(previousReport?.averageTicket || 0);
 
   const revenueVariation =
     previousRevenue > 0
-      ? ((currentRevenue - previousRevenue) / previousRevenue) * 100
+      ? calculateVariation(currentRevenue, previousRevenue)
       : null;
 
   const ticketsVariation =
     previousTickets > 0
-      ? ((currentTickets - previousTickets) / previousTickets) * 100
+      ? calculateVariation(currentTickets, previousTickets)
       : null;
 
-  const averageTicketVariation =
+  const ticketVariation =
     previousTicket > 0
-      ? ((currentTicket - previousTicket) / previousTicket) * 100
+      ? calculateVariation(currentTicket, previousTicket)
       : null;
 
-  let diagnosis = 'Ainda não há base suficiente para comparar com o mês anterior.';
+  const sameMonthHistory = validReports
+    .filter((report) => Number(report.month) === Number(ctx.month))
+    .sort((a, b) => Number(a.year) - Number(b.year));
 
-  if (revenueVariation !== null && ticketsVariation !== null) {
+  const quarter = Math.ceil(ctx.month / 3);
+  const semester = ctx.month <= 6 ? 1 : 2;
+
+  const groupByYear = (items) => {
+    const grouped = {};
+
+    items.forEach((report) => {
+      const year = Number(report.year);
+
+      if (!grouped[year]) {
+        grouped[year] = {
+          year,
+          revenue: 0,
+          tickets: 0,
+          months: 0,
+        };
+      }
+
+      grouped[year].revenue += getManagementReportValue(report);
+      grouped[year].tickets += Number(report.totalTickets || 0);
+      grouped[year].months += 1;
+    });
+
+    return Object.values(grouped).sort(
+      (a, b) => a.year - b.year
+    );
+  };
+
+  const sameQuarterByYear = groupByYear(
+    validReports.filter((report) => {
+      const reportQuarter = Math.ceil(Number(report.month) / 3);
+      return reportQuarter === quarter;
+    })
+  );
+
+  const sameSemesterByYear = groupByYear(
+    validReports.filter((report) => {
+      const reportSemester =
+        Number(report.month) <= 6 ? 1 : 2;
+
+      return reportSemester === semester;
+    })
+  );
+
+  const currentYearMonths = validReports
+    .filter((report) => Number(report.year) === Number(ctx.year))
+    .sort((a, b) => Number(a.month) - Number(b.month));
+
+  const formatVariationText = (variation) => {
+    if (variation === null || Number.isNaN(variation)) {
+      return 'sem base anterior';
+    }
+
+    return `${variation.toFixed(1)}%`;
+  };
+
+  const sameMonthList = sameMonthHistory
+    .map((report) => {
+      const revenue = getManagementReportValue(report);
+      const tickets = Number(report.totalTickets || 0);
+      const ticket = Number(report.averageTicket || 0);
+
+      return `${report.year}: ${formatCurrency(revenue)} — ${tickets} comandas — ticket ${formatCurrency(ticket)}`;
+    })
+    .join('\n');
+
+  const quarterList = sameQuarterByYear
+    .map((item) => {
+      return `${item.year}: ${formatCurrency(item.revenue)} — ${item.tickets} comandas — ${item.months} mês(es)`;
+    })
+    .join('\n');
+
+  const semesterList = sameSemesterByYear
+    .map((item) => {
+      return `${item.year}: ${formatCurrency(item.revenue)} — ${item.tickets} comandas — ${item.months} mês(es)`;
+    })
+    .join('\n');
+
+  const currentYearList = currentYearMonths
+    .map((report) => {
+      const revenue = getManagementReportValue(report);
+      const tickets = Number(report.totalTickets || 0);
+      const ticket = Number(report.averageTicket || 0);
+
+      return `${getMonthLabel(report.month, report.year)}: ${formatCurrency(revenue)} — ${tickets} comandas — ticket ${formatCurrency(ticket)}`;
+    })
+    .join('\n');
+
+  let diagnosis = '';
+
+  if (
+    revenueVariation !== null &&
+    ticketsVariation !== null
+  ) {
     if (revenueVariation > 0 && ticketsVariation > 0) {
       diagnosis =
-        'Pelo Relatório Gerencial, a loja vendeu mais em faturamento e também atendeu mais comandas.';
+        'A Bebcom está vendendo mais em faturamento e também em volume de comandas.';
     } else if (revenueVariation > 0 && ticketsVariation <= 0) {
       diagnosis =
-        'Pelo Relatório Gerencial, o faturamento cresceu, mas o volume de comandas não acompanhou. Isso indica venda melhor, não necessariamente mais fluxo.';
+        'A Bebcom está faturando mais, mas não necessariamente atendendo mais clientes. A melhora vem mais de ticket médio ou vendas maiores.';
     } else if (revenueVariation < 0 && ticketsVariation < 0) {
       diagnosis =
-        'Pelo Relatório Gerencial, houve queda em faturamento e em comandas. Isso indica redução de movimento comercial.';
+        'A Bebcom está vendendo menos em faturamento e também em volume de comandas.';
     } else {
       diagnosis =
-        'Pelo Relatório Gerencial, os indicadores estão mistos e exigem leitura conjunta de faturamento, comandas e ticket médio.';
+        'A leitura está mista: faturamento, comandas e ticket médio não caminharam na mesma direção.';
     }
+  } else {
+    diagnosis =
+      'Ainda não há base anterior suficiente para afirmar evolução mensal completa.';
   }
 
   return `
-📊 ANÁLISE DO RELATÓRIO GERENCIAL — ${ctx.periodLabel}
+📈 EVOLUÇÃO COMERCIAL DA BEBCOM — ${ctx.periodLabel}
 
 ━━━━━━━━━━━━━━━━━━
 
-💰 Faturamento gerencial
+📌 Leitura atual pelo Relatório Gerencial
+
+Faturamento:
 ${formatCurrency(currentRevenue)}
 
-🧾 Total de comandas
+Comandas:
 ${currentTickets}
 
-🎯 Ticket médio
+Ticket médio:
 ${formatCurrency(currentTicket)}
 
 ━━━━━━━━━━━━━━━━━━
@@ -2826,16 +2938,40 @@ ${formatCurrency(previousTicket)}
 
 ━━━━━━━━━━━━━━━━━━
 
-📈 Evolução
+📈 Variação mensal
 
 Faturamento:
-${revenueVariation !== null ? `${revenueVariation.toFixed(1)}%` : 'sem base anterior'}
+${formatVariationText(revenueVariation)}
 
 Comandas:
-${ticketsVariation !== null ? `${ticketsVariation.toFixed(1)}%` : 'sem base anterior'}
+${formatVariationText(ticketsVariation)}
 
 Ticket médio:
-${averageTicketVariation !== null ? `${averageTicketVariation.toFixed(1)}%` : 'sem base anterior'}
+${formatVariationText(ticketVariation)}
+
+━━━━━━━━━━━━━━━━━━
+
+📅 Comparação histórica do mês de ${getMonthLabel(ctx.month, ctx.year).split('/')[0]}
+
+${sameMonthList || 'Sem histórico suficiente para este mês.'}
+
+━━━━━━━━━━━━━━━━━━
+
+📊 Comparação do ${quarter}º trimestre entre os anos
+
+${quarterList || 'Sem histórico suficiente para este trimestre.'}
+
+━━━━━━━━━━━━━━━━━━
+
+📊 Comparação do ${semester}º semestre entre os anos
+
+${semesterList || 'Sem histórico suficiente para este semestre.'}
+
+━━━━━━━━━━━━━━━━━━
+
+📆 Evolução mês a mês de ${ctx.year}
+
+${currentYearList || 'Sem meses suficientes lançados para este ano.'}
 
 ━━━━━━━━━━━━━━━━━━
 
@@ -2843,19 +2979,15 @@ ${averageTicketVariation !== null ? `${averageTicketVariation.toFixed(1)}%` : 's
 
 ${diagnosis}
 
-━━━━━━━━━━━━━━━━━━
-
-🔎 Observação importante
-
-Esta análise usa o Relatório Gerencial mensal, não os lançamentos diários.
-
-Por isso ela é a base correta para comparar vendas, comandas, ticket médio e evolução comercial desde 2021.
+A leitura mais correta não é olhar apenas o mês anterior. Para saber se a loja está vendendo mais, eu comparo o mês atual, o mesmo mês em outros anos, o trimestre, o semestre e a evolução dentro do ano.
 
 ━━━━━━━━━━━━━━━━━━
 
 🎯 Minha recomendação
 
-Use o Relatório Gerencial para medir evolução comercial e os lançamentos diários para medir caixa, despesas, vencimentos e pressão financeira.
+Use essa visão para separar queda normal de período, sazonalidade, perda real de fluxo e mudança de ticket médio.
+
+Para caixa, despesas e vencimentos, continue usando os lançamentos diários. Para vendas, comandas e evolução comercial, use o Relatório Gerencial.
 `.trim();
 };
 

@@ -1172,6 +1172,28 @@ const getSpecificDatePeriod = (question) => {
   };
 };
 
+const getPartialComparisonLimitDay = (question, currentPeriod) => {
+  const lower = normalizeText(question);
+  const now = new Date();
+
+  const explicitDayMatch = lower.match(/ate o dia\s+(\d{1,2})|ate dia\s+(\d{1,2})/);
+  const explicitDay = explicitDayMatch
+    ? Number(explicitDayMatch[1] || explicitDayMatch[2])
+    : null;
+
+  const isCurrentMonth =
+    Number(currentPeriod.month) === now.getMonth() + 1 &&
+    Number(currentPeriod.year) === now.getFullYear();
+
+  if (explicitDay) return explicitDay;
+
+  if (isCurrentMonth && !lower.includes('completo')) {
+    return now.getDate();
+  }
+
+  return null;
+};
+
 const getComparisonPeriods = (question) => {
   const lower = question.toLowerCase();
 
@@ -11792,10 +11814,58 @@ const askIABebcom = async (req, res) => {
       ctx = await buildContext(period);
       ctx.periodLabel = relativePeriod.label;
       previousCtx = { ...ctx };
-   } else if (comparisonPeriods) {
-  period = comparisonPeriods.current;
-  ctx = await buildContext(comparisonPeriods.current);
-  previousCtx = await buildContext(comparisonPeriods.compare);
+  } else if (comparisonPeriods) {
+  const limitDay = getPartialComparisonLimitDay(
+    question,
+    comparisonPeriods.current
+  );
+
+  let currentPeriod = comparisonPeriods.current;
+  let comparePeriod = comparisonPeriods.compare;
+
+  if (limitDay) {
+    const currentEndDay = Math.min(
+      limitDay,
+      new Date(currentPeriod.year, currentPeriod.month, 0).getDate()
+    );
+
+    const compareEndDay = Math.min(
+      limitDay,
+      new Date(comparePeriod.year, comparePeriod.month, 0).getDate()
+    );
+
+    currentPeriod = {
+      ...currentPeriod,
+      end: new Date(
+        currentPeriod.year,
+        currentPeriod.month - 1,
+        currentEndDay,
+        23,
+        59,
+        59,
+        999
+      ),
+      customLabel: `${getMonthLabel(currentPeriod.month, currentPeriod.year)} até dia ${currentEndDay}`,
+    };
+
+    comparePeriod = {
+      ...comparePeriod,
+      end: new Date(
+        comparePeriod.year,
+        comparePeriod.month - 1,
+        compareEndDay,
+        23,
+        59,
+        59,
+        999
+      ),
+      customLabel: `${getMonthLabel(comparePeriod.month, comparePeriod.year)} até dia ${compareEndDay}`,
+    };
+  }
+
+  period = currentPeriod;
+  ctx = await buildContext(currentPeriod);
+  previousCtx = await buildContext(comparePeriod);
 } else if (analyticalPeriod) {
   period = {
     month: null,

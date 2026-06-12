@@ -6329,133 +6329,118 @@ ${buildConsultiveClosing({
 `.trim();
 };
 
-const buildHistoricalTrendAnswer = (history) => {
-  const orderedHistory = (history || [])
-    .filter((item) => item?.month && item?.year)
-    .sort((a, b) => {
-      const dateA = new Date(a.year, a.month - 1);
-      const dateB = new Date(b.year, b.month - 1);
+const buildHistoricalTrendAnswer = async () => {
+  const reports = await ManagementReport.find({})
+    .sort({ year: 1, month: 1 });
 
-      return dateA - dateB;
-    });
+  const validReports = (reports || []).filter(
+    (report) =>
+      report.year &&
+      report.month &&
+      getManagementReportValue(report) > 0
+  );
 
-  if (orderedHistory.length < 2) {
+  if (!validReports.length) {
     return `
-📈 TENDÊNCIAS HISTÓRICAS
+📖 NARRATIVA EVOLUTIVA DA BEBCOM
 
-━━━━━━━━━━━━━━━━━━
-
-Ainda não existem períodos suficientes para análise histórica.
-
-👉 Próxima ação sugerida
-
-Mantenha os lançamentos mensais para que a IA possa identificar padrões e tendências.
+Ainda não encontrei dados suficientes no Relatório Gerencial para contar a evolução histórica da empresa.
 `.trim();
   }
 
-const validHistory = orderedHistory.filter(
-  (item) =>
-    item.totalIncome > 0 ||
-    item.totalExpenses > 0
-);
+  const yearly = {};
 
-if (validHistory.length < 2) {
-  return `
-📈 TENDÊNCIAS HISTÓRICAS
+  validReports.forEach((report) => {
+    const year = Number(report.year);
+    const revenue = getManagementReportValue(report);
+    const tickets = Number(report.totalTickets || 0);
 
-━━━━━━━━━━━━━━━━━━
+    if (!yearly[year]) {
+      yearly[year] = {
+        year,
+        revenue: 0,
+        tickets: 0,
+        months: 0,
+      };
+    }
 
-Ainda não existem pelo menos 2 períodos com movimentação financeira para medir evolução real.
+    yearly[year].revenue += revenue;
+    yearly[year].tickets += tickets;
+    yearly[year].months += 1;
+  });
 
-👉 Próxima ação sugerida
-
-Continue alimentando os lançamentos mensais. A IA precisa de pelo menos dois meses com entradas ou despesas para comparar tendências.
-`.trim();
-}
-  const first = validHistory[0];
-  const last = validHistory[validHistory.length - 1];
-
-  const incomeVariation = calculateVariation(
-    last.totalIncome,
-    first.totalIncome
+  const years = Object.values(yearly).sort(
+    (a, b) => a.year - b.year
   );
 
-  const expenseVariation = calculateVariation(
-    last.totalExpenses,
-    first.totalExpenses
-  );
+  const bestYear = [...years].sort(
+    (a, b) => b.revenue - a.revenue
+  )[0];
 
-  const balanceVariation = calculateVariation(
-    last.balance,
-    first.balance
-  );
+  const latestYear = years[years.length - 1];
 
-  const trends = [];
+  const yearlyLines = years
+    .map((item) => {
+      const ticket =
+        item.tickets > 0
+          ? item.revenue / item.tickets
+          : 0;
 
-  if (first.totalIncome === 0) {
-    trends.push(
-      'Ainda não existe base suficiente para medir evolução das entradas.'
-    );
-  } else if (incomeVariation > 0) {
-    trends.push(
-      `As entradas cresceram ${incomeVariation.toFixed(1)}% no período analisado.`
-    );
-  } else {
-    trends.push(
-      `As entradas caíram ${Math.abs(incomeVariation).toFixed(1)}% no período analisado.`
-    );
-  }
-
-  if (first.totalExpenses === 0) {
-    trends.push(
-      'Ainda não existe base suficiente para medir evolução das despesas.'
-    );
-  } else if (expenseVariation > 0) {
-    trends.push(
-      `As despesas cresceram ${expenseVariation.toFixed(1)}%.`
-    );
-  } else {
-    trends.push(
-      `As despesas reduziram ${Math.abs(expenseVariation).toFixed(1)}%.`
-    );
-  }
-
-  if (balanceVariation > 0) {
-    trends.push(
-      'O resultado operacional demonstra evolução positiva.'
-    );
-  } else {
-    trends.push(
-      'O resultado operacional demonstra deterioração.'
-    );
-  }
+      return `${item.year}: ${formatCurrency(item.revenue)} — ${item.tickets} comandas — ticket médio ${formatCurrency(ticket)} — ${item.months} meses considerados`;
+    })
+    .join('\n');
 
   return `
-📈 TENDÊNCIAS HISTÓRICAS
+📖 NARRATIVA EVOLUTIVA DA BEBCOM
 
 ━━━━━━━━━━━━━━━━━━
 
-📅 Períodos analisados
+📊 Evolução anual pelo Relatório Gerencial
 
-${orderedHistory.length} meses
-
-━━━━━━━━━━━━━━━━━━
-
-📊 Evolução identificada
-
-${trends.map((item) => `• ${item}`).join('\n')}
+${yearlyLines}
 
 ━━━━━━━━━━━━━━━━━━
 
-💡 Minha leitura
+🏆 Ano de maior faturamento
 
-A análise histórica permite identificar comportamento estrutural da operação, evitando decisões baseadas apenas no mês atual.
+${bestYear.year}
+${formatCurrency(bestYear.revenue)}
 
 ━━━━━━━━━━━━━━━━━━
 
-👉 Próxima ação sugerida
+🧠 Minha leitura
 
-Observe principalmente a tendência de caixa, compras e despesas. A direção da curva costuma ser mais importante que o resultado isolado de um único mês.
+A Bebcom nasceu em 2021 em fase de construção, reinvestimento e formação de estrutura.
+
+A empresa ganhou força com variedade, atendimento, adaptação ao cliente e presença local.
+
+O melhor ciclo histórico aparece em ${bestYear.year}, quando a operação atingiu o maior volume anual registrado.
+
+Depois desse pico, a leitura precisa separar faturamento, comandas e ticket médio.
+
+Se o ticket médio se mantém forte, mas as comandas caem, o desafio principal não é apenas vender mais caro: é recuperar fluxo de clientes.
+
+━━━━━━━━━━━━━━━━━━
+
+📍 Fase atual
+
+Em ${latestYear.year}, a Bebcom parece viver uma fase de ajuste e leitura estratégica.
+
+O foco não deve ser apenas buscar recorde de faturamento, mas recuperar movimento, proteger margem, controlar compras e transformar vendas em caixa saudável.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Use a história da Bebcom como guia:
+
+1. preservar a identidade da loja;
+2. recuperar fluxo de clientes;
+3. manter ticket médio forte;
+4. controlar estoque e compras;
+5. acompanhar caixa diariamente.
+
+A Bebcom já provou que tem capacidade de crescimento. O desafio agora é crescer com controle.
 `.trim();
 };
 
@@ -12454,7 +12439,7 @@ if (temporalAnalyticsAnswer) {
 if (isStrategicMemoryQuestion) {
   answer = buildStrategicMemoryAnswer(historicalContexts);
 } else if (isHistoricalTrendQuestion) {
-  answer = buildHistoricalTrendAnswer(historicalContexts);
+  answer = await buildHistoricalTrendAnswer();
 } else if (isCEOQuestion) {
   answer = buildCEOAnswer(
     ctx,

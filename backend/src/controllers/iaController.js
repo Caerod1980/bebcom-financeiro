@@ -2863,13 +2863,13 @@ Para analisar vendas, comandas e ticket médio pelo histórico gerencial, precis
 
   const quarterList = sameQuarterByYear
     .map((item) => {
-      return `${item.year}: ${formatCurrency(item.revenue)} — ${item.tickets} comandas — ${item.months} mês(es)`;
+      return `${item.year}: ${formatCurrency(item.revenue)} — ${item.tickets} comandas — ${item.months} meses considerados`;
     })
     .join('\n');
 
   const semesterList = sameSemesterByYear
     .map((item) => {
-      return `${item.year}: ${formatCurrency(item.revenue)} — ${item.tickets} comandas — ${item.months} mês(es)`;
+      return `${item.year}: ${formatCurrency(item.revenue)} — ${item.tickets} comandas — ${item.months} meses considerados`;
     })
     .join('\n');
 
@@ -2972,6 +2972,8 @@ ${semesterList || 'Sem histórico suficiente para este semestre.'}
 📆 Evolução mês a mês de ${ctx.year}
 
 ${currentYearList || 'Sem meses suficientes lançados para este ano.'}
+
+${partialMonthNote}
 
 ━━━━━━━━━━━━━━━━━━
 

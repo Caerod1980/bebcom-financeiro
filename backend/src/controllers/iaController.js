@@ -12413,21 +12413,22 @@ if (temporalAnalyticsAnswer) {
     
     const knowledgeBaseAnswer = getKnowledgeBaseAnswer(question, ctx);
 
-  if (isHistoricalTrendQuestion) {
-  answer = await buildHistoricalTrendAnswer();
+ if (isHistoricalTrendQuestion) {
+  const historicalNarrativeAnswer =
+    await buildHistoricalTrendAnswer();
 
   updateExecutiveContext({
     intent: 'historical_trend',
     topic: 'tendencias_historicas',
     periodLabel: ctx.periodLabel,
-    summary: answer.slice(0, 500),
+    summary: historicalNarrativeAnswer.slice(0, 500),
     recommendedNextStep:
       'Relacionar a fase atual com a evolução histórica da Bebcom.',
     lastAnswerType: 'historical_trend',
   });
 
   return res.json({
-    answer,
+    answer: historicalNarrativeAnswer,
   });
 }
 

@@ -2812,9 +2812,6 @@ Para analisar vendas, comandas e ticket médio pelo histórico gerencial, precis
   const currentRevenue = getManagementReportValue(currentReport);
   const currentTickets = Number(currentReport.totalTickets || 0);
   const currentTicket = Number(currentReport.averageTicket || 0);
-  const currentRevenue = getManagementReportValue(currentReport);
-  const currentTickets = Number(currentReport.totalTickets || 0);
-  const currentTicket = Number(currentReport.averageTicket || 0);
 
   const now = new Date();
 

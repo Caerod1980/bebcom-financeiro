@@ -12408,6 +12408,24 @@ if (temporalAnalyticsAnswer) {
     
     const knowledgeBaseAnswer = getKnowledgeBaseAnswer(question, ctx);
 
+  if (isHistoricalTrendQuestion) {
+  answer = await buildHistoricalTrendAnswer();
+
+  updateExecutiveContext({
+    intent: 'historical_trend',
+    topic: 'tendencias_historicas',
+    periodLabel: ctx.periodLabel,
+    summary: answer.slice(0, 500),
+    recommendedNextStep:
+      'Relacionar a fase atual com a evolução histórica da Bebcom.',
+    lastAnswerType: 'historical_trend',
+  });
+
+  return res.json({
+    answer,
+  });
+}
+
   const advancedIntentAnswer = buildAdvancedIntentAnswer({
   intent: advancedIntent,
   question,
@@ -12438,9 +12456,7 @@ if (temporalAnalyticsAnswer) {
 
 if (isStrategicMemoryQuestion) {
   answer = buildStrategicMemoryAnswer(historicalContexts);
-} else if (isHistoricalTrendQuestion) {
-  answer = await buildHistoricalTrendAnswer();
-} else if (isCEOQuestion) {
+ } else if (isCEOQuestion) {
   answer = buildCEOAnswer(
     ctx,
     previousCtx,

@@ -2,6 +2,7 @@ const Entry = require('../models/Entry');
 const Account = require('../models/Account');
 const ManagementReport = require('../models/ManagementReport');
 const InventoryBalance = require('../models/InventoryBalance');
+const ExecutiveMemoryEvent = require('../models/ExecutiveMemoryEvent');
 const iaKnowledgeBase = require('../data/iaKnowledgeBase');
 
 let lastIAContext = {
@@ -2993,6 +2994,82 @@ Para caixa, despesas e vencimentos, continue usando os lançamentos diários. Pa
 `.trim();
 };
 
+const registerExecutiveMemoryEvent = async ({
+  type,
+  severity = 'medium',
+  periodLabel,
+  month,
+  year,
+  title,
+  summary,
+  metric,
+  currentValue,
+  previousValue,
+  variation,
+  source = 'System',
+}) => {
+  const fingerprint = [
+    type,
+    periodLabel,
+    metric || '',
+    Number(currentValue || 0).toFixed(2),
+    Number(previousValue || 0).toFixed(2),
+  ].join('|');
+
+  try {
+    await ExecutiveMemoryEvent.findOneAndUpdate(
+      { fingerprint },
+      {
+        type,
+        severity,
+        periodLabel,
+        month,
+        year,
+        title,
+        summary,
+        metric,
+        currentValue,
+        previousValue,
+        variation,
+        source,
+        active: true,
+      },
+      {
+        upsert: true,
+        new: true,
+      }
+    );
+  } catch (error) {
+    console.error('Erro ao registrar memória evolutiva:', error.message);
+  }
+};
+
+const getRecentExecutiveMemoryEvents = async (limit = 5) => {
+  return ExecutiveMemoryEvent.find({ active: true })
+    .sort({ createdAt: -1 })
+    .limit(limit);
+};
+
+const buildRecentExecutiveMemoryText = async () => {
+  const events = await getRecentExecutiveMemoryEvents(5);
+
+  if (!events.length) {
+    return 'Ainda não há eventos evolutivos registrados.';
+  }
+
+  await ExecutiveMemoryEvent.updateMany(
+    { _id: { $in: events.map((event) => event._id) } },
+    { $inc: { usedInAnswers: 1 } }
+  );
+
+  return events
+    .map((event, index) => {
+      return `${index + 1}. ${event.title}
+${event.summary}`;
+    })
+    .join('\n\n');
+};
+
 const buildDynamicExecutiveMemoryAnswer = async (question, ctx, previousCtx) => {
   const lower = normalizeText(question);
 
@@ -3072,6 +3149,45 @@ const buildDynamicExecutiveMemoryAnswer = async (question, ctx, previousCtx) => 
     }
   }
 
+if (previousCtx) {
+  if (ctx.balance < previousCtx.balance) {
+    await registerExecutiveMemoryEvent({
+      type: 'cash_pressure',
+      severity: ctx.balance < 0 ? 'high' : 'medium',
+      periodLabel: ctx.periodLabel,
+      month: ctx.month,
+      year: ctx.year,
+      title: `Piora de caixa em ${ctx.periodLabel}`,
+      summary: `O resultado piorou ${formatCurrency(Math.abs(ctx.balance - previousCtx.balance))} em relação ao período anterior.`,
+      metric: 'balance',
+      currentValue: ctx.balance,
+      previousValue: previousCtx.balance,
+      variation: ctx.balance - previousCtx.balance,
+      source: 'Entry',
+    });
+  }
+
+  if (ctx.balance > previousCtx.balance) {
+    await registerExecutiveMemoryEvent({
+      type: 'cash_recovery',
+      severity: 'medium',
+      periodLabel: ctx.periodLabel,
+      month: ctx.month,
+      year: ctx.year,
+      title: `Melhora de caixa em ${ctx.periodLabel}`,
+      summary: `O resultado melhorou ${formatCurrency(ctx.balance - previousCtx.balance)} em relação ao período anterior.`,
+      metric: 'balance',
+      currentValue: ctx.balance,
+      previousValue: previousCtx.balance,
+      variation: ctx.balance - previousCtx.balance,
+      source: 'Entry',
+    });
+  }
+}
+
+  const recentMemoryText =
+  await buildRecentExecutiveMemoryText();
+  
   return `
 🧠 MEMÓRIA EXECUTIVA DINÂMICA — ${ctx.periodLabel}
 
@@ -3118,6 +3234,12 @@ ${
     ? profile.notes.map((item) => `• ${item}`).join('\n')
     : 'A base atual permite uma leitura consistente.'
 }
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Eventos recentes da memória evolutiva
+
+${recentMemoryText}
 
 ━━━━━━━━━━━━━━━━━━
 

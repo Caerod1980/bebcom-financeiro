@@ -2700,6 +2700,60 @@ const getManagementReportValue = (report) => {
   );
 };
 
+const getDaysInMonth = (month, year) => {
+  return new Date(year, month, 0).getDate();
+};
+
+const buildPartialMetric = ({
+  report,
+  limitDay,
+  useRealCurrent = false,
+}) => {
+  if (!report) {
+    return {
+      revenue: 0,
+      tickets: 0,
+      averageTicket: 0,
+      estimated: true,
+    };
+  }
+
+  const revenue = getManagementReportValue(report);
+  const tickets = Number(report.totalTickets || 0);
+
+  if (useRealCurrent) {
+    return {
+      revenue,
+      tickets,
+      averageTicket: tickets > 0 ? revenue / tickets : 0,
+      estimated: false,
+    };
+  }
+
+  const year = Number(report.year);
+  const month = Number(report.month);
+  const daysInMonth = getDaysInMonth(month, year);
+  const safeLimitDay = Math.min(limitDay, daysInMonth);
+  const factor = safeLimitDay / daysInMonth;
+
+  const partialRevenue = revenue * factor;
+  const partialTickets = tickets * factor;
+
+  return {
+    revenue: partialRevenue,
+    tickets: partialTickets,
+    averageTicket:
+      partialTickets > 0
+        ? partialRevenue / partialTickets
+        : 0,
+    estimated: true,
+  };
+};
+
+const formatTickets = (value) => {
+  return Math.round(Number(value || 0));
+};
+
 const buildManagementReportComparisonAnswer = async (question, ctx) => {
   const lower = normalizeText(question);
 
@@ -2758,6 +2812,25 @@ Para analisar vendas, comandas e ticket médio pelo histórico gerencial, precis
   const currentRevenue = getManagementReportValue(currentReport);
   const currentTickets = Number(currentReport.totalTickets || 0);
   const currentTicket = Number(currentReport.averageTicket || 0);
+  const currentRevenue = getManagementReportValue(currentReport);
+  const currentTickets = Number(currentReport.totalTickets || 0);
+  const currentTicket = Number(currentReport.averageTicket || 0);
+
+  const now = new Date();
+
+const isCurrentMonth =
+  Number(ctx.month) === now.getMonth() + 1 &&
+  Number(ctx.year) === now.getFullYear();
+
+const currentDay = isCurrentMonth
+  ? now.getDate()
+  : getDaysInMonth(ctx.month, ctx.year);
+
+const currentPartial = buildPartialMetric({
+  report: currentReport,
+  limitDay: currentDay,
+  useRealCurrent: true,
+});
 
   const previousMonth = ctx.month === 1 ? 12 : ctx.month - 1;
   const previousYear = ctx.month === 1 ? ctx.year - 1 : ctx.year;
@@ -2768,9 +2841,24 @@ Para analisar vendas, comandas e ticket médio pelo histórico gerencial, precis
       Number(report.month) === Number(previousMonth)
   );
 
-  const previousRevenue = getManagementReportValue(previousReport);
-  const previousTickets = Number(previousReport?.totalTickets || 0);
-  const previousTicket = Number(previousReport?.averageTicket || 0);
+const previousPartial = buildPartialMetric({
+  report: previousReport,
+  limitDay: currentDay,
+  useRealCurrent: false,
+});
+
+const previousRevenue = isCurrentMonth
+  ? previousPartial.revenue
+  : getManagementReportValue(previousReport);
+
+const previousTickets = isCurrentMonth
+  ? previousPartial.tickets
+  : Number(previousReport?.totalTickets || 0);
+
+const previousTicket =
+  previousTickets > 0
+    ? previousRevenue / previousTickets
+    : 0;
 
   const revenueVariation =
     previousRevenue > 0
@@ -2795,29 +2883,56 @@ Para analisar vendas, comandas e ticket médio pelo histórico gerencial, precis
   const semester = ctx.month <= 6 ? 1 : 2;
 
   const groupByYear = (items) => {
-    const grouped = {};
+  const grouped = {};
 
-    items.forEach((report) => {
-      const year = Number(report.year);
+  items.forEach((report) => {
+    const year = Number(report.year);
+    const month = Number(report.month);
 
-      if (!grouped[year]) {
-        grouped[year] = {
-          year,
-          revenue: 0,
-          tickets: 0,
-          months: 0,
+    const isCurrentReport =
+      year === Number(ctx.year) &&
+      month === Number(ctx.month);
+
+    const shouldPartialize =
+      isCurrentMonth &&
+      month === Number(ctx.month);
+
+    const metric = shouldPartialize
+      ? buildPartialMetric({
+          report,
+          limitDay: currentDay,
+          useRealCurrent: isCurrentReport,
+        })
+      : {
+          revenue: getManagementReportValue(report),
+          tickets: Number(report.totalTickets || 0),
+          averageTicket: Number(report.averageTicket || 0),
+          estimated: false,
         };
-      }
 
-      grouped[year].revenue += getManagementReportValue(report);
-      grouped[year].tickets += Number(report.totalTickets || 0);
-      grouped[year].months += 1;
-    });
+    if (!grouped[year]) {
+      grouped[year] = {
+        year,
+        revenue: 0,
+        tickets: 0,
+        months: 0,
+        hasPartialMonth: false,
+      };
+    }
 
-    return Object.values(grouped).sort(
-      (a, b) => a.year - b.year
-    );
-  };
+    grouped[year].revenue += metric.revenue;
+    grouped[year].tickets += metric.tickets;
+    grouped[year].months += 1;
+
+    if (shouldPartialize) {
+      grouped[year].hasPartialMonth = true;
+    }
+  });
+
+  return Object.values(grouped).sort(
+    (a, b) => a.year - b.year
+  );
+};
 
   const sameQuarterByYear = groupByYear(
     validReports.filter((report) => {
@@ -2847,27 +2962,45 @@ Para analisar vendas, comandas e ticket médio pelo histórico gerencial, precis
     return `${variation.toFixed(1)}%`;
   };
 
-  const sameMonthList = sameMonthHistory
-    .map((report) => {
-      const revenue = getManagementReportValue(report);
-      const tickets = Number(report.totalTickets || 0);
-      const ticket = Number(report.averageTicket || 0);
+const sameMonthList = sameMonthHistory
+  .map((report) => {
+    const isCurrentReport =
+      Number(report.year) === Number(ctx.year) &&
+      Number(report.month) === Number(ctx.month);
 
-      return `${report.year}: ${formatCurrency(revenue)} — ${tickets} comandas — ticket ${formatCurrency(ticket)}`;
-    })
-    .join('\n');
+    const partial = buildPartialMetric({
+      report,
+      limitDay: currentDay,
+      useRealCurrent: isCurrentReport,
+    });
 
-  const quarterList = sameQuarterByYear
-    .map((item) => {
-      return `${item.year}: ${formatCurrency(item.revenue)} — ${item.tickets} comandas — ${item.months} meses considerados`;
-    })
-    .join('\n');
+    const suffix = partial.estimated
+      ? `estimado até dia ${currentDay}`
+      : `real até dia ${currentDay}`;
+
+    return `${report.year}: ${formatCurrency(partial.revenue)} — ${formatTickets(partial.tickets)} comandas — ticket ${formatCurrency(partial.averageTicket)} — ${suffix}`;
+  })
+  .join('\n');
+
+const quarterList = sameQuarterByYear
+  .map((item) => {
+    const suffix = item.hasPartialMonth
+      ? `${item.months} meses considerados, com ${getMonthLabel(ctx.month, ctx.year).split('/')[0]} até dia ${currentDay}`
+      : `${item.months} meses considerados`;
+
+    return `${item.year}: ${formatCurrency(item.revenue)} — ${formatTickets(item.tickets)} comandas — ${suffix}`;
+  })
+  .join('\n');
 
   const semesterList = sameSemesterByYear
-    .map((item) => {
-      return `${item.year}: ${formatCurrency(item.revenue)} — ${item.tickets} comandas — ${item.months} meses considerados`;
-    })
-    .join('\n');
+  .map((item) => {
+    const suffix = item.hasPartialMonth
+      ? `${item.months} meses considerados, com ${getMonthLabel(ctx.month, ctx.year).split('/')[0]} até dia ${currentDay}`
+      : `${item.months} meses considerados`;
+
+    return `${item.year}: ${formatCurrency(item.revenue)} — ${formatTickets(item.tickets)} comandas — ${suffix}`;
+  })
+  .join('\n');
 
   const currentYearList = currentYearMonths
     .map((report) => {
@@ -2893,7 +3026,9 @@ Para analisar vendas, comandas e ticket médio pelo histórico gerencial, precis
         'A Bebcom está faturando mais, mas não necessariamente atendendo mais clientes. A melhora vem mais de ticket médio ou vendas maiores.';
     } else if (revenueVariation < 0 && ticketsVariation < 0) {
       diagnosis =
-        'A Bebcom está vendendo menos em faturamento e também em volume de comandas.';
+        isCurrentMonth
+  ? `Até o momento, ${ctx.periodLabel} está abaixo em faturamento e comandas na comparação parcial. Essa leitura ainda pode mudar até o fechamento do mês.`
+  : 'A Bebcom está vendendo menos em faturamento e também em volume de comandas.';
     } else {
       diagnosis =
         'A leitura está mista: faturamento, comandas e ticket médio não caminharam na mesma direção.';
@@ -2903,11 +3038,6 @@ Para analisar vendas, comandas e ticket médio pelo histórico gerencial, precis
       'Ainda não há base anterior suficiente para afirmar evolução mensal completa.';
   }
 
-  const now = new Date();
-
-  const isCurrentMonth =
-    Number(ctx.month) === now.getMonth() + 1 &&
-    Number(ctx.year) === now.getFullYear();
 
   const partialMonthNote = isCurrentMonth
     ? `
@@ -2941,13 +3071,13 @@ ${formatCurrency(currentTicket)}
 
 ━━━━━━━━━━━━━━━━━━
 
-📊 Comparação com ${getMonthLabel(previousMonth, previousYear)}
+📊 Comparação parcial com ${getMonthLabel(previousMonth, previousYear)} até dia ${currentDay}
 
 Faturamento anterior:
 ${formatCurrency(previousRevenue)}
 
 Comandas anteriores:
-${previousTickets}
+${formatTickets(previousTickets)}
 
 Ticket médio anterior:
 ${formatCurrency(previousTicket)}

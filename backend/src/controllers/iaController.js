@@ -2908,16 +2908,14 @@ Para analisar vendas, comandas e ticket médio pelo histórico gerencial, precis
       'Ainda não há base anterior suficiente para afirmar evolução mensal completa.';
   }
 
-  return `
+  const now = new Date();
 
-const now = new Date();
+  const isCurrentMonth =
+    Number(ctx.month) === now.getMonth() + 1 &&
+    Number(ctx.year) === now.getFullYear();
 
-const isCurrentMonth =
-  Number(ctx.month) === now.getMonth() + 1 &&
-  Number(ctx.year) === now.getFullYear();
-
-const partialMonthNote = isCurrentMonth
-  ? `
+  const partialMonthNote = isCurrentMonth
+    ? `
 ━━━━━━━━━━━━━━━━━━
 
 ⚠️ Observação sobre o mês atual
@@ -2926,9 +2924,12 @@ ${ctx.periodLabel} ainda está em andamento.
 
 Por isso, comparações contra meses fechados devem ser lidas como parciais. A leitura ficará mais precisa conforme novos lançamentos forem adicionados ao Relatório Gerencial.
 `
-  : '';
-  
+    : '';
+
+  return `
 📈 EVOLUÇÃO COMERCIAL DA BEBCOM — ${ctx.periodLabel}
+
+
 
 ━━━━━━━━━━━━━━━━━━
 

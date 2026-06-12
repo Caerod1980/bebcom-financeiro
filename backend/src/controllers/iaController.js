@@ -12114,6 +12114,11 @@ const isExecutiveAdviceQuestion =
   lowerQuestion.includes('tendências históricas') ||
   lowerQuestion.includes('como a empresa evoluiu') ||
   lowerQuestion.includes('como minha empresa evoluiu') ||
+  lowerQuestion.includes('como a bebcom evoluiu') ||
+  lowerQuestion.includes('conte a história da bebcom') ||
+  lowerQuestion.includes('conte a historia da bebcom') ||
+  lowerQuestion.includes('qual fase estou vivendo') ||
+  lowerQuestion.includes('em que fase estou') ||
   lowerQuestion.includes('estou melhorando') ||
   lowerQuestion.includes('estamos melhorando') ||
   lowerQuestion.includes('evolução da empresa') ||

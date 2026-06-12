@@ -2713,12 +2713,7 @@ const buildManagementReportComparisonAnswer = async (question, ctx) => {
     lower.includes('faturamento') ||
     lower.includes('comandas') ||
     lower.includes('clientes') ||
-    lower.includes('movimento') ||
-    lower.includes('situacao melhorou') ||
-    lower.includes('situacao piorou') ||
-    lower.includes('situação melhorou') ||
-    lower.includes('situação piorou') ||
-    lower.includes('melhorou ou piorou');
+    lower.includes('movimento');
 
   if (!mentionsManagementReport && !asksSalesEvolution) {
     return null;

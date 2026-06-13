@@ -6629,7 +6629,6 @@ const buildTrendForecastAnswer = (
   ctx,
   previousCtx
 ) => {
-
   const now = new Date();
 
   const currentDay = now.getDate();
@@ -6641,30 +6640,60 @@ const buildTrendForecastAnswer = (
       0
     ).getDate();
 
-  const dailyAverage =
+  const incomeDailyAverage =
     currentDay > 0
       ? ctx.totalIncome / currentDay
       : 0;
 
-  const projectedRevenue =
-    dailyAverage * totalDaysInMonth;
-
-  const variation =
-    previousCtx &&
-    previousCtx.totalIncome > 0
-      ? (
-          (
-            projectedRevenue -
-            previousCtx.totalIncome
-          ) /
-          previousCtx.totalIncome
-        ) * 100
+  const expenseDailyAverage =
+    currentDay > 0
+      ? ctx.totalExpenses / currentDay
       : 0;
 
-  const trend =
-    variation >= 0
-      ? 'crescimento'
-      : 'queda';
+  const projectedIncome =
+    incomeDailyAverage * totalDaysInMonth;
+
+  const projectedExpenses =
+    expenseDailyAverage * totalDaysInMonth;
+
+  const projectedBalance =
+    projectedIncome - projectedExpenses;
+
+  const incomeVariation =
+    previousCtx && previousCtx.totalIncome > 0
+      ? calculateVariation(
+          projectedIncome,
+          previousCtx.totalIncome
+        )
+      : null;
+
+  const expenseVariation =
+    previousCtx && previousCtx.totalExpenses > 0
+      ? calculateVariation(
+          projectedExpenses,
+          previousCtx.totalExpenses
+        )
+      : null;
+
+  let trend = 'estabilidade';
+
+  if (projectedBalance < 0) {
+    trend = 'pressão de caixa';
+  }
+
+  if (
+    incomeVariation !== null &&
+    incomeVariation < -10
+  ) {
+    trend = 'queda de faturamento';
+  }
+
+  if (
+    projectedBalance < 0 &&
+    projectedExpenses > projectedIncome
+  ) {
+    trend = 'deterioração operacional';
+  }
 
   return `
 📈 PREVISÃO DE TENDÊNCIA — ${ctx.periodLabel}
@@ -6676,40 +6705,74 @@ const buildTrendForecastAnswer = (
 Faturamento acumulado:
 ${formatCurrency(ctx.totalIncome)}
 
+Despesas acumuladas:
+${formatCurrency(ctx.totalExpenses)}
+
+Resultado atual:
+${formatCurrency(ctx.balance)}
+
 Dias decorridos:
 ${currentDay}
 
-Média diária:
-${formatCurrency(dailyAverage)}
+━━━━━━━━━━━━━━━━━━
+
+📌 Médias diárias
+
+Receita média por dia:
+${formatCurrency(incomeDailyAverage)}
+
+Despesa média por dia:
+${formatCurrency(expenseDailyAverage)}
 
 ━━━━━━━━━━━━━━━━━━
 
 🎯 Projeção de fechamento
 
-${formatCurrency(projectedRevenue)}
+Receita projetada:
+${formatCurrency(projectedIncome)}
+
+Despesas projetadas:
+${formatCurrency(projectedExpenses)}
+
+Resultado projetado:
+${formatCurrency(projectedBalance)}
 
 ━━━━━━━━━━━━━━━━━━
 
-📅 Comparação
+📅 Comparação com ${previousCtx?.periodLabel || 'período anterior'}
 
-Período anterior:
-${formatCurrency(previousCtx.totalIncome)}
+Receita anterior:
+${formatCurrency(previousCtx?.totalIncome || 0)}
 
-Variação projetada:
-${variation.toFixed(1)}%
+Despesas anteriores:
+${formatCurrency(previousCtx?.totalExpenses || 0)}
+
+Variação projetada de receita:
+${incomeVariation !== null ? `${incomeVariation.toFixed(1)}%` : 'sem base suficiente'}
+
+Variação projetada de despesas:
+${expenseVariation !== null ? `${expenseVariation.toFixed(1)}%` : 'sem base suficiente'}
 
 ━━━━━━━━━━━━━━━━━━
 
 🧠 Minha leitura
 
-Mantido o ritmo atual, a tendência é de ${trend} em relação ao período anterior.
+Mantido o ritmo atual, a tendência principal é de ${trend}.
+
+${
+  projectedBalance < 0
+    ? 'A projeção indica que, se nada mudar, o mês pode fechar com resultado negativo. Isso exige atenção a compras, vencimentos e geração rápida de caixa.'
+    : 'A projeção indica possibilidade de fechamento positivo, desde que o ritmo atual seja mantido e as despesas não acelerem.'
+}
 
 ━━━━━━━━━━━━━━━━━━
 
 🎯 Minha recomendação
 
-Monitore os próximos dias para confirmar se o ritmo atual será mantido.
-`;
+Use essa projeção como alerta de gestão, não como número definitivo.
+
+Acompanhe diariamente se a média de vendas está subindo e se as despesas estão ficando abaixo do ritmo projetado.
+`.trim();
 };
 
 const buildInventoryAnswer = (ctx) => `

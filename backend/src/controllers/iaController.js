@@ -6876,6 +6876,41 @@ Os indicadores verdes representam forças atuais da operação.
 `.trim();
 };
 
+const calculateRiskScore = (ctx) => {
+  let score = 0;
+
+  const purchases =
+    ctx.expenseCategories?.find(
+      (item) => item.category === 'compras_mercadorias'
+    );
+
+  const purchaseShare =
+    purchases && ctx.totalIncome > 0
+      ? (purchases.amount / ctx.totalIncome) * 100
+      : 0;
+
+  const ticket =
+    Number(ctx.managementReport?.averageTicket || 0);
+
+  if (ctx.balance < 0) {
+    score += 40;
+  }
+
+  if (ctx.pendingPayable > ctx.totalIncome) {
+    score += 25;
+  }
+
+  if (purchaseShare > 70) {
+    score += 20;
+  }
+
+  if (ticket >= 20) {
+    score -= 10;
+  }
+
+  return Math.max(0, Math.min(score, 100));
+};
+
 const buildRiskScoreAnswer = (ctx) => {
   let score = 0;
 

@@ -12477,12 +12477,18 @@ const isExecutiveAdviceQuestion =
   lowerQuestion.includes('estou piorando');
 
     const isRiskRadarQuestion =
-  lowerQuestion.includes('risco') ||
-  lowerQuestion.includes('alerta') ||
-  lowerQuestion.includes('perigo') ||
-  lowerQuestion.includes('atenção') ||
-  lowerQuestion.includes('atencao') ||
-  lowerQuestion.includes('radar');
+  !isRiskScoreQuestion &&
+  (
+    lowerQuestion.includes('risco') ||
+    lowerQuestion.includes('alerta') ||
+    lowerQuestion.includes('perigo') ||
+    lowerQuestion.includes('atenção') ||
+    lowerQuestion.includes('atencao') ||
+    lowerQuestion.includes('radar') ||
+    lowerQuestion.includes('segura') ||
+    lowerQuestion.includes('saudável') ||
+    lowerQuestion.includes('saudavel')
+  );
 
     const isRiskScoreQuestion =
   lowerQuestion.includes('score de risco') ||
@@ -12784,21 +12790,17 @@ if (isTrendForecastQuestion) {
   });
 }
 
-if (isRiskRadarQuestion) {
+if (isRiskScoreQuestion) {
   return res.json({
-    answer:
-      buildOperationalRiskRadarAnswer(
-        ctx
-      ),
+    answer: buildRiskScoreAnswer(ctx),
   });
 }
 
- if (isRiskScoreQuestion) {
+if (isRiskRadarQuestion) {
   return res.json({
-    answer:
-      buildRiskScoreAnswer(ctx),
+    answer: buildOperationalRiskRadarAnswer(ctx),
   });
-}   
+}
 
 const historicalTrendAnswer =
   await buildHistoricalTrendPointAnswer(

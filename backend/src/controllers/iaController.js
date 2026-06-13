@@ -12477,8 +12477,6 @@ const isExecutiveAdviceQuestion =
   lowerQuestion.includes('estou piorando');
 
     const isRiskRadarQuestion =
-  !isRiskScoreQuestion &&
-  (
     lowerQuestion.includes('risco') ||
     lowerQuestion.includes('alerta') ||
     lowerQuestion.includes('perigo') ||
@@ -12487,8 +12485,7 @@ const isExecutiveAdviceQuestion =
     lowerQuestion.includes('radar') ||
     lowerQuestion.includes('segura') ||
     lowerQuestion.includes('saudável') ||
-    lowerQuestion.includes('saudavel')
-  );
+    lowerQuestion.includes('saudavel');
 
     const isRiskScoreQuestion =
   lowerQuestion.includes('score de risco') ||

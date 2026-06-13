@@ -12386,6 +12386,28 @@ if (historicalAggregatorAnswer) {
   });
 }
 
+// ✅ V11.5.5.1 — Diagnóstico de causa antes da tendência histórica
+if (isRootCauseQuestion) {
+  const rootCauseAnswer = buildRootCauseAnswer(
+    ctx,
+    previousCtx
+  );
+
+  updateExecutiveContext({
+    intent: 'root_cause',
+    topic: 'diagnostico_causa',
+    periodLabel: ctx.periodLabel,
+    summary: rootCauseAnswer.slice(0, 500),
+    recommendedNextStep:
+      'Transformar o diagnóstico de causa em plano de ação.',
+    lastAnswerType: 'root_cause',
+  });
+
+  return res.json({
+    answer: rootCauseAnswer,
+  });
+}
+
 const historicalTrendAnswer =
   await buildHistoricalTrendPointAnswer(
     question,
@@ -12463,12 +12485,6 @@ if (temporalAnalyticsAnswer) {
 
 if (isStrategicMemoryQuestion) {
   answer = buildStrategicMemoryAnswer(historicalContexts);
-} else if (isRootCauseQuestion) {
-  answer =
-    buildRootCauseAnswer(
-      ctx,
-      previousCtx
-    );
  } else if (isCEOQuestion) {
   answer = buildCEOAnswer(
     ctx,

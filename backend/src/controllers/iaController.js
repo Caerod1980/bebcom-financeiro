@@ -6448,275 +6448,180 @@ const buildRootCauseAnswer = (
   currentCtx,
   previousCtx
 ) => {
-
   if (!previousCtx) {
     return `
-Ainda não existe período anterior suficiente para diagnóstico.
+🔍 DIAGNÓSTICO INTELIGENTE DE CAUSA
+
+Ainda não existe período anterior suficiente para comparar a causa da mudança.
 `.trim();
   }
 
-  const revenueVariation =
-    calculateVariation(
-      currentCtx.totalIncome,
-      previousCtx.totalIncome
+  const revenueVariation = calculateVariation(
+    currentCtx.totalIncome,
+    previousCtx.totalIncome
+  );
+
+  const expenseVariation = calculateVariation(
+    currentCtx.totalExpenses,
+    previousCtx.totalExpenses
+  );
+
+  const currentTicket =
+    Number(currentCtx.managementReport?.averageTicket || 0);
+
+  const previousTicket =
+    Number(previousCtx.managementReport?.averageTicket || 0);
+
+  const ticketVariation = calculateVariation(
+    currentTicket,
+    previousTicket
+  );
+
+  const currentTickets =
+    Number(currentCtx.managementReport?.totalTickets || 0);
+
+  const previousTickets =
+    Number(previousCtx.managementReport?.totalTickets || 0);
+
+  const ticketsVariation = calculateVariation(
+    currentTickets,
+    previousTickets
+  );
+
+  const purchases =
+    currentCtx.expenseCategories?.find(
+      (item) => item.category === 'compras_mercadorias'
     );
 
-  const expenseVariation =
-    calculateVariation(
-      currentCtx.totalExpenses,
-      previousCtx.totalExpenses
-    );
+  const purchaseShare =
+    purchases && currentCtx.totalIncome > 0
+      ? (purchases.amount / currentCtx.totalIncome) * 100
+      : 0;
 
-  let cause = '';
-  let recommendation = '';
+  const payablePressure =
+    currentCtx.totalIncome > 0
+      ? (currentCtx.pendingPayable / currentCtx.totalIncome) * 100
+      : 0;
 
-  if (
-    revenueVariation < 0 &&
-    expenseVariation > 0
-  ) {
-    cause =
-      'Queda nas vendas combinada com aumento das despesas.';
+  const causes = [];
 
-    recommendation =
-      'Atacar simultaneamente recuperação de fluxo e controle de gastos.';
+  if (ticketsVariation !== null && ticketsVariation < 0) {
+    causes.push({
+      score: 30,
+      title: 'Queda no fluxo de clientes',
+      detail: `As comandas caíram ${Math.abs(ticketsVariation).toFixed(1)}%.`,
+    });
   }
-  else if (revenueVariation < 0) {
-    cause =
-      'Redução das vendas e do fluxo comercial.';
 
-    recommendation =
-      'Focar em recuperação de clientes e aumento de comandas.';
+  if (revenueVariation !== null && revenueVariation < 0) {
+    causes.push({
+      score: 25,
+      title: 'Redução de faturamento',
+      detail: `As entradas caíram ${Math.abs(revenueVariation).toFixed(1)}%.`,
+    });
   }
-  else if (expenseVariation > 0) {
-    cause =
-      'Aumento das despesas operacionais.';
 
-    recommendation =
-      'Revisar categorias que mais cresceram.';
+  if (expenseVariation !== null && expenseVariation > 0) {
+    causes.push({
+      score: 20,
+      title: 'Aumento das despesas',
+      detail: `As despesas cresceram ${expenseVariation.toFixed(1)}%.`,
+    });
   }
-  else {
-    cause =
-      'Não existe uma única causa dominante.';
 
-    recommendation =
-      'Investigar categorias específicas da operação.';
+  if (purchaseShare > 70) {
+    causes.push({
+      score: 18,
+      title: 'Compras pressionando o caixa',
+      detail: `Compras de mercadorias representam ${purchaseShare.toFixed(1)}% das entradas.`,
+    });
   }
+
+  if (payablePressure > 80) {
+    causes.push({
+      score: 15,
+      title: 'Contas pendentes elevadas',
+      detail: `Contas a pagar representam ${payablePressure.toFixed(1)}% das entradas do período.`,
+    });
+  }
+
+  if (ticketVariation !== null && ticketVariation > 0) {
+    causes.push({
+      score: 5,
+      title: 'Ticket médio melhorou, mas não compensou',
+      detail: `O ticket médio subiu ${ticketVariation.toFixed(1)}%, mas isso não foi suficiente para neutralizar a pressão principal.`,
+    });
+  }
+
+  causes.sort((a, b) => b.score - a.score);
+
+  const mainCause = causes[0];
+
+  const secondaryCauses = causes
+    .slice(1, 4)
+    .map((item, index) => `${index + 1}. ${item.title} — ${item.detail}`)
+    .join('\n');
 
   return `
-🔍 DIAGNÓSTICO AUTOMÁTICO DE CAUSA
+🔍 DIAGNÓSTICO INTELIGENTE DE CAUSA — ${currentCtx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+📊 Comparação usada
+${currentCtx.periodLabel}
+vs
+${previousCtx.periodLabel}
 
 ━━━━━━━━━━━━━━━━━━
 
 📈 Entradas
+${revenueVariation !== null ? `${revenueVariation.toFixed(1)}%` : 'sem base anterior'}
 
-${revenueVariation.toFixed(1)}%
+💸 Despesas
+${expenseVariation !== null ? `${expenseVariation.toFixed(1)}%` : 'sem base anterior'}
 
-📉 Despesas
+🧾 Comandas
+${ticketsVariation !== null ? `${ticketsVariation.toFixed(1)}%` : 'sem base anterior'}
 
-${expenseVariation.toFixed(1)}%
-
-━━━━━━━━━━━━━━━━━━
-
-🧠 Causa principal
-
-${cause}
+🎯 Ticket médio
+${ticketVariation !== null ? `${ticketVariation.toFixed(1)}%` : 'sem base anterior'}
 
 ━━━━━━━━━━━━━━━━━━
 
-🎯 Ação recomendada
+🏆 Principal causa identificada
 
-${recommendation}
-`.trim();
-};
+${mainCause ? mainCause.title : 'Não identifiquei uma causa dominante.'}
 
-const buildStrategicMemoryAnswer = (history) => {
-  const validHistory = (history || [])
-    .filter(
-      (item) =>
-        item?.month &&
-        item?.year &&
-        (
-          item.totalIncome > 0 ||
-          item.totalExpenses > 0
-        )
-    )
-    .sort((a, b) => {
-      const dateA = new Date(a.year, a.month - 1);
-      const dateB = new Date(b.year, b.month - 1);
-
-      return dateA - dateB;
-    });
-
-  if (validHistory.length < 2) {
-    return `
-🧠 MEMÓRIA ESTRATÉGICA — BEBCOM
+${mainCause ? mainCause.detail : 'Os indicadores não apontam um fator isolado com força suficiente.'}
 
 ━━━━━━━━━━━━━━━━━━
 
-Ainda não existem períodos suficientes com movimentação financeira para formar uma memória estratégica confiável.
+⚠️ Causas secundárias
 
-👉 Próxima ação sugerida
-
-Continue alimentando os meses anteriores. A IA precisa de histórico real para identificar padrões repetidos da operação.
-`.trim();
-  }
-
-  const memories = [];
-
-  const negativeCashMonths = validHistory.filter(
-    (item) => item.balance < 0
-  );
-
-  if (negativeCashMonths.length >= 2) {
-    memories.push(
-      `O caixa ficou negativo em ${negativeCashMonths.length} dos ${validHistory.length} períodos analisados.`
-    );
-  }
-
-  const expensePressureMonths = validHistory.filter(
-    (item) => item.totalExpenses > item.totalIncome
-  );
-
-  if (expensePressureMonths.length >= 2) {
-    memories.push(
-      `As despesas superaram as entradas em ${expensePressureMonths.length} períodos.`
-    );
-  }
-
-  const ticketMissingMonths = validHistory.filter(
-    (item) =>
-      !item.managementReport ||
-      !item.managementReport.averageTicket
-  );
-
-  if (ticketMissingMonths.length >= 2) {
-    memories.push(
-      `O ticket médio ainda não foi alimentado em ${ticketMissingMonths.length} períodos analisados.`
-    );
-  }
-
-  const purchasePressureMonths = validHistory.filter((item) => {
-    const purchases = item.expenseCategories?.find(
-      (cat) => cat.category === 'compras_mercadorias'
-    );
-
-    return (
-      purchases &&
-      item.totalIncome > 0 &&
-      purchases.amount / item.totalIncome > 0.6
-    );
-  });
-
-  if (purchasePressureMonths.length >= 2) {
-    memories.push(
-      `Compras de mercadorias ficaram acima de 60% das entradas em ${purchasePressureMonths.length} períodos.`
-    );
-  }
-
-  const categoryFrequency = {};
-
-  validHistory.forEach((item) => {
-    const topCategory = item.expenseCategories?.[0];
-
-    if (!topCategory) return;
-
-    const category = topCategory.category || 'sem_categoria';
-
-    if (!categoryFrequency[category]) {
-      categoryFrequency[category] = {
-        category,
-        count: 0,
-        total: 0,
-      };
-    }
-
-    categoryFrequency[category].count += 1;
-    categoryFrequency[category].total += Math.abs(Number(topCategory.amount || 0));
-  });
-
-  const recurrentCategory = Object.values(categoryFrequency)
-    .sort((a, b) => b.count - a.count || b.total - a.total)[0];
-
-  if (recurrentCategory && recurrentCategory.count >= 2) {
-    memories.push(
-      `A categoria ${recurrentCategory.category} apareceu como maior saída em ${recurrentCategory.count} períodos.`
-    );
-  }
-
-  const bestMonth = [...validHistory].sort(
-    (a, b) => b.balance - a.balance
-  )[0];
-
-  const worstMonth = [...validHistory].sort(
-    (a, b) => a.balance - b.balance
-  )[0];
-
-  const first = validHistory[0];
-  const last = validHistory[validHistory.length - 1];
-
-  const incomeVariation = calculateVariation(
-    last.totalIncome,
-    first.totalIncome
-  );
-
-  if (first.totalIncome > 0) {
-    if (incomeVariation > 0) {
-      memories.push(
-        `As entradas evoluíram ${incomeVariation.toFixed(1)}% entre ${first.periodLabel} e ${last.periodLabel}.`
-      );
-    } else if (incomeVariation < 0) {
-      memories.push(
-        `As entradas caíram ${Math.abs(incomeVariation).toFixed(1)}% entre ${first.periodLabel} e ${last.periodLabel}.`
-      );
-    }
-  }
-
-  if (!memories.length) {
-    memories.push(
-      'Ainda não há padrões repetidos fortes. A operação precisa de mais períodos completos para uma leitura estratégica mais profunda.'
-    );
-  }
-
-  return `
-🧠 MEMÓRIA ESTRATÉGICA — BEBCOM
+${secondaryCauses || 'Nenhuma causa secundária relevante identificada.'}
 
 ━━━━━━━━━━━━━━━━━━
 
-📅 Períodos com dados analisados
+🧠 Minha leitura
 
-${validHistory.length} períodos
-
-━━━━━━━━━━━━━━━━━━
-
-📌 Padrões identificados
-
-${memories.map((item) => `• ${item}`).join('\n')}
-
-━━━━━━━━━━━━━━━━━━
-
-🏆 Melhor mês identificado
-
-${bestMonth.periodLabel}
-Resultado: ${formatCurrency(bestMonth.balance)}
+${
+  ticketsVariation !== null &&
+  ticketsVariation < 0 &&
+  ticketVariation !== null &&
+  ticketVariation > 0
+    ? 'A Bebcom não está sofrendo principalmente por ticket médio. O cliente que compra está gastando bem, mas o volume de comandas caiu. O problema central parece estar no fluxo de clientes.'
+    : 'A deterioração parece vir da combinação entre vendas, despesas, compras e pressão financeira. A análise deve focar no fator com maior impacto operacional.'
+}
 
 ━━━━━━━━━━━━━━━━━━
 
-⚠️ Pior mês identificado
+🎯 Minha recomendação
 
-${worstMonth.periodLabel}
-Resultado: ${formatCurrency(worstMonth.balance)}
+Ataque primeiro a causa principal antes de tentar corrigir sintomas menores.
 
-━━━━━━━━━━━━━━━━━━
+Se a causa for fluxo, foque em movimento, recorrência, divulgação e combos de entrada.
 
-💡 Minha leitura
-
-A memória estratégica mostra comportamentos que se repetem na operação. Ela ajuda a separar um problema pontual de um padrão recorrente da empresa.
-
-━━━━━━━━━━━━━━━━━━
-
-👉 Decisão recomendada
-
-Use esses padrões para definir prioridades fixas de gestão: caixa, compras, vencimentos, ticket médio, margem e controle da categoria de maior pressão.
+Se a causa for compras, preserve caixa, revise estoque e compre apenas itens de maior giro.
 `.trim();
 };
 

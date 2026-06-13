@@ -6625,6 +6625,93 @@ Se a causa for compras, preserve caixa, revise estoque e compre apenas itens de 
 `.trim();
 };
 
+const buildTrendForecastAnswer = (
+  ctx,
+  previousCtx
+) => {
+
+  const now = new Date();
+
+  const currentDay = now.getDate();
+
+  const totalDaysInMonth =
+    new Date(
+      ctx.year,
+      ctx.month,
+      0
+    ).getDate();
+
+  const dailyAverage =
+    currentDay > 0
+      ? ctx.totalIncome / currentDay
+      : 0;
+
+  const projectedRevenue =
+    dailyAverage * totalDaysInMonth;
+
+  const variation =
+    previousCtx &&
+    previousCtx.totalIncome > 0
+      ? (
+          (
+            projectedRevenue -
+            previousCtx.totalIncome
+          ) /
+          previousCtx.totalIncome
+        ) * 100
+      : 0;
+
+  const trend =
+    variation >= 0
+      ? 'crescimento'
+      : 'queda';
+
+  return `
+📈 PREVISÃO DE TENDÊNCIA — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+📊 Ritmo atual
+
+Faturamento acumulado:
+${formatCurrency(ctx.totalIncome)}
+
+Dias decorridos:
+${currentDay}
+
+Média diária:
+${formatCurrency(dailyAverage)}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Projeção de fechamento
+
+${formatCurrency(projectedRevenue)}
+
+━━━━━━━━━━━━━━━━━━
+
+📅 Comparação
+
+Período anterior:
+${formatCurrency(previousCtx.totalIncome)}
+
+Variação projetada:
+${variation.toFixed(1)}%
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha leitura
+
+Mantido o ritmo atual, a tendência é de ${trend} em relação ao período anterior.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Monitore os próximos dias para confirmar se o ritmo atual será mantido.
+`;
+};
+
 const buildInventoryAnswer = (ctx) => `
 Análise do estoque financeiro em ${ctx.periodLabel}:
 
@@ -12137,6 +12224,17 @@ const isExecutiveAdviceQuestion =
   lowerQuestion.includes('por que meu lucro caiu') ||
   lowerQuestion.includes('o que está pressionando') ||
   lowerQuestion.includes('o que esta pressionando');
+
+    const isTrendForecastQuestion =
+  lowerQuestion.includes('tendencia') ||
+  lowerQuestion.includes('tendência') ||
+  lowerQuestion.includes('como vou fechar') ||
+  lowerQuestion.includes('como devo terminar') ||
+  lowerQuestion.includes('como vou terminar') ||
+  lowerQuestion.includes('previsao') ||
+  lowerQuestion.includes('previsão') ||
+  lowerQuestion.includes('estou melhorando') ||
+  lowerQuestion.includes('estou piorando');
     
     const isAttentionQuestion =
       lowerQuestion.includes('o que merece atenção');
@@ -12405,6 +12503,29 @@ if (isRootCauseQuestion) {
 
   return res.json({
     answer: rootCauseAnswer,
+  });
+}
+
+if (isTrendForecastQuestion) {
+
+  const trendAnswer =
+    buildTrendForecastAnswer(
+      ctx,
+      previousCtx
+    );
+
+  updateExecutiveContext({
+    intent: 'trend_forecast',
+    topic: 'previsao_tendencia',
+    periodLabel: ctx.periodLabel,
+    summary: trendAnswer.slice(0, 500),
+    recommendedNextStep:
+      'Avaliar riscos da tendência projetada.',
+    lastAnswerType: 'trend_forecast',
+  });
+
+  return res.json({
+    answer: trendAnswer,
   });
 }
 

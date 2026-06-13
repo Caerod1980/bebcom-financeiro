@@ -6444,6 +6444,91 @@ A Bebcom já provou que tem capacidade de crescimento. O desafio agora é cresce
 `.trim();
 };
 
+const buildRootCauseAnswer = (
+  currentCtx,
+  previousCtx
+) => {
+
+  if (!previousCtx) {
+    return `
+Ainda não existe período anterior suficiente para diagnóstico.
+`.trim();
+  }
+
+  const revenueVariation =
+    calculateVariation(
+      currentCtx.totalIncome,
+      previousCtx.totalIncome
+    );
+
+  const expenseVariation =
+    calculateVariation(
+      currentCtx.totalExpenses,
+      previousCtx.totalExpenses
+    );
+
+  let cause = '';
+  let recommendation = '';
+
+  if (
+    revenueVariation < 0 &&
+    expenseVariation > 0
+  ) {
+    cause =
+      'Queda nas vendas combinada com aumento das despesas.';
+
+    recommendation =
+      'Atacar simultaneamente recuperação de fluxo e controle de gastos.';
+  }
+  else if (revenueVariation < 0) {
+    cause =
+      'Redução das vendas e do fluxo comercial.';
+
+    recommendation =
+      'Focar em recuperação de clientes e aumento de comandas.';
+  }
+  else if (expenseVariation > 0) {
+    cause =
+      'Aumento das despesas operacionais.';
+
+    recommendation =
+      'Revisar categorias que mais cresceram.';
+  }
+  else {
+    cause =
+      'Não existe uma única causa dominante.';
+
+    recommendation =
+      'Investigar categorias específicas da operação.';
+  }
+
+  return `
+🔍 DIAGNÓSTICO AUTOMÁTICO DE CAUSA
+
+━━━━━━━━━━━━━━━━━━
+
+📈 Entradas
+
+${revenueVariation.toFixed(1)}%
+
+📉 Despesas
+
+${expenseVariation.toFixed(1)}%
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Causa principal
+
+${cause}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Ação recomendada
+
+${recommendation}
+`.trim();
+};
+
 const buildStrategicMemoryAnswer = (history) => {
   const validHistory = (history || [])
     .filter(
@@ -12136,6 +12221,17 @@ const isExecutiveAdviceQuestion =
   lowerQuestion.includes('reuniao gerencial') ||
   lowerQuestion.includes('visão geral da empresa') ||
   lowerQuestion.includes('visao geral da empresa');
+
+    const isRootCauseQuestion =
+  lowerQuestion.includes('por que meu resultado piorou') ||
+  lowerQuestion.includes('porque meu resultado piorou') ||
+  lowerQuestion.includes('qual a causa principal') ||
+  lowerQuestion.includes('o que está causando') ||
+  lowerQuestion.includes('o que esta causando') ||
+  lowerQuestion.includes('por que estou ganhando menos') ||
+  lowerQuestion.includes('por que meu lucro caiu') ||
+  lowerQuestion.includes('o que está pressionando') ||
+  lowerQuestion.includes('o que esta pressionando');
     
     const isAttentionQuestion =
       lowerQuestion.includes('o que merece atenção');
@@ -12462,6 +12558,12 @@ if (temporalAnalyticsAnswer) {
 
 if (isStrategicMemoryQuestion) {
   answer = buildStrategicMemoryAnswer(historicalContexts);
+} else if (isRootCauseQuestion) {
+  answer =
+    buildRootCauseAnswer(
+      ctx,
+      previousCtx
+    );
  } else if (isCEOQuestion) {
   answer = buildCEOAnswer(
     ctx,

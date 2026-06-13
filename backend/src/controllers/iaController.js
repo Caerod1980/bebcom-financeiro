@@ -6952,6 +6952,102 @@ Use essa pontuação como termômetro executivo diário.
 `.trim();
 };
 
+const buildExecutiveTrafficLightAnswer = (ctx) => {
+  const score = calculateRiskScore(ctx);
+
+  let status = '🟢 Verde';
+  let classification = 'Operação saudável';
+
+  if (score >= 70) {
+    status = '🔴 Vermelho';
+    classification = 'Risco elevado';
+  } else if (score >= 40) {
+    status = '🟡 Amarelo';
+    classification = 'Atenção';
+  }
+
+  const risks = [];
+
+  if (ctx.balance < 0) {
+    risks.push('Caixa negativo');
+  }
+
+  if (
+    ctx.pendingPayable >
+    ctx.totalIncome * 0.5
+  ) {
+    risks.push('Contas pendentes elevadas');
+  }
+
+  const purchases =
+    ctx.expenseCategories?.find(
+      (item) =>
+        item.category === 'compras_mercadorias'
+    );
+
+  const purchaseShare =
+    purchases && ctx.totalIncome > 0
+      ? (
+          purchases.amount /
+          ctx.totalIncome
+        ) * 100
+      : 0;
+
+  if (purchaseShare > 70) {
+    risks.push('Compras pressionando caixa');
+  }
+
+  return `
+🚦 SEMÁFORO EXECUTIVO
+
+━━━━━━━━━━━━━━━━━━
+
+📊 Score de risco
+
+${score}/100
+
+━━━━━━━━━━━━━━━━━━
+
+${status}
+
+${classification}
+
+━━━━━━━━━━━━━━━━━━
+
+📌 Principais fatores
+
+${
+  risks.length
+    ? risks.map(item => `• ${item}`).join('\n')
+    : '• Nenhum risco relevante identificado'
+}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha leitura
+
+${
+  score >= 70
+    ? 'A operação exige atenção imediata.'
+    : score >= 40
+      ? 'A operação merece monitoramento próximo.'
+      : 'A operação apresenta estabilidade.'
+}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+${
+  score >= 70
+    ? 'Priorize preservação de caixa e redução dos riscos identificados.'
+    : score >= 40
+      ? 'Monitore os indicadores diariamente.'
+      : 'Mantenha a disciplina operacional atual.'
+}
+`.trim();
+};
+
 const buildInventoryAnswer = (ctx) => `
 Análise do estoque financeiro em ${ctx.periodLabel}:
 
@@ -12493,6 +12589,16 @@ const isExecutiveAdviceQuestion =
   lowerQuestion.includes('qual meu score') ||
   lowerQuestion.includes('nível de risco') ||
   lowerQuestion.includes('nivel de risco');
+
+    const isTrafficLightQuestion =
+  lowerQuestion.includes('semaforo') ||
+  lowerQuestion.includes('semáforo') ||
+  lowerQuestion.includes('status operacional') ||
+  lowerQuestion.includes('saude financeira') ||
+  lowerQuestion.includes('saúde financeira') ||
+  lowerQuestion.includes('zona de risco') ||
+  lowerQuestion.includes('operacao saudavel') ||
+  lowerQuestion.includes('operação saudável');
     
     const isAttentionQuestion =
       lowerQuestion.includes('o que merece atenção');
@@ -12784,6 +12890,25 @@ if (isTrendForecastQuestion) {
 
   return res.json({
     answer: trendAnswer,
+  });
+}
+
+if (isTrafficLightQuestion) {
+  const answer =
+    buildExecutiveTrafficLightAnswer(ctx);
+
+  updateExecutiveContext({
+    intent: 'traffic_light',
+    topic: 'semaforo_executivo',
+    periodLabel: ctx.periodLabel,
+    summary: answer.slice(0, 500),
+    recommendedNextStep:
+      'Analisar riscos identificados.',
+    lastAnswerType: 'traffic_light',
+  });
+
+  return res.json({
+    answer,
   });
 }
 

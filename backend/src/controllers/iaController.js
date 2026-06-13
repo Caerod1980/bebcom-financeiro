@@ -6876,6 +6876,82 @@ Os indicadores verdes representam forças atuais da operação.
 `.trim();
 };
 
+const buildRiskScoreAnswer = (ctx) => {
+  let score = 0;
+
+  const purchases =
+    ctx.expenseCategories?.find(
+      item =>
+        item.category === 'compras_mercadorias'
+    );
+
+  const purchaseShare =
+    purchases && ctx.totalIncome > 0
+      ? (
+          purchases.amount /
+          ctx.totalIncome
+        ) * 100
+      : 0;
+
+  const ticket =
+    ctx.managementReport?.averageTicket || 0;
+
+  if (ctx.balance < 0)
+    score += 40;
+
+  if (
+    ctx.pendingPayable >
+    ctx.totalIncome
+  )
+    score += 25;
+
+  if (purchaseShare > 70)
+    score += 20;
+
+  if (ticket >= 20)
+    score -= 10;
+
+  score = Math.max(
+    0,
+    Math.min(score, 100)
+  );
+
+  let level = '🟢 Baixo';
+
+  if (score >= 30)
+    level = '🟡 Moderado';
+
+  if (score >= 60)
+    level = '🟠 Alto';
+
+  if (score >= 80)
+    level = '🔴 Crítico';
+
+  return `
+📊 SCORE DE RISCO OPERACIONAL
+
+━━━━━━━━━━━━━━━━━━
+
+Pontuação:
+${score}/100
+
+Classificação:
+${level}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha leitura
+
+Quanto maior a pontuação, maior a probabilidade de a operação sofrer pressão financeira ou operacional.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Use essa pontuação como termômetro executivo diário.
+`.trim();
+};
+
 const buildInventoryAnswer = (ctx) => `
 Análise do estoque financeiro em ${ctx.periodLabel}:
 
@@ -12407,6 +12483,13 @@ const isExecutiveAdviceQuestion =
   lowerQuestion.includes('atenção') ||
   lowerQuestion.includes('atencao') ||
   lowerQuestion.includes('radar');
+
+    const isRiskScoreQuestion =
+  lowerQuestion.includes('score de risco') ||
+  lowerQuestion.includes('nota de risco') ||
+  lowerQuestion.includes('qual meu score') ||
+  lowerQuestion.includes('nível de risco') ||
+  lowerQuestion.includes('nivel de risco');
     
     const isAttentionQuestion =
       lowerQuestion.includes('o que merece atenção');
@@ -12709,6 +12792,13 @@ if (isRiskRadarQuestion) {
       ),
   });
 }
+
+ if (isRiskScoreQuestion) {
+  return res.json({
+    answer:
+      buildRiskScoreAnswer(ctx),
+  });
+}   
 
 const historicalTrendAnswer =
   await buildHistoricalTrendPointAnswer(

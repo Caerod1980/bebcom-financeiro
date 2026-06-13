@@ -6775,6 +6775,107 @@ Acompanhe diariamente se a média de vendas está subindo e se as despesas estã
 `.trim();
 };
 
+const buildOperationalRiskRadarAnswer = (ctx) => {
+  const risks = [];
+
+  const purchases =
+    ctx.expenseCategories?.find(
+      item =>
+        item.category === 'compras_mercadorias'
+    );
+
+  const purchaseShare =
+    purchases && ctx.totalIncome > 0
+      ? (
+          purchases.amount /
+          ctx.totalIncome
+        ) * 100
+      : 0;
+
+  // CAIXA NEGATIVO
+
+  if (ctx.balance < 0) {
+    risks.push({
+      level: '🔴 Alto',
+      title: 'Caixa negativo',
+      impact: 'Alto',
+      description:
+        'As saídas superam as entradas no período.'
+    });
+  }
+
+  // CONTAS PENDENTES
+
+  if (
+    ctx.pendingPayable >
+    ctx.totalIncome
+  ) {
+    risks.push({
+      level: '🟠 Médio',
+      title: 'Contas pendentes elevadas',
+      impact: 'Médio',
+      description:
+        'As contas a pagar representam parcela relevante das entradas.'
+    });
+  }
+
+  // COMPRAS
+
+  if (purchaseShare > 70) {
+    risks.push({
+      level: '🟠 Médio',
+      title: 'Compras pressionando caixa',
+      impact: 'Médio',
+      description:
+        `Compras representam ${purchaseShare.toFixed(1)}% das entradas.`
+    });
+  }
+
+  // TICKET
+
+  if (
+    ctx.managementReport?.averageTicket >= 20
+  ) {
+    risks.push({
+      level: '🟢 Positivo',
+      title: 'Ticket médio saudável',
+      impact: 'Positivo',
+      description:
+        'O cliente continua comprando bem.'
+    });
+  }
+
+  const list = risks
+    .map(
+      risk => `
+${risk.level}
+${risk.title}
+
+Impacto:
+${risk.impact}
+
+${risk.description}
+`
+    )
+    .join('\n━━━━━━━━━━━━━━━━━━\n');
+
+  return `
+🚨 RADAR DE RISCO OPERACIONAL
+
+━━━━━━━━━━━━━━━━━━
+
+${list}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Priorize primeiro os riscos vermelhos, depois os laranjas.
+
+Os indicadores verdes representam forças atuais da operação.
+`.trim();
+};
+
 const buildInventoryAnswer = (ctx) => `
 Análise do estoque financeiro em ${ctx.periodLabel}:
 
@@ -12298,6 +12399,14 @@ const isExecutiveAdviceQuestion =
   lowerQuestion.includes('previsão') ||
   lowerQuestion.includes('estou melhorando') ||
   lowerQuestion.includes('estou piorando');
+
+    const isRiskRadarQuestion =
+  lowerQuestion.includes('risco') ||
+  lowerQuestion.includes('alerta') ||
+  lowerQuestion.includes('perigo') ||
+  lowerQuestion.includes('atenção') ||
+  lowerQuestion.includes('atencao') ||
+  lowerQuestion.includes('radar');
     
     const isAttentionQuestion =
       lowerQuestion.includes('o que merece atenção');
@@ -12589,6 +12698,15 @@ if (isTrendForecastQuestion) {
 
   return res.json({
     answer: trendAnswer,
+  });
+}
+
+if (isRiskRadarQuestion) {
+  return res.json({
+    answer:
+      buildOperationalRiskRadarAnswer(
+        ctx
+      ),
   });
 }
 

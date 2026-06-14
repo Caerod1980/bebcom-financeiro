@@ -1199,42 +1199,6 @@ const getComparisonPeriods = (question) => {
 
   const now = new Date();
 
-  if (
-  lower.includes('comparado ao mês passado') ||
-  lower.includes('comparado ao mes passado') ||
-  lower.includes('em relação ao mês passado') ||
-  lower.includes('em relacao ao mes passado') ||
-  lower.includes('comparado com o mês passado') ||
-  lower.includes('comparado com o mes passado')
-) {
-  const currentMonth = now.getMonth() + 1;
-  const currentYear = now.getFullYear();
-
-  const previousDate = new Date(
-    currentYear,
-    currentMonth - 2,
-    1
-  );
-
-  const previousMonth = previousDate.getMonth() + 1;
-  const previousYear = previousDate.getFullYear();
-
-  return {
-    current: {
-      month: currentMonth,
-      year: currentYear,
-      start: new Date(currentYear, currentMonth - 1, 1),
-      end: new Date(currentYear, currentMonth, 0, 23, 59, 59, 999),
-    },
-    compare: {
-      month: previousMonth,
-      year: previousYear,
-      start: new Date(previousYear, previousMonth - 1, 1),
-      end: new Date(previousYear, previousMonth, 0, 23, 59, 59, 999),
-    },
-  };
-}
-
   const detected = [];
 
   monthNames.forEach((item) => {
@@ -6811,7 +6775,7 @@ Acompanhe diariamente se a média de vendas está subindo e se as despesas estã
 `.trim();
 };
 
-const buildOperationalRiskRadarAnswer = (ctx, question = '') => {
+const buildOperationalRiskRadarAnswer = (ctx) => {
   const risks = [];
 
   const purchases =
@@ -6832,7 +6796,6 @@ const buildOperationalRiskRadarAnswer = (ctx, question = '') => {
 
   if (ctx.balance < 0) {
     risks.push({
-      score: 100,
       level: '🔴 Alto',
       title: 'Caixa negativo',
       impact: 'Alto',
@@ -6848,7 +6811,6 @@ const buildOperationalRiskRadarAnswer = (ctx, question = '') => {
     ctx.totalIncome
   ) {
     risks.push({
-      score: 70,
       level: '🟠 Médio',
       title: 'Contas pendentes elevadas',
       impact: 'Médio',
@@ -6861,7 +6823,6 @@ const buildOperationalRiskRadarAnswer = (ctx, question = '') => {
 
   if (purchaseShare > 70) {
     risks.push({
-      score: 60,
       level: '🟠 Médio',
       title: 'Compras pressionando caixa',
       impact: 'Médio',
@@ -6897,41 +6858,6 @@ ${risk.description}
 `
     )
     .join('\n━━━━━━━━━━━━━━━━━━\n');
-
-  const lower = normalizeText(question);
-
-if (
-  lower.includes('maior risco') ||
-  lower.includes('risco principal')
-) {
-  const mainRisk = risks[0];
-
-  return `
-🚨 MAIOR RISCO OPERACIONAL — ${ctx.periodLabel}
-
-━━━━━━━━━━━━━━━━━━
-
-${mainRisk.level}
-${mainRisk.title}
-
-Impacto:
-${mainRisk.impact}
-
-${mainRisk.description}
-
-━━━━━━━━━━━━━━━━━━
-
-🧠 Minha leitura
-
-Este é o risco mais grave identificado porque tem maior impacto imediato sobre a operação.
-
-━━━━━━━━━━━━━━━━━━
-
-🎯 Minha recomendação
-
-Trate este ponto antes dos demais riscos.
-`.trim();
-}
 
   return `
 🚨 RADAR DE RISCO OPERACIONAL
@@ -12645,13 +12571,6 @@ const isExecutiveAdviceQuestion =
   lowerQuestion.includes('estamos melhorando') ||
   lowerQuestion.includes('evolução da empresa') ||
   lowerQuestion.includes('evolucao da empresa');
-  lowerQuestion.includes('trajetória') ||
-  lowerQuestion.includes('trajetoria') ||
-  lowerQuestion.includes('ao longo dos anos') ||
-  lowerQuestion.includes('ao longo do tempo') ||
-  lowerQuestion.includes('história da empresa') ||
-  lowerQuestion.includes('historia da empresa') ||
-  lowerQuestion.includes('o que aconteceu com a bebcom');
 
     const isCEOQuestion =
   lowerQuestion.includes('modo ceo') ||
@@ -12675,10 +12594,7 @@ const isExecutiveAdviceQuestion =
   lowerQuestion.includes('por que estou ganhando menos') ||
   lowerQuestion.includes('por que meu lucro caiu') ||
   lowerQuestion.includes('o que está pressionando') ||
-  lowerQuestion.includes('o que esta pressionando') ||
-  lowerQuestion.includes('principal problema') ||
-  lowerQuestion.includes('maior problema') ||
-  lowerQuestion.includes('problema principal'); 
+  lowerQuestion.includes('o que esta pressionando');
 
     const isTrendForecastQuestion =
   lowerQuestion.includes('tendencia') ||
@@ -12689,13 +12605,7 @@ const isExecutiveAdviceQuestion =
   lowerQuestion.includes('previsao') ||
   lowerQuestion.includes('previsão') ||
   lowerQuestion.includes('estou melhorando') ||
-  lowerQuestion.includes('estou piorando') ||
-  lowerQuestion.includes('projeção de fechamento') ||
-  lowerQuestion.includes('projecao de fechamento') ||
-  lowerQuestion.includes('minha projeção') ||
-  lowerQuestion.includes('minha projecao') ||
-  lowerQuestion.includes('projeção do mês') ||
-  lowerQuestion.includes('projecao do mes'); 
+  lowerQuestion.includes('estou piorando');
 
     const isRiskRadarQuestion =
     lowerQuestion.includes('risco') ||
@@ -13045,7 +12955,7 @@ if (isRiskScoreQuestion) {
 
 if (isRiskRadarQuestion) {
   return res.json({
-    answer: buildOperationalRiskRadarAnswer(ctx, question),
+    answer: buildOperationalRiskRadarAnswer(ctx),
   });
 }
 

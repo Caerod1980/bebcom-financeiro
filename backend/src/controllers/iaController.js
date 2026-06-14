@@ -826,8 +826,6 @@ const isFollowUpQuestion = (question) => {
     lower === 'me explique melhor' ||
     lower === 'detalhe melhor' ||
     lower === 'detalhe isso' ||
-    lower === 'o que faço primeiro?' ||
-    lower === 'o que faco primeiro?' ||
     lower === 'qual prioridade?' ||
     lower === 'qual a prioridade?' ||
     lower === 'e depois?' ||
@@ -1198,6 +1196,42 @@ const getComparisonPeriods = (question) => {
   const lower = question.toLowerCase();
 
   const now = new Date();
+
+    if (
+    lower.includes('comparado ao mês passado') ||
+    lower.includes('comparado ao mes passado') ||
+    lower.includes('em relação ao mês passado') ||
+    lower.includes('em relacao ao mes passado') ||
+    lower.includes('comparado com o mês passado') ||
+    lower.includes('comparado com o mes passado')
+  ) {
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+
+    const previousDate = new Date(
+      currentYear,
+      currentMonth - 2,
+      1
+    );
+
+    const previousMonth = previousDate.getMonth() + 1;
+    const previousYear = previousDate.getFullYear();
+
+    return {
+      current: {
+        month: currentMonth,
+        year: currentYear,
+        start: new Date(currentYear, currentMonth - 1, 1),
+        end: new Date(currentYear, currentMonth, 0, 23, 59, 59, 999),
+      },
+      compare: {
+        month: previousMonth,
+        year: previousYear,
+        start: new Date(previousYear, previousMonth - 1, 1),
+        end: new Date(previousYear, previousMonth, 0, 23, 59, 59, 999),
+      },
+    };
+  }
 
   const detected = [];
 
@@ -2789,6 +2823,10 @@ const buildManagementReportComparisonAnswer = async (question, ctx) => {
     lower.includes('faturamento') ||
     lower.includes('comandas') ||
     lower.includes('clientes') ||
+    lower.includes('vendendo mais que no mes passado') ||
+    lower.includes('vendendo mais que no mês passado') ||
+    lower.includes('vendi mais que no mes passado') ||
+    lower.includes('vendi mais que no mês passado') ||
     lower.includes('movimento');
 
   if (!mentionsManagementReport && !asksSalesEvolution) {
@@ -6889,6 +6927,11 @@ const calculateRiskScore = (ctx) => {
       ? (purchases.amount / ctx.totalIncome) * 100
       : 0;
 
+  const payableShare =
+    ctx.totalIncome > 0
+      ? (ctx.pendingPayable / ctx.totalIncome) * 100
+      : 0;
+
   const ticket =
     Number(ctx.managementReport?.averageTicket || 0);
 
@@ -6896,71 +6939,46 @@ const calculateRiskScore = (ctx) => {
     score += 40;
   }
 
-  if (ctx.pendingPayable > ctx.totalIncome) {
+  if (payableShare > 100) {
     score += 25;
-  }
-
-  if (purchaseShare > 70) {
+  } else if (payableShare > 70) {
     score += 20;
+  } else if (payableShare > 40) {
+    score += 15;
+  } else if (payableShare > 20) {
+    score += 10;
   }
 
-  if (ticket >= 20) {
-    score -= 10;
+  if (purchaseShare > 80) {
+    score += 20;
+  } else if (purchaseShare > 70) {
+    score += 15;
+  } else if (purchaseShare > 60) {
+    score += 10;
+  }
+
+  if (ticket >= 20 && score > 0) {
+    score -= 5;
   }
 
   return Math.max(0, Math.min(score, 100));
 };
-
 const buildRiskScoreAnswer = (ctx) => {
-  let score = 0;
-
-  const purchases =
-    ctx.expenseCategories?.find(
-      item =>
-        item.category === 'compras_mercadorias'
-    );
-
-  const purchaseShare =
-    purchases && ctx.totalIncome > 0
-      ? (
-          purchases.amount /
-          ctx.totalIncome
-        ) * 100
-      : 0;
-
-  const ticket =
-    ctx.managementReport?.averageTicket || 0;
-
-  if (ctx.balance < 0)
-    score += 40;
-
-  if (
-    ctx.pendingPayable >
-    ctx.totalIncome
-  )
-    score += 25;
-
-  if (purchaseShare > 70)
-    score += 20;
-
-  if (ticket >= 20)
-    score -= 10;
-
-  score = Math.max(
-    0,
-    Math.min(score, 100)
-  );
+  const score = calculateRiskScore(ctx);
 
   let level = '🟢 Baixo';
 
-  if (score >= 30)
+  if (score >= 30) {
     level = '🟡 Moderado';
+  }
 
-  if (score >= 60)
+  if (score >= 60) {
     level = '🟠 Alto';
+  }
 
-  if (score >= 80)
+  if (score >= 80) {
     level = '🔴 Crítico';
+  }
 
   return `
 📊 SCORE DE RISCO OPERACIONAL
@@ -12530,7 +12548,16 @@ const isExecutiveAdviceQuestion =
   lowerQuestion.includes('qual sua opiniao') ||
   lowerQuestion.includes('o que devo fazer') ||
   lowerQuestion.includes('o que você recomenda') ||
-  lowerQuestion.includes('o que recomenda');
+  lowerQuestion.includes('o que recomenda') ||
+  lowerQuestion.includes('o que eu não deveria fazer') ||
+  lowerQuestion.includes('o que eu nao deveria fazer') ||
+  lowerQuestion.includes('o que não devo fazer') ||
+  lowerQuestion.includes('o que nao devo fazer') || 
+  lowerQuestion.includes('o que devo fazer primeiro') ||
+  lowerQuestion.includes('o que faço primeiro') ||
+  lowerQuestion.includes('o que faco primeiro') ||
+  lowerQuestion.includes('por onde começo') ||
+  lowerQuestion.includes('por onde comeco');
 
     const isRecoveryPlanQuestion =
   lowerQuestion.includes('como saio dessa situação') ||
@@ -12605,7 +12632,16 @@ const isExecutiveAdviceQuestion =
   lowerQuestion.includes('previsao') ||
   lowerQuestion.includes('previsão') ||
   lowerQuestion.includes('estou melhorando') ||
-  lowerQuestion.includes('estou piorando');
+  lowerQuestion.includes('estou piorando') ||
+  lowerQuestion.includes('continuar assim') ||
+  lowerQuestion.includes('fecha positivo') ||
+  lowerQuestion.includes('fecha negativo') ||
+  lowerQuestion.includes('fechar positivo') ||
+  lowerQuestion.includes('fechar negativo') ||
+  lowerQuestion.includes('projeção de resultado') ||
+  lowerQuestion.includes('projecao de resultado') ||
+  lowerQuestion.includes('projeção de fechamento') ||
+  lowerQuestion.includes('projecao de fechamento');
 
     const isRiskRadarQuestion =
     lowerQuestion.includes('risco') ||

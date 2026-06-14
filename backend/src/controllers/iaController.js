@@ -972,6 +972,30 @@ const getPeriodFromQuestion = (question) => {
 const getRelativePeriod = (question) => {
   const lower = question.toLowerCase();
 
+  if (
+  lower.includes('vendendo mais') ||
+  lower.includes('vendi mais') ||
+  lower.includes('vendas') ||
+  lower.includes('faturamento') ||
+  lower.includes('comandas') ||
+  lower.includes('movimento')
+) {
+  return null;
+}
+
+  if (
+  lower.includes('o que devo fazer primeiro') ||
+  lower.includes('o que faço primeiro') ||
+  lower.includes('o que faco primeiro') ||
+  lower.includes('por onde começo') ||
+  lower.includes('por onde comeco') ||
+  lower.includes('prioridade financeira') ||
+  lower.includes('não deveria fazer') ||
+  lower.includes('nao deveria fazer')
+) {
+  return null;
+}
+
   const now = new Date();
 
   const startOfToday = new Date(
@@ -1196,6 +1220,44 @@ const getComparisonPeriods = (question) => {
   const lower = question.toLowerCase();
 
   const now = new Date();
+
+  if (
+  lower.includes('comparado ao mês passado') ||
+  lower.includes('comparado ao mes passado') ||
+  lower.includes('em relação ao mês passado') ||
+  lower.includes('em relacao ao mes passado') ||
+  lower.includes('comparado com o mês passado') ||
+  lower.includes('comparado com o mes passado') ||
+  lower.includes('melhorou em relação ao mês passado') ||
+  lower.includes('melhorou em relacao ao mes passado')
+) {
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+
+  const previousDate = new Date(
+    currentYear,
+    currentMonth - 2,
+    1
+  );
+
+  const previousMonth = previousDate.getMonth() + 1;
+  const previousYear = previousDate.getFullYear();
+
+  return {
+    current: {
+      month: currentMonth,
+      year: currentYear,
+      start: new Date(currentYear, currentMonth - 1, 1),
+      end: new Date(currentYear, currentMonth, 0, 23, 59, 59, 999),
+    },
+    compare: {
+      month: previousMonth,
+      year: previousYear,
+      start: new Date(previousYear, previousMonth - 1, 1),
+      end: new Date(previousYear, previousMonth, 0, 23, 59, 59, 999),
+    },
+  };
+}
 
     if (
     lower.includes('comparado ao mês passado') ||
@@ -7008,16 +7070,19 @@ Use essa pontuação como termômetro executivo diário.
 const buildExecutiveTrafficLightAnswer = (ctx) => {
   const score = calculateRiskScore(ctx);
 
-  let status = '🟢 Verde';
-  let classification = 'Operação saudável';
+ let status = '🟢 Verde';
+let classification = 'Operação saudável';
 
-  if (score >= 70) {
-    status = '🔴 Vermelho';
-    classification = 'Risco elevado';
-  } else if (score >= 40) {
-    status = '🟡 Amarelo';
-    classification = 'Atenção';
-  }
+if (score >= 80) {
+  status = '🔴 Vermelho';
+  classification = 'Risco crítico';
+} else if (score >= 60) {
+  status = '🟠 Laranja';
+  classification = 'Risco alto';
+} else if (score >= 30) {
+  status = '🟡 Amarelo';
+  classification = 'Atenção';
+}
 
   const risks = [];
 
@@ -7080,9 +7145,9 @@ ${
 🧠 Minha leitura
 
 ${
-  score >= 70
+  score >= 80
     ? 'A operação exige atenção imediata.'
-    : score >= 40
+    : score >= 30
       ? 'A operação merece monitoramento próximo.'
       : 'A operação apresenta estabilidade.'
 }
@@ -7092,9 +7157,9 @@ ${
 🎯 Minha recomendação
 
 ${
-  score >= 70
+  score >= 80
     ? 'Priorize preservação de caixa e redução dos riscos identificados.'
-    : score >= 40
+    : score >= 30
       ? 'Monitore os indicadores diariamente.'
       : 'Mantenha a disciplina operacional atual.'
 }

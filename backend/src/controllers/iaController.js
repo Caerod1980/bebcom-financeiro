@@ -3812,16 +3812,39 @@ const buildIntuitiveMemoryAnswer = async (question, ctx) => {
   const lower = normalizeText(question);
 
   const isIntuitiveMemoryQuestion =
-    lower.includes('memoria intuitiva') ||
-    lower.includes('memória intuitiva') ||
-    lower.includes('qual padrao esta se repetindo') ||
-    lower.includes('qual padrão está se repetindo') ||
-    lower.includes('o que voce vem percebendo') ||
-    lower.includes('o que você vem percebendo') ||
-    lower.includes('qual fato recente mais importa') ||
-    lower.includes('quais eventos recentes') ||
-    lower.includes('resumo da memoria evolutiva') ||
-    lower.includes('resumo da memória evolutiva');
+  lower.includes('memoria intuitiva') ||
+  lower.includes('qual padrao esta se repetindo') ||
+  lower.includes('qual padrao') ||
+  lower.includes('o que voce vem percebendo') ||
+  lower.includes('qual fato recente mais importa') ||
+  lower.includes('quais eventos recentes') ||
+  lower.includes('ultimos acontecimentos') ||
+  lower.includes('resumo da memoria evolutiva') ||
+  lower.includes('mais preocupa') ||
+  lower.includes('merece mais atencao') ||
+  lower.includes('qual sua percepcao') ||
+  lower.includes('qual sua intuicao');
+
+  const asksEvents =
+  lower.includes('quais eventos recentes') ||
+  lower.includes('ultimos acontecimentos');
+
+const asksPattern =
+  lower.includes('qual padrao') ||
+  lower.includes('o que voce vem percebendo');
+
+const asksMostImportant =
+  lower.includes('fato recente mais importa') ||
+  lower.includes('mais preocupa') ||
+  lower.includes('merece mais atencao');
+
+const asksSummary =
+  lower.includes('resumo da memoria evolutiva');
+
+const asksIntuition =
+  lower.includes('memoria intuitiva') ||
+  lower.includes('qual sua percepcao') ||
+  lower.includes('qual sua intuicao');
 
   if (!isIntuitiveMemoryQuestion) {
     return null;
@@ -3855,8 +3878,100 @@ const buildIntuitiveMemoryAnswer = async (question, ctx) => {
           .join('\n\n')
       : 'Nenhum sinalizador crítico identificado agora.';
 
+  if (asksEvents) {
   return `
-🧠 MEMÓRIA INTUITIVA DA BEBCOM — ${ctx.periodLabel}
+📊 EVENTOS RECENTES DA BEBCOM
+
+━━━━━━━━━━━━━━━━━━
+
+${eventsText}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha leitura
+
+Esses são os acontecimentos mais relevantes registrados recentemente na operação.
+`.trim();
+}
+
+  if (asksPattern) {
+  return `
+🔄 PADRÃO IDENTIFICADO
+
+━━━━━━━━━━━━━━━━━━
+
+${memory.pattern}
+
+━━━━━━━━━━━━━━━━━━
+
+📈 Sinais positivos
+${memory.improvementCount}
+
+📉 Sinais negativos
+${memory.worseningCount}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha percepção
+
+${memory.interpretation}
+`.trim();
+}
+
+  if (asksMostImportant) {
+
+  const signal =
+    memory.dominantSignal;
+
+  return `
+🚨 FATO MAIS IMPORTANTE AGORA
+
+━━━━━━━━━━━━━━━━━━
+
+${signal?.title || 'Sem sinal dominante'}
+
+━━━━━━━━━━━━━━━━━━
+
+Motivo:
+
+${signal?.message || 'Nenhum fator crítico identificado.'}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Eu concentraria a atenção primeiro neste ponto.
+`.trim();
+}
+
+  if (asksSummary) {
+  return `
+📚 RESUMO EVOLUTIVO DA BEBCOM
+
+━━━━━━━━━━━━━━━━━━
+
+Padrão atual:
+
+${memory.pattern}
+
+━━━━━━━━━━━━━━━━━━
+
+Eventos positivos:
+${memory.improvementCount}
+
+Eventos negativos:
+${memory.worseningCount}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Conclusão
+
+${memory.interpretation}
+`.trim();
+}
+
+  return `
+🧠 MEMÓRIA INTUITIVA DA BEBCOM
 
 ━━━━━━━━━━━━━━━━━━
 
@@ -3866,36 +3981,28 @@ ${memory.pattern}
 
 ━━━━━━━━━━━━━━━━━━
 
-📊 Eventos recentes
-
-${eventsText}
-
-━━━━━━━━━━━━━━━━━━
-
-🚦 Sinalizadores atuais
-
-${signalsText}
-
-━━━━━━━━━━━━━━━━━━
-
 🧠 Minha intuição gerencial
 
 ${memory.interpretation}
 
 ━━━━━━━━━━━━━━━━━━
 
-🎯 Como isso deve orientar a próxima decisão
+📊 Histórico recente
 
-${
-  memory.dominantSignal
-    ? `O primeiro foco deve ser: ${memory.dominantSignal.title}.`
-    : 'O foco deve ser continuar acompanhando caixa, compras, contas pendentes e ticket médio.'
-}
+Melhoras:
+${memory.improvementCount}
 
-Essa leitura deve alimentar o próximo plano de ação automático.
+Pioras:
+${memory.worseningCount}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 O que isso significa
+
+A próxima decisão deve considerar não apenas os números atuais, mas também a direção que a operação vem seguindo.
 `.trim();
 };
-
+  
 const buildDynamicExecutiveMemoryAnswer = async (question, ctx, previousCtx) => {
   const lower = normalizeText(question);
 

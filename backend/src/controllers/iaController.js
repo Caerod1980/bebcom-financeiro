@@ -1955,6 +1955,179 @@ Compare esses vencimentos com o caixa disponível e priorize pagamentos crítico
 `.trim();
 };
 
+const buildGenericPayablesAnswer = (ctx, question) => {
+  const lower = normalizeText(question);
+  const raw = String(question || '').toLowerCase();
+
+  const isPayableQuestion =
+    lower.includes('contas a pagar') ||
+    lower.includes('contas vencidas') ||
+    lower.includes('contas pendentes');
+
+  if (!isPayableQuestion) return null;
+
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+  let title = `CONTAS A PAGAR — ${ctx.periodLabel}`;
+  let filterMode = 'all';
+  let start = null;
+  let end = null;
+
+  const dates = [...raw.matchAll(/\b(\d{1,2})\/(\d{1,2})(?:\/(20\d{2}))?\b/g)]
+    .map((m) => ({
+      day: Number(m[1]),
+      month: Number(m[2]),
+      year: m[3] ? Number(m[3]) : (ctx.year || now.getFullYear()),
+    }));
+
+  if (lower.includes('vencidas') || lower.includes('vencidos')) {
+    filterMode = 'overdue';
+    title = 'CONTAS A PAGAR VENCIDAS';
+  }
+
+  if (lower.includes('hoje')) {
+    filterMode = lower.includes('vencidas') || lower.includes('vencidos')
+      ? 'overdue_and_today'
+      : 'period';
+
+    start = todayStart;
+    end = todayEnd;
+    title = filterMode === 'overdue_and_today'
+      ? 'CONTAS VENCIDAS E DE HOJE'
+      : 'CONTAS A PAGAR — HOJE';
+  }
+
+  if (lower.includes('amanha')) {
+    const tomorrowStart = new Date(todayStart);
+    tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+
+    const tomorrowEnd = new Date(todayEnd);
+    tomorrowEnd.setDate(tomorrowEnd.getDate() + 1);
+
+    filterMode = 'period';
+    start = tomorrowStart;
+    end = tomorrowEnd;
+    title = 'CONTAS A PAGAR — AMANHÃ';
+  }
+
+  if (dates.length >= 2) {
+    filterMode = 'period';
+    start = new Date(dates[0].year, dates[0].month - 1, dates[0].day, 0, 0, 0, 0);
+    end = new Date(dates[1].year, dates[1].month - 1, dates[1].day, 23, 59, 59, 999);
+    title = `CONTAS A PAGAR — ${start.toLocaleDateString('pt-BR')} A ${end.toLocaleDateString('pt-BR')}`;
+  } else if (dates.length === 1) {
+    filterMode = 'period';
+    start = new Date(dates[0].year, dates[0].month - 1, dates[0].day, 0, 0, 0, 0);
+    end = new Date(dates[0].year, dates[0].month - 1, dates[0].day, 23, 59, 59, 999);
+    title = `CONTAS A PAGAR — ${start.toLocaleDateString('pt-BR')}`;
+  }
+
+  if (
+    lower.includes('de junho') ||
+    lower.includes('do mes') ||
+    lower.includes('do mês') ||
+    lower.includes('de mes') ||
+    lower.includes('de mês')
+  ) {
+    const month = ctx.month || now.getMonth() + 1;
+    const year = ctx.year || now.getFullYear();
+
+    filterMode = 'period';
+    start = new Date(year, month - 1, 1, 0, 0, 0, 0);
+    end = new Date(year, month, 0, 23, 59, 59, 999);
+    title = `CONTAS A PAGAR — ${getMonthLabel(month, year)}`;
+  }
+
+  let accounts = (ctx.accounts || []).filter(
+    (account) =>
+      account.type === 'payable' &&
+      ['pending', 'overdue'].includes(account.status)
+  );
+
+  if (filterMode === 'overdue') {
+    accounts = accounts.filter(
+      (account) =>
+        account.status === 'overdue' ||
+        new Date(account.dueDate) < todayStart
+    );
+  }
+
+  if (filterMode === 'overdue_and_today') {
+    accounts = accounts.filter((account) => {
+      const due = new Date(account.dueDate);
+
+      return (
+        account.status === 'overdue' ||
+        due < todayStart ||
+        (due >= todayStart && due <= todayEnd)
+      );
+    });
+  }
+
+  if (filterMode === 'period') {
+    accounts = accounts.filter((account) => {
+      const due = new Date(account.dueDate);
+
+      return due >= start && due <= end;
+    });
+  }
+
+  accounts = accounts.sort(
+    (a, b) => new Date(a.dueDate) - new Date(b.dueDate)
+  );
+
+  const total = accounts.reduce(
+    (acc, item) => acc + Math.abs(Number(item.amount || 0)),
+    0
+  );
+
+  const list = accounts
+    .slice(0, 20)
+    .map((item, index) => {
+      const date = item.dueDate
+        ? new Date(item.dueDate).toLocaleDateString('pt-BR')
+        : 'sem vencimento';
+
+      const name =
+        item.person ||
+        item.description ||
+        'Conta sem identificação';
+
+      return `${index + 1}. ${date} — ${name} — ${formatCurrency(item.amount)}`;
+    })
+    .join('\n');
+
+  return `
+📅 ${title}
+
+━━━━━━━━━━━━━━━━━━
+
+💰 Total
+${formatCurrency(total)}
+
+📋 Quantidade de contas
+${accounts.length}
+
+━━━━━━━━━━━━━━━━━━
+
+📝 Detalhamento
+
+${list || 'Nenhuma conta encontrada para este filtro.'}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha leitura
+
+Esse valor representa compromissos financeiros em aberto conforme o filtro solicitado.
+
+🎯 Minha recomendação
+
+Compare esses vencimentos com o caixa disponível e priorize pagamentos críticos.
+`.trim();
+};
+
 const buildOpenSupplierRankingAnswer = (ctx) => {
   const accounts = (ctx.accounts || []).filter(
     (account) =>
@@ -13164,7 +13337,12 @@ if (temporalAnalyticsAnswer) {
 
     let answer = '';
 
-if (isStrategicMemoryQuestion) {
+const genericPayablesAnswer =
+  buildGenericPayablesAnswer(ctx, question);
+
+if (genericPayablesAnswer) {
+  answer = genericPayablesAnswer;
+} else if (isStrategicMemoryQuestion) {
   answer = buildStrategicMemoryAnswer(historicalContexts);
  } else if (isCEOQuestion) {
   answer = buildCEOAnswer(

@@ -12308,29 +12308,19 @@ const askIABebcom = async (req, res) => {
       mainOpportunity: null,
 };
 
-    if (specificDatePeriod) {
-      period = {
-        month: null,
-        year: null,
-        start: specificDatePeriod.start,
-        end: specificDatePeriod.end,
-      };
+  if (specificDatePeriod) {
+  period = {
+    month: null,
+    year: null,
+    start: specificDatePeriod.start,
+    end: specificDatePeriod.end,
+  };
 
-      ctx = await buildContext(period);
-      ctx.periodLabel = specificDatePeriod.label;
-      previousCtx = { ...ctx };
-    } else if (relativePeriod) {
-      period = {
-        month: null,
-        year: null,
-        start: relativePeriod.start,
-        end: relativePeriod.end,
-      };
+  ctx = await buildContext(period);
+  ctx.periodLabel = specificDatePeriod.label;
+  previousCtx = { ...ctx };
 
-      ctx = await buildContext(period);
-      ctx.periodLabel = relativePeriod.label;
-      previousCtx = { ...ctx };
-  } else if (comparisonPeriods) {
+} else if (comparisonPeriods) {
   const limitDay = getPartialComparisonLimitDay(
     question,
     comparisonPeriods.current
@@ -12382,7 +12372,20 @@ const askIABebcom = async (req, res) => {
   period = currentPeriod;
   ctx = await buildContext(currentPeriod);
   previousCtx = await buildContext(comparePeriod);
-} else if (analyticalPeriod) {
+
+} else if (relativePeriod) {
+  period = {
+    month: null,
+    year: null,
+    start: relativePeriod.start,
+    end: relativePeriod.end,
+  };
+
+  ctx = await buildContext(period);
+  ctx.periodLabel = relativePeriod.label;
+  previousCtx = { ...ctx };
+
+} else if (analyticalPeriod) { 
   period = {
     month: null,
     year: analyticalPeriod.year,

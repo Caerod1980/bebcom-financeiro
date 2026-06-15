@@ -3692,6 +3692,210 @@ ${event.summary}`;
     .join('\n\n');
 };
 
+const buildIntuitiveMemorySignal = (ctx, recentEvents = []) => {
+  const signals = [];
+
+  const purchases =
+    ctx.expenseCategories?.find(
+      (item) => item.category === 'compras_mercadorias'
+    );
+
+  const purchaseShare =
+    purchases && ctx.totalIncome > 0
+      ? (purchases.amount / ctx.totalIncome) * 100
+      : 0;
+
+  const ticket =
+    Number(ctx.managementReport?.averageTicket || 0);
+
+  if (ctx.balance < 0) {
+    signals.push({
+      weight: 100,
+      type: 'cash_pressure',
+      level: 'high',
+      title: 'Caixa pressionado',
+      message: `O resultado atual está negativo em ${formatCurrency(ctx.balance)}.`,
+    });
+  }
+
+  if (ctx.pendingPayable > ctx.totalIncome * 0.5) {
+    signals.push({
+      weight: 90,
+      type: 'payable_pressure',
+      level: 'high',
+      title: 'Contas pendentes relevantes',
+      message: `As contas a pagar somam ${formatCurrency(ctx.pendingPayable)}.`,
+    });
+  }
+
+  if (purchaseShare > 60) {
+    signals.push({
+      weight: 80,
+      type: 'purchase_pressure',
+      level: 'medium',
+      title: 'Compras pressionando o caixa',
+      message: `Compras representam ${purchaseShare.toFixed(1)}% das entradas.`,
+    });
+  }
+
+  if (ticket > 0 && ticket < 20) {
+    signals.push({
+      weight: 70,
+      type: 'ticket_attention',
+      level: 'medium',
+      title: 'Ticket médio abaixo do ideal',
+      message: `O ticket médio atual está em ${formatCurrency(ticket)}.`,
+    });
+  }
+
+  const improvementEvents =
+    (recentEvents || []).filter((event) => {
+      const text = normalizeText(
+        `${event.type || ''} ${event.title || ''} ${event.summary || ''}`
+      );
+
+      return (
+        text.includes('melhora') ||
+        text.includes('recuperacao') ||
+        text.includes('improvement')
+      );
+    });
+
+  const worseningEvents =
+    (recentEvents || []).filter((event) => {
+      const text = normalizeText(
+        `${event.type || ''} ${event.title || ''} ${event.summary || ''}`
+      );
+
+      return (
+        text.includes('piora') ||
+        text.includes('queda') ||
+        text.includes('worsening')
+      );
+    });
+
+  let pattern = 'Sem padrão recente suficiente';
+  let interpretation =
+    'Ainda não há eventos suficientes para formar uma leitura intuitiva consolidada.';
+
+  if (improvementEvents.length > worseningEvents.length && ctx.balance < 0) {
+    pattern = 'Recuperação com caixa ainda pressionado';
+    interpretation =
+      'A memória recente mostra sinais de melhora, mas o caixa ainda não está confortável. O plano deve proteger caixa antes de acelerar crescimento.';
+  } else if (improvementEvents.length > worseningEvents.length && ctx.balance >= 0) {
+    pattern = 'Recuperação em consolidação';
+    interpretation =
+      'A memória recente mostra melhora e o resultado atual permite uma postura mais equilibrada entre controle e crescimento.';
+  } else if (worseningEvents.length > improvementEvents.length) {
+    pattern = 'Deterioração operacional recente';
+    interpretation =
+      'A memória recente aponta mais sinais de piora do que melhora. O plano deve ser defensivo, focado em caixa, compras e vencimentos.';
+  } else if (signals.length) {
+    pattern = 'Pressão operacional recorrente';
+    interpretation =
+      'Mesmo sem domínio claro entre melhora e piora, os sinalizadores atuais apontam pressão em caixa, compras ou contas pendentes.';
+  }
+
+  signals.sort((a, b) => b.weight - a.weight);
+
+  return {
+    pattern,
+    interpretation,
+    signals,
+    improvementCount: improvementEvents.length,
+    worseningCount: worseningEvents.length,
+    dominantSignal: signals[0] || null,
+  };
+};
+
+const buildIntuitiveMemoryAnswer = async (question, ctx) => {
+  const lower = normalizeText(question);
+
+  const isIntuitiveMemoryQuestion =
+    lower.includes('memoria intuitiva') ||
+    lower.includes('memória intuitiva') ||
+    lower.includes('qual padrao esta se repetindo') ||
+    lower.includes('qual padrão está se repetindo') ||
+    lower.includes('o que voce vem percebendo') ||
+    lower.includes('o que você vem percebendo') ||
+    lower.includes('qual fato recente mais importa') ||
+    lower.includes('quais eventos recentes') ||
+    lower.includes('resumo da memoria evolutiva') ||
+    lower.includes('resumo da memória evolutiva');
+
+  if (!isIntuitiveMemoryQuestion) {
+    return null;
+  }
+
+  const recentEvents =
+    await getRecentExecutiveMemoryEvents(8);
+
+  const memory =
+    buildIntuitiveMemorySignal(ctx, recentEvents);
+
+  const eventsText =
+    recentEvents.length
+      ? recentEvents
+          .slice(0, 5)
+          .map(
+            (event, index) =>
+              `${index + 1}. ${event.title}\n${event.summary}`
+          )
+          .join('\n\n')
+      : 'Ainda não há eventos evolutivos suficientes.';
+
+  const signalsText =
+    memory.signals.length
+      ? memory.signals
+          .slice(0, 5)
+          .map(
+            (signal, index) =>
+              `${index + 1}. ${signal.title}\n${signal.message}`
+          )
+          .join('\n\n')
+      : 'Nenhum sinalizador crítico identificado agora.';
+
+  return `
+🧠 MEMÓRIA INTUITIVA DA BEBCOM — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+📌 Padrão percebido
+
+${memory.pattern}
+
+━━━━━━━━━━━━━━━━━━
+
+📊 Eventos recentes
+
+${eventsText}
+
+━━━━━━━━━━━━━━━━━━
+
+🚦 Sinalizadores atuais
+
+${signalsText}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha intuição gerencial
+
+${memory.interpretation}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Como isso deve orientar a próxima decisão
+
+${
+  memory.dominantSignal
+    ? `O primeiro foco deve ser: ${memory.dominantSignal.title}.`
+    : 'O foco deve ser continuar acompanhando caixa, compras, contas pendentes e ticket médio.'
+}
+
+Essa leitura deve alimentar o próximo plano de ação automático.
+`.trim();
+};
+
 const buildDynamicExecutiveMemoryAnswer = async (question, ctx, previousCtx) => {
   const lower = normalizeText(question);
 
@@ -13687,9 +13891,11 @@ const genericPayablesAnswer =
 
 if (genericPayablesAnswer) {
   answer = genericPayablesAnswer;
+} else if (intuitiveMemoryAnswer) {
+  answer = intuitiveMemoryAnswer;
 } else if (isStrategicMemoryQuestion) {
   answer = buildStrategicMemoryAnswer(historicalContexts);
- } else if (isCEOQuestion) {
+} else if (isCEOQuestion) {
   answer = buildCEOAnswer(
     ctx,
     previousCtx,

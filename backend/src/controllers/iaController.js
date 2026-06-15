@@ -2634,6 +2634,52 @@ ${buildConsultiveClosing({
 `.trim();
 };
 
+const buildTicketImprovementAnswer = (question, ctx) => {
+  const lower = normalizeText(question);
+
+  if (
+    !lower.includes('ticket') ||
+    !(
+      lower.includes('melhorar') ||
+      lower.includes('aumentar') ||
+      lower.includes('elevar')
+    )
+  ) {
+    return null;
+  }
+
+  return `
+🎯 COMO MELHORAR O TICKET MÉDIO — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+📌 Ticket médio atual
+${formatCurrency(ctx.managementReport?.averageTicket || 0)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha leitura
+
+O caminho não é apenas vender mais, mas fazer cada cliente levar mais itens por compra.
+
+━━━━━━━━━━━━━━━━━━
+
+✅ Ações práticas
+
+1. Criar combos simples: bebida + gelo + energético.
+2. Oferecer complemento no balcão: gelo, carvão, petisco, copo ou energético.
+3. Destacar produtos de maior margem na frente da loja.
+4. Criar ofertas por ocasião: churrasco, jogo, fim de semana e lounge.
+5. Treinar atendimento para sugerir complemento antes de fechar a venda.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Comece por combos fáceis de entender e produtos que já têm giro. Isso aumenta o ticket sem depender apenas de novos clientes.
+`.trim();
+};
+
 const buildExpenseAnswer = (ctx) => {
   const topExpenses = ctx.expenseCategories
     .slice(0, 5)
@@ -2991,6 +3037,137 @@ const getManagementReportValue = (report) => {
   );
 };
 
+const buildManagementReportRankingAnswer = async (question, ctx) => {
+  const lower = normalizeText(question);
+
+  const asksTicket =
+    lower.includes('ticket medio') ||
+    lower.includes('ticket médio');
+
+  const asksRevenue =
+    lower.includes('faturamento');
+
+  const asksBest =
+    lower.includes('melhor') ||
+    lower.includes('maior');
+
+  const asksWorst =
+    lower.includes('pior') ||
+    lower.includes('menor');
+
+  const asksHistory =
+    lower.includes('historia') ||
+    lower.includes('historico') ||
+    lower.includes('história');
+
+  const asksYear =
+    lower.includes('do ano') ||
+    lower.includes('este ano') ||
+    lower.includes('ano atual');
+
+  const validIntent =
+    (asksTicket || asksRevenue) &&
+    (asksBest || asksWorst) &&
+    (asksHistory || asksYear || lower.includes('em qual mes'));
+
+  if (!validIntent) {
+    return null;
+  }
+
+  let reports = await ManagementReport.find({}).sort({
+    year: 1,
+    month: 1,
+  });
+
+  reports = (reports || []).filter((report) => {
+    const revenue = getManagementReportValue(report);
+    const tickets = Number(report.totalTickets || 0);
+    const ticket =
+      Number(report.averageTicket || 0) ||
+      (tickets > 0 ? revenue / tickets : 0);
+
+    if (asksTicket) return ticket > 0;
+    if (asksRevenue) return revenue > 0;
+
+    return false;
+  });
+
+  if (asksYear) {
+    reports = reports.filter(
+      (report) => Number(report.year) === Number(ctx.year)
+    );
+  }
+
+  if (!reports.length) {
+    return `
+Não encontrei dados suficientes no Relatório Gerencial para responder essa pergunta.
+`.trim();
+  }
+
+  const enriched = reports.map((report) => {
+    const revenue = getManagementReportValue(report);
+    const tickets = Number(report.totalTickets || 0);
+    const ticket =
+      Number(report.averageTicket || 0) ||
+      (tickets > 0 ? revenue / tickets : 0);
+
+    return {
+      report,
+      revenue,
+      tickets,
+      ticket,
+      label: getMonthLabel(
+        Number(report.month),
+        Number(report.year)
+      ),
+    };
+  });
+
+  enriched.sort((a, b) => {
+    const valueA = asksTicket ? a.ticket : a.revenue;
+    const valueB = asksTicket ? b.ticket : b.revenue;
+
+    return asksBest
+      ? valueB - valueA
+      : valueA - valueB;
+  });
+
+  const selected = enriched[0];
+
+  const title =
+    asksTicket
+      ? `${asksBest ? '🏆 MELHOR' : '📉 PIOR'} TICKET MÉDIO`
+      : `${asksBest ? '🏆 MAIOR' : '📉 MENOR'} FATURAMENTO`;
+
+  const scope = asksYear
+    ? `DO ANO — ${ctx.year}`
+    : 'DA HISTÓRIA';
+
+  return `
+${title} ${scope}
+
+━━━━━━━━━━━━━━━━━━
+
+📅 Período
+${selected.label}
+
+💰 Faturamento
+${formatCurrency(selected.revenue)}
+
+🧾 Comandas
+${selected.tickets}
+
+🎯 Ticket médio
+${formatCurrency(selected.ticket)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Essa leitura usa o Relatório Gerencial mês a mês, que é a base correta para comparar faturamento, comandas e ticket médio ao longo do tempo.
+`.trim();
+};
+
 const getDaysInMonth = (month, year) => {
   return new Date(year, month, 0).getDate();
 };
@@ -3062,6 +3239,14 @@ const buildManagementReportComparisonAnswer = async (question, ctx) => {
     lower.includes('vendendo mais que no mês passado') ||
     lower.includes('vendi mais que no mes passado') ||
     lower.includes('vendi mais que no mês passado') ||
+    lower.includes('empresa esta crescendo') ||
+    lower.includes('empresa está crescendo') ||
+    lower.includes('a empresa esta crescendo') ||
+    lower.includes('a empresa está crescendo') ||
+    lower.includes('bebcom esta crescendo') ||
+    lower.includes('bebcom está crescendo') ||
+    lower.includes('estou crescendo') ||
+    lower.includes('crescimento da empresa') ||
     lower.includes('movimento');
 
   if (!mentionsManagementReport && !asksSalesEvolution) {
@@ -12720,6 +12905,18 @@ if (dataReliabilityAnswer) {
   });
 }
 
+const managementReportRankingAnswer =
+  await buildManagementReportRankingAnswer(
+    question,
+    ctx
+  );
+
+if (managementReportRankingAnswer) {
+  return res.json({
+    answer: managementReportRankingAnswer,
+  });
+}
+
 const managementReportComparisonAnswer =
   await buildManagementReportComparisonAnswer(
     question,
@@ -13172,6 +13369,15 @@ if (isAdvancedTemporalQuestion(question)) {
     temporalCtx =
       await buildContext(advancedPeriod);
   }
+}
+
+const ticketImprovementAnswer =
+  buildTicketImprovementAnswer(question, ctx);
+
+if (ticketImprovementAnswer) {
+  return res.json({
+    answer: ticketImprovementAnswer,
+  });
 }
 
 const historicalAggregatorAnswer =

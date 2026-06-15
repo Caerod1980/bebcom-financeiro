@@ -5823,6 +5823,135 @@ Voltar o resultado do período para positivo, reduzir contas pendentes e diminui
 `.trim();
 };
 
+const buildExecutivePriorityAnswer = (ctx) => {
+  const priorities = [];
+
+  const purchases =
+    ctx.expenseCategories?.find(
+      (item) => item.category === 'compras_mercadorias'
+    );
+
+  const purchaseShare =
+    purchases && ctx.totalIncome > 0
+      ? (purchases.amount / ctx.totalIncome) * 100
+      : 0;
+
+  const ticket =
+    Number(ctx.managementReport?.averageTicket || 0);
+
+  if (ctx.balance < 0) {
+    priorities.push({
+      weight: 100,
+      title: 'Recuperar o caixa',
+      reason: `O resultado do período está negativo em ${formatCurrency(ctx.balance)}.`,
+      action:
+        'Evitar novas compras não essenciais e priorizar geração rápida de caixa.',
+    });
+  }
+
+  if (ctx.pendingPayable > ctx.totalIncome * 0.5) {
+    priorities.push({
+      weight: 90,
+      title: 'Controlar contas pendentes',
+      reason: `As contas a pagar somam ${formatCurrency(ctx.pendingPayable)}.`,
+      action:
+        'Listar vencimentos próximos e negociar ou priorizar pagamentos críticos.',
+    });
+  }
+
+  if (purchaseShare > 60) {
+    priorities.push({
+      weight: 80,
+      title: 'Reduzir pressão de compras',
+      reason: `Compras representam ${purchaseShare.toFixed(1)}% das entradas.`,
+      action:
+        'Comprar apenas itens de giro alto até o caixa ficar mais confortável.',
+    });
+  }
+
+  if (ticket > 0 && ticket < 20) {
+    priorities.push({
+      weight: 70,
+      title: 'Elevar ticket médio',
+      reason: `O ticket médio atual está em ${formatCurrency(ticket)}.`,
+      action:
+        'Criar combos simples e oferecer complementos em toda venda.',
+    });
+  }
+
+  if (ctx.totalIncome > 0 && ctx.balance >= 0) {
+    priorities.push({
+      weight: 60,
+      title: 'Preservar margem e caixa',
+      reason:
+        'O período está positivo, mas ainda exige disciplina para não perder o ganho.',
+      action:
+        'Manter controle de compras, vencimentos e giro de estoque.',
+    });
+  }
+
+  priorities.sort((a, b) => b.weight - a.weight);
+
+  const main = priorities[0];
+
+  if (!main) {
+    return `
+🎯 PRIORIDADE EXECUTIVA — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Não identifiquei uma prioridade crítica neste momento.
+
+🧠 Minha leitura
+
+A operação parece estável, mas deve manter acompanhamento diário de caixa, compras e contas pendentes.
+`.trim();
+  }
+
+  const list = priorities
+    .slice(0, 5)
+    .map(
+      (item, index) => `
+${index + 1}. ${item.title}
+
+Motivo:
+${item.reason}
+
+Ação:
+${item.action}
+`
+    )
+    .join('\n━━━━━━━━━━━━━━━━━━\n');
+
+  return `
+🎯 PRIORIDADE EXECUTIVA — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+🏆 O que eu faria primeiro
+
+${main.title}
+
+━━━━━━━━━━━━━━━━━━
+
+📌 Prioridades identificadas
+
+${list}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha leitura
+
+A prioridade executiva é o ponto que mais pode proteger ou melhorar a operação agora.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Comece pela primeira prioridade antes de abrir novas frentes.
+`.trim();
+};
+
 const buildExecutivePlanAnswer = (
   currentCtx,
   operationalScore,
@@ -13034,6 +13163,16 @@ const isExecutiveAdviceQuestion =
   lowerQuestion.includes('monte um plano') ||
   lowerQuestion.includes('o que devo fazer agora');
 
+    const isExecutivePriorityQuestion =
+  lowerQuestion.includes('prioridade executiva') ||
+  lowerQuestion.includes('qual minha prioridade') ||
+  lowerQuestion.includes('qual a prioridade') ||
+  lowerQuestion.includes('o que devo priorizar') ||
+  lowerQuestion.includes('o que fazer primeiro') ||
+  lowerQuestion.includes('o que eu faria primeiro') ||
+  lowerQuestion.includes('por onde começo') ||
+  lowerQuestion.includes('por onde comeco');
+
     const isStrategicMemoryQuestion =
   lowerQuestion.includes('memória estratégica') ||
   lowerQuestion.includes('memoria estrategica') ||
@@ -13571,6 +13710,8 @@ if (genericPayablesAnswer) {
     operationalPriorities,
     strategicRecommendations
   );
+  } else if (isExecutivePriorityQuestion) {
+  answer = buildExecutivePriorityAnswer(ctx);
 } else if (isExecutiveAdviceQuestion) {
   answer = buildExecutiveAdviceAnswer(
     ctx,

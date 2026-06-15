@@ -8831,10 +8831,31 @@ Verifique se entradas, saídas e despesas do período comparado foram lançadas 
     compareCtx.totalExpenses
   );
 
-  const balanceVariation = calculateVariation(
-    currentCtx.balance,
-    compareCtx.balance
-  );
+  const resultDifference =
+    Number(currentCtx.balance || 0) -
+    Number(compareCtx.balance || 0);
+
+  const crossedFromLossToProfit =
+    Number(compareCtx.balance || 0) < 0 &&
+    Number(currentCtx.balance || 0) > 0;
+
+  const crossedFromProfitToLoss =
+    Number(compareCtx.balance || 0) > 0 &&
+    Number(currentCtx.balance || 0) < 0;
+
+  let resultStatus = '';
+
+  if (crossedFromLossToProfit) {
+    resultStatus = '✅ Saiu de prejuízo para lucro';
+  } else if (crossedFromProfitToLoss) {
+    resultStatus = '⚠️ Saiu de lucro para prejuízo';
+  } else if (resultDifference > 0) {
+    resultStatus = `✅ Melhorou ${formatCurrency(resultDifference)}`;
+  } else if (resultDifference < 0) {
+    resultStatus = `⚠️ Piorou ${formatCurrency(Math.abs(resultDifference))}`;
+  } else {
+    resultStatus = 'Estável';
+  }
 
   let reading = 'O comparativo mostra mudança operacional entre os períodos.';
 
@@ -8844,10 +8865,10 @@ Verifique se entradas, saídas e despesas do período comparado foram lançadas 
   ) {
     reading =
       'A receita cresceu, porém o resultado piorou. Isso indica aumento relevante das despesas, compras ou perda de margem.';
-  } else if (currentCtx.balance > compareCtx.balance) {
+  } else if (resultDifference > 0) {
     reading =
       'O resultado operacional melhorou em relação ao período comparado.';
-  } else if (currentCtx.balance < compareCtx.balance) {
+  } else if (resultDifference < 0) {
     reading =
       'O resultado operacional piorou em relação ao período comparado.';
   }
@@ -8858,17 +8879,22 @@ Comparativo: ${currentCtx.periodLabel} vs ${compareCtx.periodLabel}
 Receita:
 ${compareCtx.periodLabel}: ${formatCurrency(compareCtx.totalIncome)}
 ${currentCtx.periodLabel}: ${formatCurrency(currentCtx.totalIncome)}
-Variação: ${revenueVariation.toFixed(1)}%
+Variação: ${revenueVariation !== null ? `${revenueVariation.toFixed(1)}%` : 'sem base'}
 
 Despesas:
 ${compareCtx.periodLabel}: ${formatCurrency(compareCtx.totalExpenses)}
 ${currentCtx.periodLabel}: ${formatCurrency(currentCtx.totalExpenses)}
-Variação: ${expenseVariation.toFixed(1)}%
+Variação: ${expenseVariation !== null ? `${expenseVariation.toFixed(1)}%` : 'sem base'}
 
 Resultado:
 ${compareCtx.periodLabel}: ${formatCurrency(compareCtx.balance)}
 ${currentCtx.periodLabel}: ${formatCurrency(currentCtx.balance)}
-Variação: ${balanceVariation.toFixed(1)}%
+
+Diferença:
+${formatCurrency(resultDifference)}
+
+Situação:
+${resultStatus}
 
 Minha leitura:
 ${reading}

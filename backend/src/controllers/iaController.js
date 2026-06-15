@@ -13884,6 +13884,12 @@ if (temporalAnalyticsAnswer) {
   operationalScore,
 });
 
+  const intuitiveMemoryAnswer =
+  await buildIntuitiveMemoryAnswer(
+    question,
+    ctx
+  );
+
     let answer = '';
 
 const genericPayablesAnswer =

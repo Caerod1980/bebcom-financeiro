@@ -13122,6 +13122,12 @@ ${selected.count}
 Esse foi o dia com ${
     wantsBest ? 'maior' : 'menor'
   } volume financeiro de entradas registradas no período analisado.
+
+━━━━━━━━━━━━━━━━━━
+
+🔎 Observação
+
+Essa leitura considera apenas dias com entradas registradas. Dias sem lançamento não entram no ranking para evitar falso pior dia.
 `.trim();
 };
 

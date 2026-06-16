@@ -3045,7 +3045,11 @@ const buildManagementReportRankingAnswer = async (question, ctx) => {
     lower.includes('ticket médio');
 
   const asksRevenue =
-    lower.includes('faturamento');
+  lower.includes('faturamento') ||
+  lower.includes('melhor mes') ||
+  lower.includes('pior mes') ||
+  lower.includes('maior mes') ||
+  lower.includes('menor mes');
 
   const asksBest =
     lower.includes('melhor') ||
@@ -3224,6 +3228,18 @@ const formatTickets = (value) => {
 
 const buildManagementReportComparisonAnswer = async (question, ctx) => {
   const lower = normalizeText(question);
+
+  const asksDayRanking =
+  lower.includes('pior dia') ||
+  lower.includes('melhor dia') ||
+  lower.includes('menor dia') ||
+  lower.includes('maior dia') ||
+  lower.includes('dia de menor') ||
+  lower.includes('dia de maior');
+
+if (asksDayRanking) {
+  return null;
+}
 
   const mentionsManagementReport =
     lower.includes('relatorio gerencial') ||
@@ -12953,6 +12969,162 @@ Use esse ponto como referência para entender o que mudou em vendas, compras, de
 `.trim();
 };
 
+const buildDailyRevenueRankingAnswer = async (question, ctx) => {
+  const lower = normalizeText(question);
+
+  const asksDay =
+    lower.includes('pior dia') ||
+    lower.includes('melhor dia') ||
+    lower.includes('menor dia') ||
+    lower.includes('maior dia') ||
+    lower.includes('dia de menor') ||
+    lower.includes('dia de maior');
+
+  const asksRevenue =
+    lower.includes('faturamento') ||
+    lower.includes('vendas') ||
+    lower.includes('venda') ||
+    asksDay;
+
+  if (!asksDay || !asksRevenue) {
+    return null;
+  }
+
+  const wantsBest =
+    lower.includes('melhor') ||
+    lower.includes('maior');
+
+  const now = new Date();
+
+  let start = ctx.start;
+  let end = ctx.end;
+  let label = ctx.periodLabel;
+
+  const dateRange = lower.match(
+    /(\d{1,2})\/(\d{1,2})\s*a\s*(\d{1,2})\/(\d{1,2})/
+  );
+
+  if (dateRange) {
+    const year = ctx.year || now.getFullYear();
+
+    start = new Date(
+      year,
+      Number(dateRange[2]) - 1,
+      Number(dateRange[1]),
+      0,
+      0,
+      0,
+      0
+    );
+
+    end = new Date(
+      year,
+      Number(dateRange[4]) - 1,
+      Number(dateRange[3]),
+      23,
+      59,
+      59,
+      999
+    );
+
+    label = `${start.toLocaleDateString('pt-BR')} a ${end.toLocaleDateString('pt-BR')}`;
+  } else if (
+    lower.includes('historia') ||
+    lower.includes('historico')
+  ) {
+    start = new Date(2021, 0, 1);
+    end = now;
+    label = 'História da Bebcom';
+  } else if (lower.includes('2026')) {
+    start = new Date(2026, 0, 1);
+    end = new Date(2026, 11, 31, 23, 59, 59, 999);
+    label = 'Ano de 2026';
+  } else {
+    const foundMonth = monthNames.find((item) =>
+      item.names.some((name) =>
+        lower.includes(normalizeText(name))
+      )
+    );
+
+    if (foundMonth) {
+      const year = ctx.year || now.getFullYear();
+
+      start = new Date(year, foundMonth.number - 1, 1);
+      end = new Date(year, foundMonth.number, 0, 23, 59, 59, 999);
+      label = getMonthLabel(foundMonth.number, year);
+    }
+  }
+
+  const entries = await Entry.find({
+    deleted: { $ne: true },
+    type: 'income',
+    date: {
+      $gte: start,
+      $lte: end,
+    },
+  });
+
+  const grouped = {};
+
+  entries.forEach((entry) => {
+    const date = new Date(entry.date).toLocaleDateString('pt-BR');
+
+    if (!grouped[date]) {
+      grouped[date] = {
+        date,
+        amount: 0,
+        count: 0,
+      };
+    }
+
+    grouped[date].amount += Math.abs(Number(entry.amount || 0));
+    grouped[date].count += 1;
+  });
+
+  const days = Object.values(grouped).filter(
+    (item) => item.amount > 0
+  );
+
+  if (!days.length) {
+    return `
+Não encontrei entradas suficientes para identificar o ${
+      wantsBest ? 'melhor' : 'pior'
+    } dia em ${label}.
+`.trim();
+  }
+
+  days.sort((a, b) =>
+    wantsBest
+      ? b.amount - a.amount
+      : a.amount - b.amount
+  );
+
+  const selected = days[0];
+
+  return `
+${wantsBest ? '🏆 MELHOR DIA DE VENDAS' : '🚨 PIOR DIA DE VENDAS'} — ${label}
+
+━━━━━━━━━━━━━━━━━━
+
+📅 Dia
+${selected.date}
+
+💰 Faturamento
+${formatCurrency(selected.amount)}
+
+📋 Lançamentos
+${selected.count}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Esse foi o dia com ${
+    wantsBest ? 'maior' : 'menor'
+  } volume financeiro de entradas registradas no período analisado.
+`.trim();
+};
+
 const buildTemporalAnalyticsAnswer = (question, ctx) => {
   const lower = normalizeText(question);
 
@@ -13526,6 +13698,18 @@ const managementReportRankingAnswer =
 if (managementReportRankingAnswer) {
   return res.json({
     answer: managementReportRankingAnswer,
+  });
+}
+
+const dailyRevenueRankingAnswer =
+  await buildDailyRevenueRankingAnswer(
+    question,
+    ctx
+  );
+
+if (dailyRevenueRankingAnswer) {
+  return res.json({
+    answer: dailyRevenueRankingAnswer,
   });
 }
 

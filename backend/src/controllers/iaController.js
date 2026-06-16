@@ -3811,6 +3811,16 @@ const buildIntuitiveMemorySignal = (ctx, recentEvents = []) => {
 const buildIntuitiveMemoryAnswer = async (question, ctx) => {
   const lower = normalizeText(question);
 
+  if (
+  lower.includes('o que faco agora') ||
+  lower.includes('o que devo fazer agora') ||
+  lower.includes('monte um plano') ||
+  lower.includes('plano de acao') ||
+  lower.includes('acoes praticas')
+) {
+  return null;
+}
+
   const isIntuitiveMemoryQuestion =
   lower.includes('memoria intuitiva') ||
   lower.includes('qual padrao esta se repetindo') ||
@@ -13646,7 +13656,13 @@ const isExecutiveAdviceQuestion =
   lowerQuestion.includes('3 ações práticas') ||
   lowerQuestion.includes('3 acoes praticas') ||
   lowerQuestion.includes('o que faço agora com base na memória') ||
-  lowerQuestion.includes('o que faco agora com base na memoria');
+  lowerQuestion.includes('o que faco agora com base na memoria') ||
+  lowerQuestion.includes('com base na memória intuitiva') ||
+  lowerQuestion.includes('com base na memoria intuitiva') ||
+  lowerQuestion.includes('baseado na memória intuitiva') ||
+  lowerQuestion.includes('baseado na memoria intuitiva') ||
+  lowerQuestion.includes('o que faço agora') ||
+  lowerQuestion.includes('o que faco agora');
 
     const isExecutivePriorityQuestion =
   lowerQuestion.includes('prioridade executiva') ||
@@ -14190,12 +14206,16 @@ if (genericPayablesAnswer) {
     operationalAlerts,
     operationalPriorities
   );
+} else if (isAutomaticActionPlanQuestion) {
+  answer = await buildAutomaticActionPlanAnswer(ctx);
+
 } else if (isExecutivePlanQuestion) {
   answer = buildExecutivePlanAnswer(
     ctx,
     operationalScore,
     operationalPriorities
   );
+
 } else if (isRecoveryPlanQuestion) {
   answer = buildRecoveryPlanAnswer(
     ctx,

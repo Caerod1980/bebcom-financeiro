@@ -6263,6 +6263,168 @@ Comece pela primeira prioridade antes de abrir novas frentes.
 `.trim();
 };
 
+const buildAutomaticActionPlanAnswer = async (ctx) => {
+  const recentEvents =
+    await getRecentExecutiveMemoryEvents(8);
+
+  const memory =
+    buildIntuitiveMemorySignal(ctx, recentEvents);
+
+  const actions = [];
+
+  if (
+    memory.dominantSignal?.type === 'cash_pressure' ||
+    ctx.balance < 0
+  ) {
+    actions.push({
+      impact: 100,
+      title: 'Preservar caixa imediatamente',
+      reason: `O resultado atual está em ${formatCurrency(ctx.balance)}.`,
+      action:
+        'Evitar novas compras não essenciais e concentrar esforços em entradas rápidas.',
+      risk:
+        'Se o caixa não for protegido, a recuperação recente pode perder força.',
+    });
+  }
+
+  if (
+    memory.dominantSignal?.type === 'payable_pressure' ||
+    ctx.pendingPayable > ctx.totalIncome * 0.5
+  ) {
+    actions.push({
+      impact: 90,
+      title: 'Organizar contas pendentes',
+      reason: `As contas a pagar somam ${formatCurrency(ctx.pendingPayable)}.`,
+      action:
+        'Separar vencimentos por urgência: vencidas, hoje, próximos 3 dias e fornecedores estratégicos.',
+      risk:
+        'Sem priorização, a pressão financeira pode se concentrar em poucos dias.',
+    });
+  }
+
+  const purchases =
+    ctx.expenseCategories?.find(
+      (item) => item.category === 'compras_mercadorias'
+    );
+
+  const purchaseShare =
+    purchases && ctx.totalIncome > 0
+      ? (purchases.amount / ctx.totalIncome) * 100
+      : 0;
+
+  if (
+    memory.dominantSignal?.type === 'purchase_pressure' ||
+    purchaseShare > 60
+  ) {
+    actions.push({
+      impact: 80,
+      title: 'Reduzir pressão de compras',
+      reason: `Compras representam ${purchaseShare.toFixed(1)}% das entradas.`,
+      action:
+        'Comprar somente itens de giro alto e evitar reposições por impulso.',
+      risk:
+        'Compras acima do ritmo de venda prendem capital e aumentam a pressão do caixa.',
+    });
+  }
+
+  const ticket =
+    Number(ctx.managementReport?.averageTicket || 0);
+
+  if (
+    memory.dominantSignal?.type === 'ticket_attention' ||
+    (ticket > 0 && ticket < 20)
+  ) {
+    actions.push({
+      impact: 70,
+      title: 'Elevar ticket médio',
+      reason: `O ticket médio atual está em ${formatCurrency(ticket)}.`,
+      action:
+        'Criar combos simples e orientar atendimento para oferecer complementos em cada venda.',
+      risk:
+        'Sem melhora no ticket, a operação depende mais de fluxo para recuperar caixa.',
+    });
+  }
+
+  if (
+    memory.improvementCount > memory.worseningCount &&
+    ctx.balance < 0
+  ) {
+    actions.push({
+      impact: 65,
+      title: 'Consolidar a recuperação',
+      reason:
+        'A memória recente mostra mais sinais de melhora do que piora, mas o caixa ainda está pressionado.',
+      action:
+        'Manter disciplina por alguns dias antes de acelerar compras ou assumir novos compromissos.',
+      risk:
+        'A recuperação pode ser interrompida se a operação voltar a aumentar despesas cedo demais.',
+    });
+  }
+
+  actions.sort((a, b) => b.impact - a.impact);
+
+  const topActions = actions.slice(0, 3);
+
+  const actionsText =
+    topActions.length
+      ? topActions
+          .map(
+            (item, index) => `
+${index + 1}. ${item.title}
+
+Motivo:
+${item.reason}
+
+Ação prática:
+${item.action}
+
+Risco se não agir:
+${item.risk}
+`
+          )
+          .join('\n━━━━━━━━━━━━━━━━━━\n')
+      : 'Não identifiquei ações críticas neste momento.';
+
+  return `
+🎯 PLANO DE AÇÃO AUTOMÁTICO — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Base da Memória Intuitiva
+
+Padrão percebido:
+${memory.pattern}
+
+Interpretação:
+${memory.interpretation}
+
+━━━━━━━━━━━━━━━━━━
+
+🚀 3 ações práticas por impacto
+
+${actionsText}
+
+━━━━━━━━━━━━━━━━━━
+
+📊 Leitura executiva
+
+Melhoras recentes:
+${memory.improvementCount}
+
+Pioras recentes:
+${memory.worseningCount}
+
+Sinal dominante:
+${memory.dominantSignal?.title || 'Sem sinal dominante'}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Execute a primeira ação antes de abrir novas frentes. Depois acompanhe se o saldo, as compras e as contas pendentes começam a responder.
+`.trim();
+};
+
 const buildExecutivePlanAnswer = (
   currentCtx,
   operationalScore,
@@ -13474,6 +13636,18 @@ const isExecutiveAdviceQuestion =
   lowerQuestion.includes('monte um plano') ||
   lowerQuestion.includes('o que devo fazer agora');
 
+  const isAutomaticActionPlanQuestion =
+  lowerQuestion.includes('plano de ação automático') ||
+  lowerQuestion.includes('plano de acao automatico') ||
+  lowerQuestion.includes('monte um plano de ação') ||
+  lowerQuestion.includes('monte um plano de acao') ||
+  lowerQuestion.includes('quais 3 ações') ||
+  lowerQuestion.includes('quais 3 acoes') ||
+  lowerQuestion.includes('3 ações práticas') ||
+  lowerQuestion.includes('3 acoes praticas') ||
+  lowerQuestion.includes('o que faço agora com base na memória') ||
+  lowerQuestion.includes('o que faco agora com base na memoria');
+
     const isExecutivePriorityQuestion =
   lowerQuestion.includes('prioridade executiva') ||
   lowerQuestion.includes('qual minha prioridade') ||
@@ -14029,6 +14203,8 @@ if (genericPayablesAnswer) {
     operationalPriorities,
     strategicRecommendations
   );
+  } else if (isAutomaticActionPlanQuestion) {
+  answer = await buildAutomaticActionPlanAnswer(ctx);
   } else if (isExecutivePriorityQuestion) {
   answer = buildExecutivePriorityAnswer(ctx);
 } else if (isExecutiveAdviceQuestion) {

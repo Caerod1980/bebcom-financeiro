@@ -26,6 +26,11 @@ const inventoryBalanceSchema = new mongoose.Schema({
     default: 0,
   },
 
+stockBalance: {
+  type: Number,
+  default: 0,
+},
+  
   finalStock: {
     type: Number,
     default: 0,

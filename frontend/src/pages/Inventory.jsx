@@ -3,7 +3,6 @@ import {
   Boxes,
   TrendingUp,
   TrendingDown,
-  Wallet,
   Loader,
   Save,
   Package,
@@ -33,7 +32,7 @@ const Inventory = () => {
     notes: '',
   });
 
- const [totals, setTotals] = useState({
+const [totals, setTotals] = useState({
   initialStock: 0,
   purchases: 0,
   cmv: 0,
@@ -43,7 +42,6 @@ const Inventory = () => {
   internalConsumption: 0,
   losses: 0,
   stockConsumption: 0,
-  finalStock: 0,
 });
 
   useEffect(() => {
@@ -244,7 +242,7 @@ const Inventory = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <SummaryCard
           title="Estoque Inicial"
           value={totals.initialStock}
@@ -306,13 +304,7 @@ const Inventory = () => {
     </div>
   </div>
 </div>
-        <SummaryCard
-          title="Estoque Final"
-          value={totals.finalStock}
-          icon={Wallet}
-          tone="amber"
-        />
-      </div>
+</div>
 
       <div className="bg-white rounded-2xl border shadow-sm p-5">
         <div className="flex items-center gap-2 mb-5">
@@ -323,7 +315,7 @@ const Inventory = () => {
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+       <div className="grid grid-cols-1 gap-5">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Estoque Inicial
@@ -346,23 +338,11 @@ const Inventory = () => {
 />
             {month !== 1 && (
   <p className="text-xs text-gray-500 mt-1">
-    Valor herdado automaticamente do mês anterior
+    Valor herdado automaticamente do Saldo Estoque do mês anterior
   </p>
 )}
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Estoque Final Estimado
-            </label>
-
-            <div className="input-field bg-gray-50 flex items-center font-bold text-gray-900">
-              {formatCurrency(
-                totals.finalStock || 0
-              )}
-            </div>
-          </div>
-        </div>
+      </div>
 
         <div className="mt-5">
           <label className="block text-sm font-medium text-gray-700 mb-1">

@@ -13,6 +13,142 @@ const getPreviousMonth = (year, month) => {
   return { previousYear, previousMonth };
 };
 
+const calculateStockTotals = async (year, month, manualInitialStock = 0) => {
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+
+  const purchasesResult = await Entry.aggregate([
+    {
+      $match: {
+        deleted: { $ne: true },
+        type: 'expense',
+        category: 'compras_mercadorias',
+        date: {
+          $gte: startDate,
+          $lte: endDate,
+        },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        total: { $sum: '$amount' },
+      },
+    },
+  ]);
+
+  const revenueResult = await Entry.aggregate([
+    {
+      $match: {
+        deleted: { $ne: true },
+        type: 'income',
+        date: {
+          $gte: startDate,
+          $lte: endDate,
+        },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        total: { $sum: '$amount' },
+      },
+    },
+  ]);
+
+  const internalConsumptionResult = await Entry.aggregate([
+    {
+      $match: {
+        deleted: { $ne: true },
+        type: 'expense',
+        costCenter: 'estoque',
+        category: 'funcionarios',
+        date: {
+          $gte: startDate,
+          $lte: endDate,
+        },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        total: { $sum: '$amount' },
+      },
+    },
+  ]);
+
+  const lossesResult = await Entry.aggregate([
+    {
+      $match: {
+        deleted: { $ne: true },
+        type: 'expense',
+        costCenter: 'estoque',
+        category: 'perdas',
+        date: {
+          $gte: startDate,
+          $lte: endDate,
+        },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        total: { $sum: '$amount' },
+      },
+    },
+  ]);
+
+  const purchases = purchasesResult[0]?.total || 0;
+  const netRevenue = revenueResult[0]?.total || 0;
+  const internalConsumption =
+    internalConsumptionResult[0]?.total || 0;
+  const losses = lossesResult[0]?.total || 0;
+
+  const stockConsumption =
+    internalConsumption + losses;
+
+  const baseStock =
+    netRevenue - purchases;
+
+  const grossMarginPercent =
+    netRevenue > 0
+      ? baseStock / netRevenue
+      : 0;
+
+  const stockBalance =
+    baseStock + baseStock * grossMarginPercent - stockConsumption;
+
+  let initialStock = Number(manualInitialStock || 0);
+
+  if (month !== 1) {
+    const { previousYear, previousMonth } =
+      getPreviousMonth(year, month);
+
+    const previousInventory =
+      await InventoryBalance.findOne({
+        year: previousYear,
+        month: previousMonth,
+      });
+
+    if (previousInventory) {
+      initialStock =
+        Number(previousInventory.stockBalance || 0);
+    }
+  }
+
+  return {
+    initialStock,
+    purchases,
+    cmv: 0,
+    netRevenue,
+    grossMarginPercent,
+    stockBalance,
+    internalConsumption,
+    losses,
+    stockConsumption,
+  };
+};
+
 // @desc    Get inventory balance by month/year
 // @route   GET /api/inventory/:year/:month
 const getInventoryBalance = async (req, res) => {
@@ -20,191 +156,44 @@ const getInventoryBalance = async (req, res) => {
     const year = Number(req.params.year);
     const month = Number(req.params.month);
 
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+    let inventory =
+      await InventoryBalance.findOne({ year, month });
 
-    let inventory = await InventoryBalance.findOne({ year, month });
+    const manualInitialStock =
+      inventory?.initialStock || 0;
 
-    const purchasesResult = await Entry.aggregate([
-      {
-        $match: {
-          deleted: { $ne: true },
-          type: 'expense',
-          category: 'compras_mercadorias',
-          date: {
-            $gte: startDate,
-            $lte: endDate,
-          },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: '$amount' },
-        },
-      },
-    ]);
-
-    const cmvResult = await Entry.aggregate([
-      {
-        $match: {
-          deleted: { $ne: true },
-          dreGroup: 'cmv',
-          date: {
-            $gte: startDate,
-            $lte: endDate,
-          },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: '$amount' },
-        },
-      },
-    ]);
-
-    const purchases = purchasesResult[0]?.total || 0;
-    const cmv = 0; 
-
-const internalConsumptionResult = await Entry.aggregate([
-  {
-    $match: {
-      deleted: { $ne: true },
-      type: 'expense',
-      costCenter: 'estoque',
-      category: 'funcionarios',
-      date: {
-        $gte: startDate,
-        $lte: endDate,
-      },
-    },
-  },
-  {
-    $group: {
-      _id: null,
-      total: { $sum: '$amount' },
-    },
-  },
-]);
-
-const internalConsumption =
-  internalConsumptionResult[0]?.total || 0;
-
-  const lossesResult = await Entry.aggregate([
-  {
-    $match: {
-      deleted: { $ne: true },
-      type: 'expense',
-      costCenter: 'estoque',
-      category: 'perdas',
-      date: {
-        $gte: startDate,
-        $lte: endDate,
-      },
-    },
-  },
-  {
-    $group: {
-      _id: null,
-      total: { $sum: '$amount' },
-    },
-  },
-]);
-
-const losses =
-  lossesResult[0]?.total || 0;
-
-const stockConsumption = internalConsumption + losses;
-    
-// Receita líquida do mês
-const revenueResult = await Entry.aggregate([
-  {
-    $match: {
-      deleted: { $ne: true },
-      type: 'income',
-      date: {
-        $gte: startDate,
-        $lte: endDate,
-      },
-    },
-  },
-  {
-    $group: {
-      _id: null,
-      total: { $sum: '$amount' },
-    },
-  },
-]);
-
-const netRevenue = revenueResult[0]?.total || 0;
-
-// Base financeira
-const baseStock = netRevenue - purchases;
-
-// Margem bruta estimada
-let grossMarginPercent = 0;
-
-if (netRevenue > 0) {
-  grossMarginPercent =
-    baseStock / netRevenue;
-}
-
-// Saldo gerencial do estoque
-const stockBalance =
-  baseStock + (baseStock * grossMarginPercent);
-
-    let initialStock = inventory?.initialStock || 0;
-
-    if (month !== 1) {
-      const { previousYear, previousMonth } = getPreviousMonth(year, month);
-
-      const previousInventory = await InventoryBalance.findOne({
-        year: previousYear,
-        month: previousMonth,
-      });
-
-      if (previousInventory) {
-        initialStock = previousInventory.finalStock || 0;
-      }
-    }
-
-    const finalStock = initialStock + stockBalance - stockConsumption;
+    const totals =
+      await calculateStockTotals(
+        year,
+        month,
+        manualInitialStock
+      );
 
     if (!inventory) {
       inventory = await InventoryBalance.create({
         year,
         month,
-        initialStock,
-        purchases,
-        cmv,
-        finalStock,
+        initialStock: totals.initialStock,
+        purchases: totals.purchases,
+        cmv: totals.cmv,
+        stockBalance: totals.stockBalance,
+        finalStock: totals.stockBalance,
         notes: '',
         createdBy: req.user?._id,
       });
     } else {
-      inventory.initialStock = initialStock;
-      inventory.purchases = purchases;
-      inventory.cmv = cmv;
-      inventory.finalStock = finalStock;
+      inventory.initialStock = totals.initialStock;
+      inventory.purchases = totals.purchases;
+      inventory.cmv = totals.cmv;
+      inventory.stockBalance = totals.stockBalance;
+      inventory.finalStock = totals.stockBalance;
 
       await inventory.save();
     }
 
     return res.json({
       inventory,
-      totals: {
-      initialStock,
-      purchases,
-      cmv,
-      netRevenue,
-      grossMarginPercent,
-      stockBalance,
-      internalConsumption,
-      losses,
-      stockConsumption,
-      finalStock,
-  },
+      totals,
     });
   } catch (error) {
     console.error('Erro ao buscar estoque:', error);
@@ -224,7 +213,8 @@ const saveInventoryBalance = async (req, res) => {
 
     const { initialStock, notes } = req.body;
 
-    let inventory = await InventoryBalance.findOne({ year, month });
+    let inventory =
+      await InventoryBalance.findOne({ year, month });
 
     if (!inventory) {
       inventory = new InventoryBalance({
@@ -235,146 +225,31 @@ const saveInventoryBalance = async (req, res) => {
     }
 
     if (month === 1) {
-      inventory.initialStock = Number(initialStock || 0);
+      inventory.initialStock =
+        Number(initialStock || 0);
     }
 
     inventory.notes = notes || '';
 
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+    const totals =
+      await calculateStockTotals(
+        year,
+        month,
+        inventory.initialStock
+      );
 
-    const purchasesResult = await Entry.aggregate([
-      {
-        $match: {
-          deleted: { $ne: true },
-          type: 'expense',
-          category: 'compras_mercadorias',
-          date: {
-            $gte: startDate,
-            $lte: endDate,
-          },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: '$amount' },
-        },
-      },
-    ]);
-
-    const revenueResult = await Entry.aggregate([
-      {
-        $match: {
-          deleted: { $ne: true },
-          type: 'income',
-          date: {
-            $gte: startDate,
-            $lte: endDate,
-          },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: '$amount' },
-        },
-      },
-    ]);
-
-    const purchases = purchasesResult[0]?.total || 0;
-    const netRevenue = revenueResult[0]?.total || 0;
-
-   const internalConsumptionResult = await Entry.aggregate([
-  {
-    $match: {
-      deleted: { $ne: true },
-      type: 'expense',
-      costCenter: 'estoque',
-      category: 'funcionarios',
-      date: {
-        $gte: startDate,
-        $lte: endDate,
-      },
-    },
-  },
-  {
-    $group: {
-      _id: null,
-      total: { $sum: '$amount' },
-    },
-  },
-]);
-
-const internalConsumption =
-  internalConsumptionResult[0]?.total || 0;
-
-   const lossesResult = await Entry.aggregate([
-  {
-    $match: {
-      deleted: { $ne: true },
-      type: 'expense',
-      costCenter: 'estoque',
-      category: 'perdas',
-      date: {
-        $gte: startDate,
-        $lte: endDate,
-      },
-    },
-  },
-  {
-    $group: {
-      _id: null,
-      total: { $sum: '$amount' },
-    },
-  },
-]);
-
-const losses = lossesResult[0]?.total || 0; 
-
-const stockConsumption = internalConsumption + losses;
-
-    const baseStock = netRevenue - purchases;
-
-    const grossMarginPercent =
-      netRevenue > 0 ? baseStock / netRevenue : 0;
-
-    const stockBalance =
-      baseStock + (baseStock * grossMarginPercent);
-
-    inventory.purchases = purchases;
-    inventory.cmv = 0;
-    if (month !== 1) {
-  const { previousYear, previousMonth } = getPreviousMonth(year, month);
-
-  const previousInventory = await InventoryBalance.findOne({
-    year: previousYear,
-    month: previousMonth,
-  });
-
-  if (previousInventory) {
-    inventory.initialStock = previousInventory.finalStock || 0;
-  }
-}
-    inventory.finalStock = inventory.initialStock + stockBalance - stockConsumption;
+    inventory.initialStock = totals.initialStock;
+    inventory.purchases = totals.purchases;
+    inventory.cmv = totals.cmv;
+    inventory.stockBalance = totals.stockBalance;
+    inventory.finalStock = totals.stockBalance;
 
     await inventory.save();
 
     return res.json({
       message: 'Estoque salvo com sucesso',
       inventory,
-      totals: {
-        initialStock: inventory.initialStock,
-        purchases,
-        cmv: 0,
-        netRevenue,
-        grossMarginPercent,
-        stockBalance,
-        internalConsumption,
-        losses,
-        stockConsumption,
-        finalStock: inventory.finalStock,
-     },
+      totals,
     });
   } catch (error) {
     console.error('Erro ao salvar estoque:', error);

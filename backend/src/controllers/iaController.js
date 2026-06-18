@@ -1729,25 +1729,29 @@ const extractSupplierPayableName = (question) => {
     .toLowerCase()
     .trim();
 
-  const patterns = [
-    /total de contas a pagar\s+(?:de|da|do)?\s*(.+?)\??$/i,
-    /total de\s+(.+?)\s+a pagar/i,
-    /total\s+(.+?)\s+a pagar/i,
+ const patterns = [
+  /total de\s+(.+?)\s+a pagar/i,
+  /total\s+(.+?)\s+a pagar/i,
+  /total de contas a pagar\s+(.+?)\??$/i,
 
-    /boletos\s+(?:de|da|do)?\s*(.+?)\??$/i,
-    /boleto\s+(?:de|da|do)?\s*(.+?)\??$/i,
+  /boletos\s+da\s+(.+?)\??$/i,
+  /boleto\s+da\s+(.+?)\??$/i,
+  /vencimentos\s+da\s+(.+?)\??$/i,
+  /vencimento\s+da\s+(.+?)\??$/i,
 
-    /vencimentos\s+(?:de|da|do)?\s*(.+?)\??$/i,
-    /vencimento\s+(?:de|da|do)?\s*(.+?)\??$/i,
+  /boletos\s+(.+?)\??$/i,
+  /boleto\s+(.+?)\??$/i,
+  /vencimentos\s+(.+?)\??$/i,
+  /vencimento\s+(.+?)\??$/i,
 
-    /contas\s+(?:de|da|do)?\s*(.+?)\??$/i,
-    /conta\s+(?:de|da|do)?\s*(.+?)\??$/i,
+  /contas\s+(.+?)\??$/i,
+  /conta\s+(.+?)\??$/i,
 
-    /quanto tenho de\s+(.+?)\s+(para pagar|pra pagar|a pagar)/i,
-    /quanto tem de\s+(.+?)\s+(para pagar|pra pagar|a pagar)/i,
-
-    /quanto devo\s+(?:para|pra|a)\s+(.+?)\??$/i,
-  ];
+  /quanto tenho de\s+(.+?)\s+(para pagar|pra pagar|a pagar)/i,
+  /quanto tem de\s+(.+?)\s+(para pagar|pra pagar|a pagar)/i,
+  /quanto devo para\s+(.+?)\??$/i,
+  /quanto devo pra\s+(.+?)\??$/i,
+];
 
   for (const pattern of patterns) {
     const match = lower.match(pattern);
@@ -5459,9 +5463,12 @@ const wantsComparison =
 
   // CONTAS PAGAS / BOLETOS / PAGAMENTOS REALIZADOS
 if (
-  lower.includes('contas pagas') ||
-  lower.includes('boletos') ||
-  lower.includes('pagamentos realizados')
+  (
+    lower.includes('contas pagas') ||
+    lower.includes('boletos') ||
+    lower.includes('pagamentos realizados')
+  ) &&
+  !extractSupplierPayableName(question)
 ) {
   const paidEntries = (ctx.entries || []).filter(
     (entry) => entry.type === 'expense'
@@ -14493,6 +14500,7 @@ const isSupplierPayableQuestion =
 
 const isPayablesDueDateQuestion =
   !!payableDuePeriod &&
+  !extractSupplierPayableName(question) &&
   (
     lowerQuestion.includes('vence') ||
     lowerQuestion.includes('vencem') ||
@@ -14501,7 +14509,6 @@ const isPayablesDueDateQuestion =
     lowerQuestion.includes('quanto pagar') ||
     lowerQuestion.includes('quanto tenho para pagar')
   );
-
     const isOpenSupplierRankingQuestion =
   (
     lowerQuestion.includes('ranking') ||

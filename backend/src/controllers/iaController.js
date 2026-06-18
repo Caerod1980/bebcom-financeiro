@@ -1733,6 +1733,8 @@ const extractSupplierPayableName = (question) => {
   /total de contas a pagar\s+(.+?)\??$/i,
   /boletos\s+(.+?)\??$/i,
   /boleto\s+(.+?)\??$/i,
+  /vencimentos\s+(.+?)\??$/i,
+  /vencimento\s+(.+?)\??$/i,
   /contas\s+(.+?)\??$/i,
   /conta\s+(.+?)\??$/i,
   /quanto tenho de\s+(.+?)\s+(para pagar|pra pagar|a pagar)/i,
@@ -1749,6 +1751,8 @@ const extractSupplierPayableName = (question) => {
   .replace(/pra pagar/g, '')
   .replace(/boletos/g, '')
   .replace(/boleto/g, '')
+  .replace(/vencimentos/g, '')
+  .replace(/vencimento/g, '')
   .replace(/contas/g, '')
   .replace(/conta/g, '')
   .replace(/\?/g, '')

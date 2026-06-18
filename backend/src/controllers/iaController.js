@@ -1727,21 +1727,32 @@ const expensesByDay =
 const extractSupplierPayableName = (question) => {
   const lower = question.toLowerCase();
 
-  const patterns = [
-    /quanto tenho de\s+(.+?)\s+(para pagar|pra pagar|a pagar)/i,
-    /quanto devo para\s+(.+?)\??$/i,
-    /quanto tem de\s+(.+?)\s+(para pagar|pra pagar|a pagar)/i,
-    /total de contas a pagar de\s+(.+?)\??$/i,
-    /previsão de contas a pagar\s+(.+?)\??$/i,
-  ];
-
+ const patterns = [
+  /total de\s+(.+?)\s+a pagar/i,
+  /total\s+(.+?)\s+a pagar/i,
+  /total de contas a pagar\s+(.+?)\??$/i,
+  /boletos\s+(.+?)\??$/i,
+  /boleto\s+(.+?)\??$/i,
+  /contas\s+(.+?)\??$/i,
+  /conta\s+(.+?)\??$/i,
+  /quanto tenho de\s+(.+?)\s+(para pagar|pra pagar|a pagar)/i,
+  /quanto tem de\s+(.+?)\s+(para pagar|pra pagar|a pagar)/i,
+  /quanto devo para\s+(.+?)\??$/i,
+];
   for (const pattern of patterns) {
     const match = lower.match(pattern);
 
     if (match?.[1]) {
-      return match[1]
-        .replace(/\?/g, '')
-        .trim();
+     return match[1]
+  .replace(/a pagar/g, '')
+  .replace(/para pagar/g, '')
+  .replace(/pra pagar/g, '')
+  .replace(/boletos/g, '')
+  .replace(/boleto/g, '')
+  .replace(/contas/g, '')
+  .replace(/conta/g, '')
+  .replace(/\?/g, '')
+  .trim();
     }
   }
 
@@ -1769,11 +1780,22 @@ const buildSupplierPayableAnswer = (ctx, supplierName) => {
 
   if (accounts.length === 0) {
     return `
-Não encontrei contas a pagar em aberto para "${supplierName}".
+🏦 CONTAS A PAGAR — ${String(supplierName).toUpperCase()}
 
-Minha leitura:
-Pode ser que esse fornecedor esteja cadastrado com outro nome, abreviação ou esteja na descrição em vez do campo Pessoa/Empresa.
-    `.trim();
+━━━━━━━━━━━━━━━━━━
+
+Não encontrei contas a pagar em aberto para este fornecedor.
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha leitura
+
+Pode ser que esse fornecedor esteja cadastrado com outro nome, abreviação, acento diferente ou esteja na descrição em vez do campo Pessoa/Empresa.
+
+🎯 Minha recomendação
+
+Confira o cadastro do fornecedor no contas a pagar ou tente perguntar usando parte do nome.
+`.trim();
   }
 
   const total = accounts.reduce(
@@ -14731,6 +14753,17 @@ if (temporalAnalyticsAnswer) {
   );
 
     let answer = '';
+
+const supplierPayableName =
+  extractSupplierPayableName(question);
+
+const supplierPayableAnswer =
+  supplierPayableName
+    ? buildSupplierPayableAnswer(
+        ctx,
+        supplierPayableName
+      )
+    : null;
 
 const genericPayablesAnswer =
   buildGenericPayablesAnswer(ctx, question);

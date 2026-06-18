@@ -8175,13 +8175,23 @@ ${
 };
 
 const buildInventoryAnswer = (ctx) => {
-  const initialStock = getInventoryInitialStock(ctx);
-  const stockBalance = getInventoryStockBalance(ctx);
-  const estimatedPosition = getInventoryEstimatedPosition(ctx);
-  const growthAmount = getInventoryGrowthAmount(ctx);
+  const initialStock =
+    getInventoryInitialStock(ctx);
+
+  const inventoryBalance =
+    getInventoryStockBalance(ctx);
+
+  const inventoryPosition =
+    getInventoryEstimatedPosition(ctx);
+
+  const inventoryGrowth =
+    getInventoryGrowthAmount(ctx);
+
+  const purchases =
+    Number(ctx.inventory?.purchases || 0);
 
   const referenceDifference =
-    stockBalance - INVENTORY_REFERENCE_VALUE;
+    inventoryBalance - INVENTORY_REFERENCE_VALUE;
 
   return `
 📦 ANÁLISE DO ESTOQUE FINANCEIRO — ${ctx.periodLabel}

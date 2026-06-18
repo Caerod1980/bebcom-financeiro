@@ -14758,23 +14758,25 @@ if (temporalAnalyticsAnswer) {
 
     let answer = '';
 
-const supplierPayableCandidate =
+const earlySupplierPayableName =
   extractSupplierPayableName(question);
 
-const supplierPayableAnswer =
-  supplierPayableCandidate
-    ? buildSupplierPayableAnswer(
-        ctx,
-        supplierPayableCandidate
-      )
-    : null;
+if (earlySupplierPayableName) {
+  const earlySupplierPayableAnswer =
+    buildSupplierPayableAnswer(
+      ctx,
+      earlySupplierPayableName
+    );
+
+  return res.json({
+    answer: earlySupplierPayableAnswer,
+  });
+}
 
 const genericPayablesAnswer =
   buildGenericPayablesAnswer(ctx, question);
 
-if (supplierPayableAnswer) {
-  answer = supplierPayableAnswer;
-} else if (genericPayablesAnswer) {
+if (genericPayablesAnswer) {
   answer = genericPayablesAnswer;
 } else if (intuitiveMemoryAnswer) {
   answer = intuitiveMemoryAnswer;

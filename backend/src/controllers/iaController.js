@@ -14754,21 +14754,23 @@ if (temporalAnalyticsAnswer) {
 
     let answer = '';
 
-const supplierPayableName =
+const supplierPayableCandidate =
   extractSupplierPayableName(question);
 
 const supplierPayableAnswer =
-  supplierPayableName
+  supplierPayableCandidate
     ? buildSupplierPayableAnswer(
         ctx,
-        supplierPayableName
+        supplierPayableCandidate
       )
     : null;
 
 const genericPayablesAnswer =
   buildGenericPayablesAnswer(ctx, question);
 
-if (genericPayablesAnswer) {
+if (supplierPayableAnswer) {
+  answer = supplierPayableAnswer;
+} else if (genericPayablesAnswer) {
   answer = genericPayablesAnswer;
 } else if (intuitiveMemoryAnswer) {
   answer = intuitiveMemoryAnswer;

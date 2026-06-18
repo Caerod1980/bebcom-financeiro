@@ -21,6 +21,20 @@ const formatCurrency = (value) =>
     currency: 'BRL',
   });
 
+const INVENTORY_REFERENCE_VALUE = 27830;
+
+const getInventoryInitialStock = (ctx) =>
+  Number(ctx.inventory?.initialStock || 0);
+
+const getInventoryStockBalance = (ctx) =>
+  Number(ctx.inventory?.stockBalance || 0);
+
+const getInventoryEstimatedPosition = (ctx) =>
+  getInventoryInitialStock(ctx) + getInventoryStockBalance(ctx);
+
+const getInventoryGrowthAmount = (ctx) =>
+  getInventoryEstimatedPosition(ctx) - getInventoryInitialStock(ctx);
+
 const updateExecutiveContext = ({
   intent = null,
   topic = null,
@@ -381,13 +395,13 @@ const buildTemporalMemoryInsight = (ctx) => {
     );
   }
 
-  const inventory =
-    ctx.inventory?.finalStock || 0;
+ const inventoryPosition =
+  getInventoryEstimatedPosition(ctx);
 
-  if (
-    purchases &&
-    inventory > purchases.amount
-  ) {
+if (
+  purchases &&
+  inventoryPosition > purchases.amount
+) {
     insights.push(
       'A memória operacional da empresa alerta que excesso de estoque é mais perigoso do que falta de estoque.'
     );
@@ -5822,7 +5836,8 @@ Esse valor foi encontrado somando lançamentos vinculados a pessoa/fornecedor co
 
 const buildOperationAnswer = (ctx) => {
   const averageTicket = ctx.managementReport?.averageTicket || 0;
-  const inventoryFinal = ctx.inventory?.finalStock || 0;
+  const inventoryPosition = getInventoryEstimatedPosition(ctx);
+  const inventoryBalance = getInventoryStockBalance(ctx);
 
  return `
 🧠 PONTOS DE ATENÇÃO OPERACIONAL — ${ctx.periodLabel}
@@ -5871,8 +5886,8 @@ ${
 
 📦 Estoque
 
-Estoque financeiro estimado
-${formatCurrency(inventoryFinal)}
+Posição estimada do estoque
+${formatCurrency(inventoryPosition)}
 
 ${buildConsultiveClosing({
   situation:
@@ -6788,8 +6803,8 @@ const buildDeepDiveAnswer = (
       lower.includes('aumentando o estoque')
     )
   ) {
-    const inventory =
-      currentCtx.inventory?.finalStock || 0;
+   const inventory =
+  getInventoryEstimatedPosition(currentCtx);
 
     const purchaseValue =
       purchases?.amount || 0;
@@ -7234,8 +7249,11 @@ const buildCEOAnswer = (
   const averageTicket =
     currentCtx.managementReport?.averageTicket || 0;
 
-  const inventoryFinal =
-    currentCtx.inventory?.finalStock || 0;
+  const inventoryPosition =
+  getInventoryEstimatedPosition(currentCtx);
+
+const inventoryBalance =
+  getInventoryStockBalance(currentCtx);
 
   const motivationalInsight = buildMotivationalInsight(
     currentCtx,
@@ -7362,7 +7380,11 @@ ${formatCurrency(averageTicket)}
 
 📦 Estoque financeiro estimado
 
-${formatCurrency(inventoryFinal)}
+Saldo Estoque:
+${formatCurrency(inventoryBalance)}
+
+Posição estimada:
+${formatCurrency(inventoryPosition)}
 
 ━━━━━━━━━━━━━━━━━━
 
@@ -8152,19 +8174,67 @@ ${
 `.trim();
 };
 
-const buildInventoryAnswer = (ctx) => `
-Análise do estoque financeiro em ${ctx.periodLabel}:
+const buildInventoryAnswer = (ctx) => {
+  const initialStock = getInventoryInitialStock(ctx);
+  const stockBalance = getInventoryStockBalance(ctx);
+  const estimatedPosition = getInventoryEstimatedPosition(ctx);
+  const growthAmount = getInventoryGrowthAmount(ctx);
 
-Estoque inicial: ${formatCurrency(ctx.inventory?.initialStock || 0)}
-Compras: ${formatCurrency(ctx.inventory?.purchases || 0)}
-Estoque final estimado: ${formatCurrency(ctx.inventory?.finalStock || 0)}
+  const referenceDifference =
+    stockBalance - INVENTORY_REFERENCE_VALUE;
 
-Leitura gerencial:
-O estoque deve ser visto junto com caixa, compras e vendas. Estoque alto pode significar capital parado; estoque baixo pode gerar ruptura e perda de vendas.
+  return `
+📦 ANÁLISE DO ESTOQUE FINANCEIRO — ${ctx.periodLabel}
 
-Sugestão:
-Use essa informação para equilibrar compra, giro e disponibilidade dos produtos mais importantes.
+━━━━━━━━━━━━━━━━━━
+
+Estoque inicial:
+${formatCurrency(initialStock)}
+
+Compras:
+${formatCurrency(ctx.inventory?.purchases || 0)}
+
+Saldo Estoque:
+${formatCurrency(inventoryBalance)}
+
+Posição estimada do estoque:
+${formatCurrency(inventoryPosition)}
+
+━━━━━━━━━━━━━━━━━━
+
+📊 Variação do estoque
+
+${
+  growthAmount >= 0
+    ? `O estoque cresceu ${formatCurrency(growthAmount)} em relação ao início do mês.`
+    : `O estoque reduziu ${formatCurrency(Math.abs(growthAmount))} em relação ao início do mês.`
+}
+
+━━━━━━━━━━━━━━━━━━
+
+📌 Referência gerencial
+
+Referência mensal:
+${formatCurrency(INVENTORY_REFERENCE_VALUE)}
+
+Diferença do Saldo Estoque:
+${formatCurrency(referenceDifference)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha leitura
+
+O Saldo Estoque é o indicador principal para acompanhar o giro do mês.
+
+A posição estimada mostra se o estoque cresceu ou diminuiu em relação ao estoque inicial.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Use o Saldo Estoque para avaliar o giro e a posição estimada para entender se o estoque está aumentando ou reduzindo ao longo do mês.
 `.trim();
+};
 
 const buildAnalyticalInsights = (currentCtx, previousCtx) => {
   const insights = [];
@@ -9034,7 +9104,7 @@ const buildStrategicRecommendations = (ctx) => {
 
   // Estoque
   const stock =
-    ctx.inventory?.finalStock || 0;
+  getInventoryEstimatedPosition(ctx);
 
   if (
     stock > ctx.totalIncome
@@ -9117,7 +9187,7 @@ const buildOperationalPlan = (ctx) => {
 
   // Estoque
   const stock =
-    ctx.inventory?.finalStock || 0;
+  getInventoryEstimatedPosition(ctx);
 
   if (
     stock > ctx.totalIncome
@@ -9267,8 +9337,8 @@ const buildExecutiveDecision = (ctx) => {
   }
 
   // Estoque elevado
-  const stock =
-    ctx.inventory?.finalStock || 0;
+ const stock =
+  getInventoryEstimatedPosition(ctx);
 
   if (
     stock > ctx.totalIncome
@@ -11663,11 +11733,11 @@ const buildPresidentDecision = (
     );
   }
 
-  if (ctx.inventory?.finalStock > 0) {
-    opportunities.push(
-      'Existe estoque disponível para gerar caixa sem necessidade imediata de novas compras.'
-    );
-  }
+  if (getInventoryEstimatedPosition(ctx) > 0) {
+  opportunities.push(
+    'Existe posição estimada de estoque para gerar caixa sem necessidade imediata de novas compras.'
+  );
+}
 
   let headline = 'Minha leitura presidencial';
   let tone = 'equilibrado';
@@ -11846,7 +11916,8 @@ const buildHistoricalMemory = (currentCtx, historicalContexts = []) => {
 }).length;
 
 const highStockPeriods = allPeriods.filter((ctx) => {
-  const stock = ctx.inventory?.finalStock || 0;
+  const stock =
+    getInventoryEstimatedPosition(ctx);
 
   if (!ctx.totalIncome || ctx.totalIncome <= 0) return false;
 
@@ -12252,19 +12323,22 @@ const buildOpportunityAnalysis = (
     }
   }
 
-  if (
-    ctx.inventory &&
-    ctx.inventory.finalStock > ctx.totalIncome * 0.5
-  ) {
-    opportunities.push({
-      priority: 8,
-      title: 'Transformar estoque em caixa',
-      description:
-        `O estoque estimado de ${formatCurrency(
-          ctx.inventory.finalStock
-        )} representa uma oportunidade de geração de caixa.`,
-    });
-  }
+ const inventoryPosition =
+  getInventoryEstimatedPosition(ctx);
+
+if (
+  ctx.inventory &&
+  inventoryPosition > ctx.totalIncome * 0.5
+) {
+  opportunities.push({
+    priority: 8,
+    title: 'Transformar estoque em caixa',
+    description:
+      `A posição estimada de estoque de ${formatCurrency(
+        inventoryPosition
+      )} representa uma oportunidade de geração de caixa.`,
+  });
+}
 
   if (
     historicalMemory?.executiveEvolution?.status ===
@@ -14556,7 +14630,7 @@ Saídas: ${formatCurrency(ctx.totalExpenses)}
 Saldo realizado: ${formatCurrency(ctx.balance)}
 Contas a pagar pendentes/vencidas: ${formatCurrency(ctx.pendingPayable)}
 Ticket médio: ${formatCurrency(ctx.managementReport?.averageTicket || 0)}
-Estoque estimado: ${formatCurrency(ctx.inventory?.finalStock || 0)}
+Estoque estimado: ${formatCurrency(getInventoryEstimatedPosition(ctx))}
 
 Insights automáticos identificados:
 ${
@@ -14636,19 +14710,25 @@ Você pode perguntar de forma mais específica, por exemplo:
 });
 
     return res.json({
-      answer,
-      context: {
-        month: ctx.month,
-        year: ctx.year,
-        totalIncome: ctx.totalIncome,
-        totalExpenses: ctx.totalExpenses,
-        balance: ctx.balance,
-        pendingPayable: ctx.pendingPayable,
-        pendingReceivable: ctx.pendingReceivable,
-        averageTicket: ctx.managementReport?.averageTicket || 0,
-        inventoryFinalStock: ctx.inventory?.finalStock || 0,
-      },
-    });
+  answer,
+  context: {
+    month: ctx.month,
+    year: ctx.year,
+    totalIncome: ctx.totalIncome,
+    totalExpenses: ctx.totalExpenses,
+    balance: ctx.balance,
+    pendingPayable: ctx.pendingPayable,
+    pendingReceivable: ctx.pendingReceivable,
+    averageTicket:
+      ctx.managementReport?.averageTicket || 0,
+
+    inventoryPosition:
+      getInventoryEstimatedPosition(ctx),
+
+    inventoryStockBalance:
+      getInventoryStockBalance(ctx),
+  },
+});
   } catch (error) {
     console.error('Erro IA Bebcom:', error);
 

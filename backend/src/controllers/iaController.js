@@ -14967,7 +14967,7 @@ Você pode perguntar de forma mais específica, por exemplo:
 “Como foi a semana passada?”
       `.trim();
     }
-
+}
    updateExecutiveContext({
   intent: advancedIntent,
   topic:

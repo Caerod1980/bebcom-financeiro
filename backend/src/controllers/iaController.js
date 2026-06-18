@@ -14481,7 +14481,11 @@ const isSupplierPayableQuestion =
   (
     lowerQuestion.includes('pagar') ||
     lowerQuestion.includes('devo') ||
-    lowerQuestion.includes('contas a pagar')
+    lowerQuestion.includes('contas a pagar') ||
+    lowerQuestion.includes('boleto') ||
+    lowerQuestion.includes('boletos') ||
+    lowerQuestion.includes('vencimento') ||
+    lowerQuestion.includes('vencimentos')
   );
 
     const payableDuePeriod = getPayableDuePeriodFromQuestion(question);
@@ -14836,19 +14840,29 @@ if (genericPayablesAnswer) {
         ctx,
         financialIntent.category
       );
-      } else if (isDecisionSimulationQuestion) {
+  } else if (isDecisionSimulationQuestion) {
   answer = buildDecisionSimulationAnswer(ctx);
-      } else if (isCashForecastQuestion) {
+
+} else if (isCashForecastQuestion) {
   answer = buildCashForecastAnswer(ctx);
-      } else if (isPaymentPriorityQuestion) {
+
+} else if (isPaymentPriorityQuestion) {
   answer = buildPaymentPriorityAnswer(ctx);
-      } else if (isOpenSupplierRankingQuestion) {
+
+} else if (isOpenSupplierRankingQuestion) {
   answer = buildOpenSupplierRankingAnswer(ctx);
+
+} else if (isSupplierPayableQuestion) {
+  answer = buildSupplierPayableAnswer(
+    ctx,
+    supplierPayableName
+  );
+
 } else if (isPayablesDueDateQuestion) {
   answer = buildPayablesDueDateAnswer(
     ctx,
     payableDuePeriod
-  );
+  ); 
 } else if (isSupplierPayableQuestion) {
   answer = buildSupplierPayableAnswer(
     ctx,

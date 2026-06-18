@@ -1725,50 +1725,33 @@ const expensesByDay =
 };
 
 const extractSupplierPayableName = (question) => {
-  const lower = String(question || '')
-    .toLowerCase()
-    .trim();
+  const lower = normalizeText(question);
 
- const patterns = [
-  /total de\s+(.+?)\s+a pagar/i,
-  /total\s+(.+?)\s+a pagar/i,
-  /total de contas a pagar\s+(.+?)\??$/i,
+  const patterns = [
+    /^total de contas a pagar\s+(?:de|da|do)?\s*(.+?)\??$/i,
+    /^total de\s+(.+?)\s+a pagar\??$/i,
+    /^total\s+(.+?)\s+a pagar\??$/i,
 
-  /boletos\s+da\s+(.+?)\??$/i,
-  /boleto\s+da\s+(.+?)\??$/i,
-  /vencimentos\s+da\s+(.+?)\??$/i,
-  /vencimento\s+da\s+(.+?)\??$/i,
+    /^boletos\s+(?:de|da|do)?\s*(.+?)\??$/i,
+    /^boleto\s+(?:de|da|do)?\s*(.+?)\??$/i,
 
-  /boletos\s+(.+?)\??$/i,
-  /boleto\s+(.+?)\??$/i,
-  /vencimentos\s+(.+?)\??$/i,
-  /vencimento\s+(.+?)\??$/i,
+    /^vencimentos\s+(?:de|da|do)?\s*(.+?)\??$/i,
+    /^vencimento\s+(?:de|da|do)?\s*(.+?)\??$/i,
 
-  /contas\s+(.+?)\??$/i,
-  /conta\s+(.+?)\??$/i,
-
-  /quanto tenho de\s+(.+?)\s+(para pagar|pra pagar|a pagar)/i,
-  /quanto tem de\s+(.+?)\s+(para pagar|pra pagar|a pagar)/i,
-  /quanto devo para\s+(.+?)\??$/i,
-  /quanto devo pra\s+(.+?)\??$/i,
-];
+    /^quanto devo\s+(?:para|pra|a)\s+(.+?)\??$/i,
+    /^quanto tenho de\s+(.+?)\s+(?:para pagar|pra pagar|a pagar)\??$/i,
+    /^quanto tem de\s+(.+?)\s+(?:para pagar|pra pagar|a pagar)\??$/i,
+  ];
 
   for (const pattern of patterns) {
     const match = lower.match(pattern);
 
     if (match?.[1]) {
-      return match[1]
-        .replace(/a pagar/g, '')
-        .replace(/para pagar/g, '')
-        .replace(/pra pagar/g, '')
-        .replace(/boletos/g, '')
-        .replace(/boleto/g, '')
-        .replace(/vencimentos/g, '')
-        .replace(/vencimento/g, '')
-        .replace(/contas/g, '')
-        .replace(/conta/g, '')
+      const supplier = match[1]
         .replace(/\?/g, '')
         .trim();
+
+      return supplier || null;
     }
   }
 
@@ -2008,6 +1991,11 @@ Compare esses vencimentos com o caixa disponível e priorize pagamentos crítico
 
 const buildGenericPayablesAnswer = (ctx, question) => {
   const lower = normalizeText(question);
+
+  if (extractSupplierPayableName(question)) {
+  return null;
+}
+  
   const raw = String(question || '').toLowerCase();
 
   const isPayableQuestion =
@@ -14505,6 +14493,7 @@ const isPayablesDueDateQuestion =
     lowerQuestion.includes('vence') ||
     lowerQuestion.includes('vencem') ||
     lowerQuestion.includes('vencimento') ||
+    lowerQuestion.includes('vencimentos') ||
     lowerQuestion.includes('contas a pagar') ||
     lowerQuestion.includes('quanto pagar') ||
     lowerQuestion.includes('quanto tenho para pagar')

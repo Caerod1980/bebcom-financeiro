@@ -8246,6 +8246,275 @@ Use o Saldo Estoque para avaliar o giro e a posição estimada para entender se 
 `.trim();
 };
 
+const buildInventoryIntentAnswer = (question, ctx) => {
+  const lower = normalizeText(question);
+
+  const initialStock =
+    getInventoryInitialStock(ctx);
+
+  const stockBalance =
+    getInventoryStockBalance(ctx);
+
+  const inventoryPosition =
+    getInventoryEstimatedPosition(ctx);
+
+  const growthAmount =
+    getInventoryGrowthAmount(ctx);
+
+  const purchases =
+    Number(ctx.inventory?.purchases || 0);
+
+  const netRevenue =
+    Number(ctx.totalIncome || 0);
+
+  const purchaseShare =
+    netRevenue > 0
+      ? (purchases / netRevenue) * 100
+      : 0;
+
+  const referenceDifference =
+    inventoryPosition - INVENTORY_REFERENCE_VALUE;
+
+  const stockGrowthPercent =
+    initialStock > 0
+      ? (growthAmount / initialStock) * 100
+      : 0;
+
+  const asksExcessStock =
+    lower.includes('excesso de estoque') ||
+    lower.includes('estoque em excesso') ||
+    lower.includes('estoque alto') ||
+    lower.includes('estoque elevado');
+
+  const asksBuyingMoreThanSelling =
+    lower.includes('comprando mais do que vendo') ||
+    lower.includes('compro mais do que vendo') ||
+    lower.includes('compras estao virando vendas') ||
+    lower.includes('compras estão virando vendas') ||
+    lower.includes('compras virando vendas');
+
+  const asksStockCashPressure =
+    lower.includes('estoque consumindo meu caixa') ||
+    lower.includes('estoque esta consumindo meu caixa') ||
+    lower.includes('estoque está consumindo meu caixa') ||
+    lower.includes('estoque pressionando o caixa') ||
+    lower.includes('estoque esta pressionando o caixa') ||
+    lower.includes('estoque está pressionando o caixa');
+
+  const asksStockGrowth =
+    lower.includes('estoque crescendo') ||
+    lower.includes('estoque esta crescendo') ||
+    lower.includes('estoque está crescendo') ||
+    lower.includes('estoque diminuindo') ||
+    lower.includes('estoque esta diminuindo') ||
+    lower.includes('estoque está diminuindo') ||
+    lower.includes('estoque aumentou') ||
+    lower.includes('estoque reduziu');
+
+  if (
+    !asksExcessStock &&
+    !asksBuyingMoreThanSelling &&
+    !asksStockCashPressure &&
+    !asksStockGrowth
+  ) {
+    return null;
+  }
+
+  if (asksExcessStock) {
+    const hasExcess =
+      inventoryPosition > INVENTORY_REFERENCE_VALUE;
+
+    return `
+📦 EXCESSO DE ESTOQUE — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+📊 Posição estimada do estoque
+${formatCurrency(inventoryPosition)}
+
+📌 Referência gerencial
+${formatCurrency(INVENTORY_REFERENCE_VALUE)}
+
+📈 Diferença
+${formatCurrency(referenceDifference)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha leitura
+
+${
+  hasExcess
+    ? `Sim. A posição estimada do estoque está ${formatCurrency(
+        Math.abs(referenceDifference)
+      )} acima da referência gerencial da Bebcom.`
+    : `Não identifico excesso pela referência gerencial. A posição estimada está ${formatCurrency(
+        Math.abs(referenceDifference)
+      )} abaixo da referência de ${formatCurrency(INVENTORY_REFERENCE_VALUE)}.`
+}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+${
+  hasExcess
+    ? 'Antes de ampliar compras, priorize giro dos produtos atuais, combos e ações para transformar estoque em caixa.'
+    : 'Mantenha o acompanhamento. O ponto principal é garantir que não faltem produtos de alto giro, sem aumentar compras por impulso.'
+}
+`.trim();
+  }
+
+  if (asksBuyingMoreThanSelling) {
+    return `
+🛒 COMPRAS VS VENDAS — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+💰 Receita realizada
+${formatCurrency(netRevenue)}
+
+🛒 Compras de mercadorias
+${formatCurrency(purchases)}
+
+📊 Compras sobre entradas
+${purchaseShare.toFixed(1)}%
+
+━━━━━━━━━━━━━━━━━━
+
+📦 Efeito no estoque
+
+Estoque inicial:
+${formatCurrency(initialStock)}
+
+Saldo Estoque:
+${formatCurrency(stockBalance)}
+
+Posição estimada:
+${formatCurrency(inventoryPosition)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha leitura
+
+${
+  purchaseShare > 70
+    ? `As compras estão pesadas: representam ${purchaseShare.toFixed(
+        1
+      )}% das entradas.`
+    : `As compras representam ${purchaseShare.toFixed(
+        1
+      )}% das entradas, um nível menos pressionado.`
+}
+
+${
+  growthAmount > 0
+    ? `Além disso, o estoque cresceu ${formatCurrency(
+        growthAmount
+      )}. Isso indica que parte das compras ainda não virou venda.`
+    : `O estoque não cresceu no período. Isso indica que as compras estão mais próximas do ritmo de giro.`
+}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Se o objetivo é proteger caixa, compre apenas itens de alto giro até confirmar que as compras atuais estão se transformando em venda.
+`.trim();
+  }
+
+  if (asksStockCashPressure) {
+    return `
+💸 ESTOQUE E PRESSÃO DE CAIXA — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+📈 Resultado do período
+${formatCurrency(ctx.balance)}
+
+🛒 Compras
+${formatCurrency(purchases)}
+
+📊 Compras sobre entradas
+${purchaseShare.toFixed(1)}%
+
+📦 Crescimento do estoque
+${formatCurrency(growthAmount)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha leitura
+
+${
+  ctx.balance < 0 && purchaseShare > 70
+    ? 'Sim. O estoque e as compras estão pressionando o caixa neste momento.'
+    : ctx.balance < 0
+      ? 'O caixa está pressionado, mas não apenas pelo estoque. É preciso olhar também despesas e contas pendentes.'
+      : purchaseShare > 70
+        ? 'As compras estão altas em relação às entradas, mas o caixa ainda precisa ser analisado junto com o resultado do período.'
+        : 'Não vejo sinal forte de que o estoque esteja consumindo o caixa de forma crítica neste momento.'
+}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Acompanhe diariamente compras, saldo de estoque e contas a pagar. Se o caixa estiver negativo, reduza compras não essenciais e foque em vender o estoque já comprado.
+`.trim();
+  }
+
+  if (asksStockGrowth) {
+    return `
+📈 MOVIMENTO DO ESTOQUE — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+📦 Estoque inicial
+${formatCurrency(initialStock)}
+
+📊 Saldo Estoque
+${formatCurrency(stockBalance)}
+
+📌 Posição estimada
+${formatCurrency(inventoryPosition)}
+
+━━━━━━━━━━━━━━━━━━
+
+📈 Variação
+
+${formatCurrency(growthAmount)}
+${stockGrowthPercent.toFixed(1)}%
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha leitura
+
+${
+  growthAmount > 0
+    ? `O estoque está crescendo. A posição estimada aumentou ${formatCurrency(
+        growthAmount
+      )} em relação ao início do mês.`
+    : growthAmount < 0
+      ? `O estoque está diminuindo. A posição estimada caiu ${formatCurrency(
+          Math.abs(growthAmount)
+        )} em relação ao início do mês.`
+      : 'O estoque está estável em relação ao início do mês.'
+}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+${
+  growthAmount > 0
+    ? 'Confirme se esse crescimento está acompanhado de vendas. Se não estiver, reduza novas compras e acelere giro.'
+    : 'Se o estoque está caindo, confira se os produtos de maior giro continuam disponíveis para evitar ruptura.'
+}
+`.trim();
+  }
+
+  return null;
+};
+
 const buildAnalyticalInsights = (currentCtx, previousCtx) => {
   const insights = [];
 
@@ -14596,14 +14865,23 @@ Sugestões práticas para aumentar o ticket médio:
 Minha sugestão inicial:
 Comece com combos simples, fáceis de entender e com produtos de boa saída.
       `.trim();
-    } else if (isDailyBriefing) {
-      answer = buildDailyBriefingAnswer(ctx);
-    } else if (
-      lowerQuestion.includes('fluxo') ||
-      lowerQuestion.includes('caixa')
-    ) {
-      answer = buildFlowAnswer(ctx);
-    } else if (
+   } else if (isDailyBriefing) {
+  answer = buildDailyBriefingAnswer(ctx);
+
+} else {
+  const inventoryIntentAnswer =
+    buildInventoryIntentAnswer(question, ctx);
+
+  if (inventoryIntentAnswer) {
+    answer = inventoryIntentAnswer;
+
+  } else if (
+    lowerQuestion.includes('fluxo') ||
+    lowerQuestion.includes('caixa')
+  ) {
+    answer = buildFlowAnswer(ctx);
+
+  } else if ( 
       lowerQuestion.includes('despesa') ||
       lowerQuestion.includes('reduzir') ||
       lowerQuestion.includes('custo') ||
@@ -14611,11 +14889,16 @@ Comece com combos simples, fáceis de entender e com produtos de boa saída.
     ) {
       answer = buildExpenseAnswer(ctx);
     } else if (
-      lowerQuestion.includes('estoque') ||
-      lowerQuestion.includes('mercadoria') ||
-      lowerQuestion.includes('compra')
-    ) {
-      answer = buildInventoryAnswer(ctx);
+  lowerQuestion.includes('estoque') ||
+  lowerQuestion.includes('mercadoria') ||
+  lowerQuestion.includes('compra')
+) {
+  const inventoryIntentAnswer =
+    buildInventoryIntentAnswer(question, ctx);
+
+  answer =
+    inventoryIntentAnswer ||
+    buildInventoryAnswer(ctx);
     } else if (
       lowerQuestion.includes('operação') ||
       lowerQuestion.includes('operacao') ||

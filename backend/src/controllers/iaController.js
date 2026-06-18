@@ -1725,44 +1725,51 @@ const expensesByDay =
 };
 
 const extractSupplierPayableName = (question) => {
-  const lower = question.toLowerCase();
+  const lower = String(question || '')
+    .toLowerCase()
+    .trim();
 
- const patterns = [
-  /total de\s+(.+?)\s+a pagar/i,
-  /total\s+(.+?)\s+a pagar/i,
-  /total de contas a pagar\s+(.+?)\??$/i,
-  /boletos\s+(.+?)\??$/i,
-  /boleto\s+(.+?)\??$/i,
-  /vencimentos\s+(.+?)\??$/i,
-  /vencimento\s+(.+?)\??$/i,
-  /contas\s+(.+?)\??$/i,
-  /conta\s+(.+?)\??$/i,
-  /quanto tenho de\s+(.+?)\s+(para pagar|pra pagar|a pagar)/i,
-  /quanto tem de\s+(.+?)\s+(para pagar|pra pagar|a pagar)/i,
-  /quanto devo para\s+(.+?)\??$/i,
-];
+  const patterns = [
+    /total de contas a pagar\s+(?:de|da|do)?\s*(.+?)\??$/i,
+    /total de\s+(.+?)\s+a pagar/i,
+    /total\s+(.+?)\s+a pagar/i,
+
+    /boletos\s+(?:de|da|do)?\s*(.+?)\??$/i,
+    /boleto\s+(?:de|da|do)?\s*(.+?)\??$/i,
+
+    /vencimentos\s+(?:de|da|do)?\s*(.+?)\??$/i,
+    /vencimento\s+(?:de|da|do)?\s*(.+?)\??$/i,
+
+    /contas\s+(?:de|da|do)?\s*(.+?)\??$/i,
+    /conta\s+(?:de|da|do)?\s*(.+?)\??$/i,
+
+    /quanto tenho de\s+(.+?)\s+(para pagar|pra pagar|a pagar)/i,
+    /quanto tem de\s+(.+?)\s+(para pagar|pra pagar|a pagar)/i,
+
+    /quanto devo\s+(?:para|pra|a)\s+(.+?)\??$/i,
+  ];
+
   for (const pattern of patterns) {
     const match = lower.match(pattern);
 
     if (match?.[1]) {
-     return match[1]
-  .replace(/a pagar/g, '')
-  .replace(/para pagar/g, '')
-  .replace(/pra pagar/g, '')
-  .replace(/boletos/g, '')
-  .replace(/boleto/g, '')
-  .replace(/vencimentos/g, '')
-  .replace(/vencimento/g, '')
-  .replace(/contas/g, '')
-  .replace(/conta/g, '')
-  .replace(/\?/g, '')
-  .trim();
+      return match[1]
+        .replace(/a pagar/g, '')
+        .replace(/para pagar/g, '')
+        .replace(/pra pagar/g, '')
+        .replace(/boletos/g, '')
+        .replace(/boleto/g, '')
+        .replace(/vencimentos/g, '')
+        .replace(/vencimento/g, '')
+        .replace(/contas/g, '')
+        .replace(/conta/g, '')
+        .replace(/\?/g, '')
+        .trim();
     }
   }
 
   return null;
 };
-
 const buildSupplierPayableAnswer = (ctx, supplierName) => {
   const supplier = String(supplierName || '').toLowerCase().trim();
 

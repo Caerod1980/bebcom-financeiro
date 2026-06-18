@@ -8184,7 +8184,7 @@ const buildInventoryAnswer = (ctx) => {
   const inventoryPosition =
     getInventoryEstimatedPosition(ctx);
 
-  const inventoryGrowth =
+  const growthAmount =
     getInventoryGrowthAmount(ctx);
 
   const purchases =

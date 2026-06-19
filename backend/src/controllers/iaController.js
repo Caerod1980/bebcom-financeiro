@@ -2288,6 +2288,80 @@ Avalie os maiores fornecedores e confira quais vencimentos podem ser negociados 
 `.trim();
 };
 
+const buildUpcomingDueAnswer = (ctx, days = 7) => {
+  const today = new Date();
+
+  const start = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+    0,
+    0,
+    0,
+    0
+  );
+
+  const end = new Date(start);
+  end.setDate(end.getDate() + days);
+  end.setHours(23, 59, 59, 999);
+
+  const accounts = (ctx.accounts || [])
+    .filter((account) => {
+      const dueDate = new Date(account.dueDate);
+
+      return (
+        account.type === 'payable' &&
+        ['pending', 'overdue'].includes(account.status) &&
+        dueDate >= start &&
+        dueDate <= end
+      );
+    })
+    .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+  const total = accounts.reduce(
+    (acc, item) => acc + Math.abs(Number(item.amount || 0)),
+    0
+  );
+
+  const list = accounts
+    .slice(0, 20)
+    .map((item, index) => {
+      const date = new Date(item.dueDate).toLocaleDateString('pt-BR');
+      const name = item.person || item.description || 'Conta';
+
+      return `${index + 1}. ${date} — ${name} — ${formatCurrency(item.amount)}`;
+    })
+    .join('\n');
+
+  return `
+📅 VENCIMENTOS — PRÓXIMOS ${days} DIAS
+
+━━━━━━━━━━━━━━━━━━
+
+💰 Total previsto
+${formatCurrency(total)}
+
+📋 Quantidade de contas
+${accounts.length}
+
+━━━━━━━━━━━━━━━━━━
+
+📝 Contas previstas
+
+${list || 'Nenhuma conta prevista para este período.'}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha leitura
+
+Esses são os compromissos com vencimento dentro dos próximos ${days} dias.
+
+🎯 Minha recomendação
+
+Compare esse total com o caixa disponível e priorize fornecedores críticos.
+`.trim();
+};
+
 const buildPaymentPriorityAnswer = (ctx) => {
   const today = new Date();
 

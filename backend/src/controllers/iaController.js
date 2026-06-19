@@ -7146,10 +7146,19 @@ Revise prazo, desconto, bonificações e frequência de compra antes de reduzir 
 
   // Pergunta 3
 if (
-  lower.includes('vencimentos') ||
-  lower.includes('precisam realmente ser pagos') ||
-  lower.includes('parte deles pode ser negociada') ||
-  lower.includes('pode ser negociada')
+  (
+    lower.includes('vencimentos') ||
+    lower.includes('precisam realmente ser pagos') ||
+    lower.includes('parte deles pode ser negociada') ||
+    lower.includes('pode ser negociada')
+  ) &&
+  !extractSupplierPayableName(question) &&
+  !lower.includes('proximos 3 dias') &&
+  !lower.includes('próximos 3 dias') &&
+  !lower.includes('proximos 5 dias') &&
+  !lower.includes('próximos 5 dias') &&
+  !lower.includes('proximos 7 dias') &&
+  !lower.includes('próximos 7 dias')
 ) {
   const today = new Date();
 

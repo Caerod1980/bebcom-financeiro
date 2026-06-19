@@ -1727,21 +1727,23 @@ const expensesByDay =
 const extractSupplierPayableName = (question) => {
   const lower = normalizeText(question);
 
-  const patterns = [
-    /^total de contas a pagar\s+(?:de|da|do)?\s*(.+?)\??$/i,
-    /^total de\s+(.+?)\s+a pagar\??$/i,
-    /^total\s+(.+?)\s+a pagar\??$/i,
+const patterns = [
+  /^total de contas a pagar\s+(?:de|da|do)?\s*(.+?)\??$/i,
+  /^total contas a pagar\s+(?:de|da|do)?\s*(.+?)\??$/i,
 
-    /^boletos\s+(?:de|da|do)?\s*(.+?)\??$/i,
-    /^boleto\s+(?:de|da|do)?\s*(.+?)\??$/i,
+  /^total\s+(?:de\s+)?(.+?)\s+a pagar\??$/i,
+  /^(.+?)\s+a pagar\??$/i,
 
-    /^vencimentos\s+(?:de|da|do)?\s*(.+?)\??$/i,
-    /^vencimento\s+(?:de|da|do)?\s*(.+?)\??$/i,
+  /^boletos\s+(?:de|da|do)?\s*(.+?)\??$/i,
+  /^boleto\s+(?:de|da|do)?\s*(.+?)\??$/i,
 
-    /^quanto devo\s+(?:para|pra|a)\s+(.+?)\??$/i,
-    /^quanto tenho de\s+(.+?)\s+(?:para pagar|pra pagar|a pagar)\??$/i,
-    /^quanto tem de\s+(.+?)\s+(?:para pagar|pra pagar|a pagar)\??$/i,
-  ];
+  /^vencimentos\s+(?:de|da|do)?\s*(.+?)\??$/i,
+  /^vencimento\s+(?:de|da|do)?\s*(.+?)\??$/i,
+
+  /^quanto devo\s+(?:para|pra|a)\s+(.+?)\??$/i,
+  /^quanto tenho de\s+(.+?)\s+(?:para pagar|pra pagar|a pagar)\??$/i,
+  /^quanto tem de\s+(.+?)\s+(?:para pagar|pra pagar|a pagar)\??$/i,
+];
 
   for (const pattern of patterns) {
     const match = lower.match(pattern);

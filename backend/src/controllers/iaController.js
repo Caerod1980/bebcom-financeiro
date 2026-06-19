@@ -1751,6 +1751,19 @@ const extractSupplierPayableName = (question) => {
         .replace(/\?/g, '')
         .trim();
 
+    const invalidSupplierTerms = [
+  'proximos 3 dias',
+  'proximos 5 dias',
+  'proximos 7 dias',
+  '3 dias',
+  '5 dias',
+  '7 dias',
+];
+
+if (invalidSupplierTerms.includes(supplier)) {
+  return null;
+}  
+
       return supplier || null;
     }
   }
@@ -14474,8 +14487,61 @@ if (conversationalContextAnswer) {
       lowerQuestion.includes('pagar da semana') ||
       lowerQuestion.includes('quanto tenho para pagar');
 
-    const supplierPayableName = extractSupplierPayableName(question);
+   
+    const invalidSupplierTerms = [
+  'proximos 3 dias',
+  'próximos 3 dias',
+  'proximos 5 dias',
+  'próximos 5 dias',
+  'proximos 7 dias',
+  'próximos 7 dias',
+  '3 dias',
+  '5 dias',
+  '7 dias',
+];
 
+let supplierPayableName =
+  extractSupplierPayableName(question);
+
+if (
+  supplierPayableName &&
+  invalidSupplierTerms.includes(
+    supplierPayableName.toLowerCase()
+  )
+) {
+  supplierPayableName = null;
+}
+
+const wantsNext3Days =
+  lowerQuestion.includes('próximos 3 dias') ||
+  lowerQuestion.includes('proximos 3 dias');
+
+const wantsNext5Days =
+  lowerQuestion.includes('próximos 5 dias') ||
+  lowerQuestion.includes('proximos 5 dias');
+
+const wantsNext7Days =
+  lowerQuestion.includes('próximos 7 dias') ||
+  lowerQuestion.includes('proximos 7 dias');
+
+if (wantsNext3Days) {
+  return res.json({
+    answer: buildUpcomingDueAnswer(ctx, 3),
+  });
+}
+
+if (wantsNext5Days) {
+  return res.json({
+    answer: buildUpcomingDueAnswer(ctx, 5),
+  });
+}
+
+if (wantsNext7Days) {
+  return res.json({
+    answer: buildUpcomingDueAnswer(ctx, 7),
+  });
+}
+    
 const isSupplierPayableQuestion =
   !!supplierPayableName &&
   (

@@ -14031,17 +14031,21 @@ const currentItems = [
       item.current - item.previous,
   }));
 
-  const selected = variations
-    .filter((item) =>
-      mode === 'growth'
-        ? item.variation > 0
-        : item.variation < 0
-    )
-    .sort((a, b) =>
-      mode === 'growth'
-        ? b.variation - a.variation
-        : a.variation - b.variation
-    )[0];
+ const selected = variations
+  .filter((item) => {
+    if (mode === 'growth') {
+      return item.difference > 0;
+    }
+
+    return item.difference < 0;
+  })
+  .sort((a, b) => {
+    if (mode === 'growth') {
+      return b.difference - a.difference;
+    }
+
+    return a.difference - b.difference;
+  })[0];
 
   if (!selected) {
     return `

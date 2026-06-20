@@ -14976,12 +14976,7 @@ if (temporalAnalyticsAnswer) {
     ctx
   );
 
-  const managementReportRankingAnswer =
-  await buildManagementReportRankingAnswer(
-    question,
-    ctx
-  );
-
+ 
     let answer = '';
 
 const earlySupplierPayableName =

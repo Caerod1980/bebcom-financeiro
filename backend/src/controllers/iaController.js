@@ -14016,14 +14016,20 @@ const currentItems = [
   ),
 ];
 
-  const variations = currentItems
-    .filter((item) => item.previous > 0 || item.current > 0)
-    .map((item) => ({
-      ...item,
-      variation:
-        ((item.current - item.previous) / Math.abs(item.previous)) * 100,
-      difference: item.current - item.previous,
-    }));
+ const variations = currentItems
+  .filter((item) => item.previous > 0 || item.current > 0)
+  .map((item) => ({
+    ...item,
+    variation:
+      item.previous > 0
+        ? (
+            (item.current - item.previous) /
+            Math.abs(item.previous)
+          ) * 100
+        : null,
+    difference:
+      item.current - item.previous,
+  }));
 
   const selected = variations
     .filter((item) =>
@@ -14073,7 +14079,11 @@ Período atual:
 ${formatCurrency(selected.current)}
 
 Variação:
-${selected.variation.toFixed(1)}%
+${
+  selected.variation === null
+    ? 'Novo indicador no período'
+    : `${selected.variation.toFixed(1)}%`
+}
 
 Diferença:
 ${formatCurrency(selected.difference)}

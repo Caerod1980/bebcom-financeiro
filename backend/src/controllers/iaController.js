@@ -2004,11 +2004,6 @@ Compare esses vencimentos com o caixa disponível e priorize pagamentos crítico
 `.trim();
 };
 
-const managementReportRankingAnswer =
-  await buildManagementReportRankingAnswer(
-    question,
-    ctx
-  );
 
 const buildGenericPayablesAnswer = (ctx, question) => {
   const lower = normalizeText(question);
@@ -14981,6 +14976,12 @@ if (temporalAnalyticsAnswer) {
     ctx
   );
 
+  const managementReportRankingAnswer =
+  await buildManagementReportRankingAnswer(
+    question,
+    ctx
+  );
+
     let answer = '';
 
 const earlySupplierPayableName =
@@ -15001,7 +15002,9 @@ if (earlySupplierPayableName) {
 const genericPayablesAnswer =
   buildGenericPayablesAnswer(ctx, question);
 
-if (genericPayablesAnswer) {
+if (managementReportRankingAnswer) {
+  answer = managementReportRankingAnswer;
+} else if (genericPayablesAnswer) {
   answer = genericPayablesAnswer;
 } else if (intuitiveMemoryAnswer) {
   answer = intuitiveMemoryAnswer;

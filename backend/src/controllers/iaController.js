@@ -2004,6 +2004,12 @@ Compare esses vencimentos com o caixa disponível e priorize pagamentos crítico
 `.trim();
 };
 
+const managementReportRankingAnswer =
+  await buildManagementReportRankingAnswer(
+    question,
+    ctx
+  );
+
 const buildGenericPayablesAnswer = (ctx, question) => {
   const lower = normalizeText(question);
 
@@ -15026,8 +15032,6 @@ if (genericPayablesAnswer) {
     operationalPriorities,
     strategicRecommendations
   );
-  } else if (isAutomaticActionPlanQuestion) {
-  answer = await buildAutomaticActionPlanAnswer(ctx);
   } else if (isExecutivePriorityQuestion) {
   answer = buildExecutivePriorityAnswer(ctx);
 } else if (isExecutiveAdviceQuestion) {
@@ -15077,11 +15081,6 @@ if (genericPayablesAnswer) {
     ctx,
     payableDuePeriod
   ); 
-} else if (isSupplierPayableQuestion) {
-  answer = buildSupplierPayableAnswer(
-    ctx,
-    supplierPayableName
-  );
     } else if (
       financialIntent.wantsTotal &&
       financialIntent.supplier

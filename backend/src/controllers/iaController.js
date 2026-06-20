@@ -13964,36 +13964,60 @@ Para identificar o que mais cresceu ou caiu, preciso comparar o período atual c
 `.trim();
   }
 
-  const currentItems = [
-    {
-      name: 'Entradas',
-      current: Number(ctx.totalIncome || 0),
-      previous: Number(previousCtx.totalIncome || 0),
-    },
-    {
-      name: 'Saídas',
-      current: Number(ctx.totalExpenses || 0),
-      previous: Number(previousCtx.totalExpenses || 0),
-    },
-    {
-      name: 'Resultado',
-      current: Number(ctx.balance || 0),
-      previous: Number(previousCtx.balance || 0),
-    },
-    {
-      name: 'Contas a pagar',
-      current: Number(ctx.pendingPayable || 0),
-      previous: Number(previousCtx.pendingPayable || 0),
-    },
-    {
-      name: 'Ticket médio',
-      current: Number(ctx.managementReport?.averageTicket || 0),
-      previous: Number(previousCtx.managementReport?.averageTicket || 0),
-    },
-  ];
+ const makeCategoryItems = (currentList = [], previousList = [], prefix = '') => {
+  return currentList.map((currentItem) => {
+    const previousItem = previousList.find(
+      (item) => item.category === currentItem.category
+    );
+
+    return {
+      name: `${prefix}${currentItem.category}`,
+      current: Number(currentItem.amount || 0),
+      previous: Number(previousItem?.amount || 0),
+    };
+  });
+};
+
+const currentItems = [
+  {
+    name: 'Entradas',
+    current: Number(ctx.totalIncome || 0),
+    previous: Number(previousCtx.totalIncome || 0),
+  },
+  {
+    name: 'Saídas',
+    current: Number(ctx.totalExpenses || 0),
+    previous: Number(previousCtx.totalExpenses || 0),
+  },
+  {
+    name: 'Resultado',
+    current: Number(ctx.balance || 0),
+    previous: Number(previousCtx.balance || 0),
+  },
+  {
+    name: 'Contas a pagar',
+    current: Number(ctx.pendingPayable || 0),
+    previous: Number(previousCtx.pendingPayable || 0),
+  },
+  {
+    name: 'Ticket médio',
+    current: Number(ctx.managementReport?.averageTicket || 0),
+    previous: Number(previousCtx.managementReport?.averageTicket || 0),
+  },
+  ...makeCategoryItems(
+    ctx.expenseCategories,
+    previousCtx.expenseCategories,
+    'Despesa — '
+  ),
+  ...makeCategoryItems(
+    ctx.incomeCategories,
+    previousCtx.incomeCategories,
+    'Receita — '
+  ),
+];
 
   const variations = currentItems
-    .filter((item) => item.previous !== 0)
+    .filter((item) => item.previous > 0 || item.current > 0)
     .map((item) => ({
       ...item,
       variation:

@@ -3170,8 +3170,12 @@ const buildManagementReportRankingAnswer = async (question, ctx) => {
   const lower = normalizeText(question);
 
   const asksTicket =
-    lower.includes('ticket medio') ||
-    lower.includes('ticket médio');
+  lower.includes('ticket medio') ||
+  lower.includes('ticket médio') ||
+  lower.includes('melhor ticket') ||
+  lower.includes('maior ticket') ||
+  lower.includes('pior ticket') ||
+  lower.includes('menor ticket');
 
   const asksRevenue =
   lower.includes('faturamento') ||

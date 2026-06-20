@@ -5535,22 +5535,6 @@ Agir com firmeza, mas sem perder a identidade da Bebcom: preço justo, atendimen
 
   // V11.4.97.3 — COMPARATIVO EVOLUTIVO
 
-const wantsGrowth =
-  lower.includes('mais cresceu') ||
-  lower.includes('cresceu') ||
-  lower.includes('aumentando') ||
-  lower.includes('esta aumentando');
-
-const wantsDecline =
-  lower.includes('mais caiu') ||
-  lower.includes('caiu') ||
-  lower.includes('diminuindo') ||
-  lower.includes('esta diminuindo') ||
-  lower.includes('está diminuindo');
-
-const wantsComparison =
-  wantsGrowth || wantsDecline;
-
   // CONTAS PAGAS / BOLETOS / PAGAMENTOS REALIZADOS
 if (
   (
@@ -13970,6 +13954,124 @@ A Bebcom evolui melhor quando transforma pressão em ajuste de gestão.
   return null;
 };
 
+const buildGrowthDeclineAnswer = (ctx, previousCtx, mode = 'growth') => {
+  if (!previousCtx) {
+    return `
+Não encontrei período anterior suficiente para comparar crescimento ou queda.
+
+Minha leitura:
+Para identificar o que mais cresceu ou caiu, preciso comparar o período atual com um período anterior.
+`.trim();
+  }
+
+  const currentItems = [
+    {
+      name: 'Entradas',
+      current: Number(ctx.totalIncome || 0),
+      previous: Number(previousCtx.totalIncome || 0),
+    },
+    {
+      name: 'Saídas',
+      current: Number(ctx.totalExpenses || 0),
+      previous: Number(previousCtx.totalExpenses || 0),
+    },
+    {
+      name: 'Resultado',
+      current: Number(ctx.balance || 0),
+      previous: Number(previousCtx.balance || 0),
+    },
+    {
+      name: 'Contas a pagar',
+      current: Number(ctx.pendingPayable || 0),
+      previous: Number(previousCtx.pendingPayable || 0),
+    },
+    {
+      name: 'Ticket médio',
+      current: Number(ctx.managementReport?.averageTicket || 0),
+      previous: Number(previousCtx.managementReport?.averageTicket || 0),
+    },
+  ];
+
+  const variations = currentItems
+    .filter((item) => item.previous !== 0)
+    .map((item) => ({
+      ...item,
+      variation:
+        ((item.current - item.previous) / Math.abs(item.previous)) * 100,
+      difference: item.current - item.previous,
+    }));
+
+  const selected = variations
+    .filter((item) =>
+      mode === 'growth'
+        ? item.variation > 0
+        : item.variation < 0
+    )
+    .sort((a, b) =>
+      mode === 'growth'
+        ? b.variation - a.variation
+        : a.variation - b.variation
+    )[0];
+
+  if (!selected) {
+    return `
+📊 COMPARATIVO EVOLUTIVO — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Não identifiquei ${
+      mode === 'growth' ? 'crescimento' : 'queda'
+    } relevante em relação ao período anterior.
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha leitura
+
+Os principais indicadores ficaram relativamente estáveis ou não possuem base comparável suficiente.
+`.trim();
+  }
+
+  return `
+📊 COMPARATIVO EVOLUTIVO — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+${mode === 'growth' ? '📈 O que mais cresceu' : '📉 O que mais caiu'}
+
+${selected.name}
+
+━━━━━━━━━━━━━━━━━━
+
+Período anterior:
+${formatCurrency(selected.previous)}
+
+Período atual:
+${formatCurrency(selected.current)}
+
+Variação:
+${selected.variation.toFixed(1)}%
+
+Diferença:
+${formatCurrency(selected.difference)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+${
+  mode === 'growth'
+    ? `O indicador que mais cresceu foi ${selected.name}. Isso pode representar evolução positiva ou aumento de pressão, dependendo da natureza do indicador.`
+    : `O indicador que mais caiu foi ${selected.name}. Isso pode indicar perda de força, redução de pressão ou mudança operacional importante.`
+}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Analise esse indicador junto com caixa, compras, contas pendentes e ticket médio antes de tomar decisão.
+`.trim();
+};
+
 // @desc    Ask IA Bebcom
 // @route   POST /api/ia/ask
 const askIABebcom = async (req, res) => {
@@ -14980,6 +15082,23 @@ if (temporalAnalyticsAnswer) {
     ctx
   );
 
+  const wantsGrowth =
+  lowerQuestion.includes('mais cresceu') ||
+  lowerQuestion.includes('cresceu') ||
+  lowerQuestion.includes('aumentando') ||
+  lowerQuestion.includes('esta aumentando') ||
+  lowerQuestion.includes('está aumentando');
+
+const wantsDecline =
+  lowerQuestion.includes('mais caiu') ||
+  lowerQuestion.includes('caiu') ||
+  lowerQuestion.includes('diminuindo') ||
+  lowerQuestion.includes('esta diminuindo') ||
+  lowerQuestion.includes('está diminuindo');
+
+const wantsGrowthDeclineQuestion =
+  wantsGrowth || wantsDecline;
+
  
     let answer = '';
 
@@ -15003,6 +15122,12 @@ const genericPayablesAnswer =
 
 if (managementReportRankingAnswer) {
   answer = managementReportRankingAnswer;
+} else if (wantsGrowthDeclineQuestion) {
+  answer = buildGrowthDeclineAnswer(
+    ctx,
+    previousCtx,
+    wantsGrowth ? 'growth' : 'decline'
+  );
 } else if (genericPayablesAnswer) {
   answer = genericPayablesAnswer;
 } else if (intuitiveMemoryAnswer) {

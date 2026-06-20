@@ -3197,10 +3197,18 @@ const buildManagementReportRankingAnswer = async (question, ctx) => {
     lower.includes('este ano') ||
     lower.includes('ano atual');
 
-  const validIntent =
-    (asksTicket || asksRevenue) &&
-    (asksBest || asksWorst) &&
-    (asksHistory || asksYear || lower.includes('em qual mes'));
+ const validIntent =
+  (asksTicket || asksRevenue) &&
+  (asksBest || asksWorst) &&
+  (
+    asksHistory ||
+    asksYear ||
+    lower.includes('em qual mes') ||
+    lower.includes('melhor mes') ||
+    lower.includes('pior mes') ||
+    lower.includes('maior mes') ||
+    lower.includes('menor mes')
+  );
 
   if (!validIntent) {
     return null;
@@ -6013,6 +6021,49 @@ ${buildConsultiveClosing({
   recommendation:
     'Acompanhe diariamente caixa, compras e contas a pagar para evitar pressão operacional acumulada.'
 })}
+`.trim();
+};
+
+const buildProfitStatusAnswer = (ctx) => {
+  const balance = Number(ctx.balance || 0);
+
+  const status =
+    balance >= 0
+      ? 'ganhando dinheiro'
+      : 'perdendo dinheiro';
+
+  const reading =
+    balance >= 0
+      ? 'As entradas superam as saídas no período analisado.'
+      : 'As saídas superam as entradas no período analisado.';
+
+  return `
+📊 RESULTADO DO PERÍODO — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+💰 Entradas
+${formatCurrency(ctx.totalIncome)}
+
+💸 Saídas
+${formatCurrency(ctx.totalExpenses)}
+
+📈 Resultado
+${formatCurrency(balance)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha leitura
+
+Neste momento, a operação está ${status} no período analisado.
+
+${reading}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Use esse resultado junto com compras, contas a pagar e estoque para entender se o caixa está realmente saudável ou apenas temporariamente equilibrado.
 `.trim();
 };
 
@@ -14271,6 +14322,16 @@ if (operationalAnalyticsAnswer) {
     const isOperationQuestion =
       lowerQuestion.includes('como está a operação');
 
+    const isProfitStatusQuestion =
+  lowerQuestion.includes('ganhando dinheiro') ||
+  lowerQuestion.includes('perdendo dinheiro') ||
+  lowerQuestion.includes('estou ganhando') ||
+  lowerQuestion.includes('estou perdendo') ||
+  lowerQuestion.includes('estou lucrando') ||
+  lowerQuestion.includes('tendo lucro') ||
+  lowerQuestion.includes('tendo prejuizo') ||
+  lowerQuestion.includes('tendo prejuízo');
+
  const isAlertQuestion =
   lowerQuestion.includes('alerta') ||
   lowerQuestion.includes('alertas') ||
@@ -14976,6 +15037,8 @@ if (genericPayablesAnswer) {
   );
 } else if (isAlertQuestion) {
   answer = buildAlertsAnswer(ctx, previousCtx);
+} else if (isProfitStatusQuestion) {
+  answer = buildProfitStatusAnswer(ctx);
 } else if (
   advancedIntentAnswer &&
   advancedIntent !== 'educational'

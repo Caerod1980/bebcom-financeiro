@@ -1223,9 +1223,9 @@ const getPartialComparisonLimitDay = (question, currentPeriod) => {
 
   if (explicitDay) return explicitDay;
 
-  if (isCurrentMonth && !lower.includes('completo')) {
-    return now.getDate();
-  }
+ if (isCurrentMonth && !lower.includes('completo')) {
+  return Math.max(1, now.getDate() - 1);
+}
 
   return null;
 };
@@ -14166,6 +14166,25 @@ Para analisar pressão de custo, pergunte: "Quais despesas mais cresceram?"
 `.trim();
 }
 
+ const selectedName =
+  normalizeText(selected.name);
+
+const isHealthyDecrease =
+  mode === 'decline' &&
+  (
+    selectedName.includes('saidas') ||
+    selectedName.includes('despesa') ||
+    selectedName.includes('compras') ||
+    selectedName.includes('contas a pagar')
+  );
+
+const analysis =
+  mode === 'growth'
+    ? `O indicador que mais cresceu foi ${selected.name}. Como estou filtrando crescimento saudável, essa leitura considera principalmente receita, resultado, ticket médio ou entradas.`
+    : isHealthyDecrease
+      ? `O indicador que mais caiu foi ${selected.name}. Neste caso, a queda é positiva, porque representa redução de pressão financeira sobre o caixa.`
+      : `O indicador que mais caiu foi ${selected.name}. Isso pode indicar perda de força, redução de receita ou piora operacional importante.`; 
+
   return `
 📊 COMPARATIVO EVOLUTIVO — ${ctx.periodLabel}
 
@@ -14197,11 +14216,7 @@ ${formatCurrency(selected.difference)}
 
 🧠 Minha análise
 
-${
-  mode === 'growth'
-    ? `O indicador que mais cresceu foi ${selected.name}. Como estou filtrando crescimento saudável, essa leitura considera principalmente receita, resultado, ticket médio ou entradas.`
-    : `O indicador que mais caiu foi ${selected.name}. Isso pode indicar perda de força, redução de pressão ou mudança operacional importante.`
-}
+${analysis}
 
 ━━━━━━━━━━━━━━━━━━
 
@@ -14347,20 +14362,69 @@ const askIABebcom = async (req, res) => {
   ctx.periodLabel = analyticalPeriod.label;
   previousCtx = { ...ctx };
 } else {
-      period = getPeriodFromQuestion(question);
-      ctx = await buildContext(period);
+     period = getPeriodFromQuestion(question);
 
-      const previousMonth = period.month === 1 ? 12 : period.month - 1;
-      const previousYear = period.month === 1 ? period.year - 1 : period.year;
+const previousMonth =
+  period.month === 1 ? 12 : period.month - 1;
 
-      const previousPeriod = {
-        month: previousMonth,
-        year: previousYear,
-        start: new Date(previousYear, previousMonth - 1, 1),
-        end: new Date(previousYear, previousMonth, 0, 23, 59, 59, 999),
-      };
+const previousYear =
+  period.month === 1 ? period.year - 1 : period.year;
 
-        previousCtx = await buildContext(previousPeriod);
+let currentPeriod = period;
+
+let previousPeriod = {
+  month: previousMonth,
+  year: previousYear,
+  start: new Date(previousYear, previousMonth - 1, 1),
+  end: new Date(previousYear, previousMonth, 0, 23, 59, 59, 999),
+};
+
+const limitDay =
+  getPartialComparisonLimitDay(question, period);
+
+if (limitDay) {
+  const currentEndDay = Math.min(
+    limitDay,
+    new Date(period.year, period.month, 0).getDate()
+  );
+
+  const previousEndDay = Math.min(
+    limitDay,
+    new Date(previousYear, previousMonth, 0).getDate()
+  );
+
+  currentPeriod = {
+    ...period,
+    end: new Date(
+      period.year,
+      period.month - 1,
+      currentEndDay,
+      23,
+      59,
+      59,
+      999
+    ),
+    customLabel: `${getMonthLabel(period.month, period.year)} até dia ${currentEndDay}`,
+  };
+
+  previousPeriod = {
+    ...previousPeriod,
+    end: new Date(
+      previousYear,
+      previousMonth - 1,
+      previousEndDay,
+      23,
+      59,
+      59,
+      999
+    ),
+    customLabel: `${getMonthLabel(previousMonth, previousYear)} até dia ${previousEndDay}`,
+  };
+}
+
+period = currentPeriod;
+ctx = await buildContext(currentPeriod);
+previousCtx = await buildContext(previousPeriod);
     }
 
      if (period?.month && period?.year) {

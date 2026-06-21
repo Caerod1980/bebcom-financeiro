@@ -14317,6 +14317,82 @@ Analise esse indicador junto com caixa, compras, contas pendentes e ticket médi
 `.trim();
 };
 
+const buildBiggestProblemAnswer = (ctx) => {
+
+  const problems = [];
+
+  if (ctx.pendingPayable > ctx.balance) {
+    problems.push({
+      score: ctx.pendingPayable,
+      title: 'Contas pendentes elevadas',
+      reason:
+        'O valor em aberto representa forte pressão sobre o caixa.'
+    });
+  }
+
+  const purchases =
+    ctx.expenseCategories?.find(
+      item => item.category === 'compras_mercadorias'
+    );
+
+  if (purchases) {
+    const share =
+      ctx.totalIncome > 0
+        ? (purchases.amount / ctx.totalIncome) * 100
+        : 0;
+
+    if (share > 60) {
+      problems.push({
+        score: purchases.amount,
+        title: 'Compras de mercadorias',
+        reason:
+          `As compras representam ${share.toFixed(1)}% das entradas.`
+      });
+    }
+  }
+
+  if (
+    ctx.managementReport?.averageTicket > 0 &&
+    ctx.managementReport.averageTicket < 20
+  ) {
+    problems.push({
+      score: 1000,
+      title: 'Ticket médio baixo',
+      reason:
+        'A operação depende de volume para gerar resultado.'
+    });
+  }
+
+  const biggest =
+    problems.sort((a,b) => b.score - a.score)[0];
+
+  if (!biggest) {
+    return `
+Nenhum problema estrutural relevante foi identificado.
+`.trim();
+  }
+
+  return `
+🚨 MAIOR PROBLEMA ATUAL
+
+━━━━━━━━━━━━━━━━━━
+
+${biggest.title}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+${biggest.reason}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Este é o primeiro ponto que eu atacaria antes de qualquer outra iniciativa.
+`.trim();
+};
+
 // @desc    Ask IA Bebcom
 // @route   POST /api/ia/ask
 const askIABebcom = async (req, res) => {
@@ -15043,6 +15119,13 @@ if (conversationalContextAnswer) {
   lowerQuestion.includes('qual o risco') ||
   lowerQuestion.includes('qual meu risco');
 
+  const isBiggestProblemQuestion =
+  lowerQuestion.includes('maior problema') ||
+  lowerQuestion.includes('onde esta meu problema') ||
+  lowerQuestion.includes('onde está meu problema') ||
+  lowerQuestion.includes('principal problema') ||
+  lowerQuestion.includes('maior gargalo');
+
    
     const invalidSupplierTerms = [
   'proximos 3 dias',
@@ -15447,6 +15530,8 @@ if (managementReportRankingAnswer) {
     previousCtx,
     wantsGrowth ? 'growth' : 'decline'
   );
+else if (isBiggestProblemQuestion) {
+  answer = buildBiggestProblemAnswer(ctx);
 } else if (isBiggestRiskQuestion) {
   answer = buildBiggestRiskAnswer(ctx);
 } else if (genericPayablesAnswer) {

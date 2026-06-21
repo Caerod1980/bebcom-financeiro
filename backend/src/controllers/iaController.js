@@ -2732,6 +2732,97 @@ ${
   `.trim();
 };
 
+const buildBiggestRiskAnswer = (ctx) => {
+
+  const risks = [];
+
+  if (ctx.pendingPayable > 0) {
+    risks.push({
+      name: 'Contas a pagar',
+      score: ctx.pendingPayable,
+      analysis:
+        'Compromissos financeiros em aberto pressionam o caixa futuro.'
+    });
+  }
+
+  if (ctx.balance < 0) {
+    risks.push({
+      name: 'Resultado negativo',
+      score: Math.abs(ctx.balance),
+      analysis:
+        'A operação está consumindo mais recursos do que gera.'
+    });
+  }
+
+  const purchases =
+    ctx.expenseCategories?.find(
+      item => item.category === 'compras_mercadorias'
+    );
+
+  if (purchases) {
+    risks.push({
+      name: 'Compras de mercadorias',
+      score: purchases.amount,
+      analysis:
+        'Compras representam a maior pressão operacional da empresa.'
+    });
+  }
+
+  if (
+    ctx.managementReport?.averageTicket > 0 &&
+    ctx.managementReport.averageTicket < 20
+  ) {
+    risks.push({
+      name: 'Ticket médio baixo',
+      score: 1000,
+      analysis:
+        'A operação depende de volume para gerar resultado.'
+    });
+  }
+
+  const selected =
+    risks.sort((a, b) => b.score - a.score)[0];
+
+  if (!selected) {
+    return `
+Nenhum risco relevante foi identificado.
+
+Minha leitura:
+Os indicadores atuais estão equilibrados.
+`.trim();
+  }
+
+  return `
+🚨 MAIOR RISCO ATUAL
+
+━━━━━━━━━━━━━━━━━━
+
+${selected.name}
+
+━━━━━━━━━━━━━━━━━━
+
+📊 Indicador
+
+${
+  selected.name === 'Ticket médio baixo'
+    ? formatCurrency(ctx.managementReport?.averageTicket || 0)
+    : formatCurrency(selected.score)
+}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+${selected.analysis}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Esse é o principal ponto que merece atenção da gestão neste momento.
+`.trim();
+};
+
 const buildTicketAnswer = (ctx) => {
   const averageTicket = ctx.managementReport?.averageTicket || 0;
   const netRevenue = ctx.managementReport?.netRevenue || 0;
@@ -14943,6 +15034,15 @@ if (conversationalContextAnswer) {
       lowerQuestion.includes('pagar da semana') ||
       lowerQuestion.includes('quanto tenho para pagar');
 
+    const isBiggestRiskQuestion =
+  lowerQuestion.includes('maior risco') ||
+  lowerQuestion.includes('o que mais me preocupa') ||
+  lowerQuestion.includes('maior preocupação') ||
+  lowerQuestion.includes('maior preocupacao') ||
+  lowerQuestion.includes('o que preocupa') ||
+  lowerQuestion.includes('qual o risco') ||
+  lowerQuestion.includes('qual meu risco');
+
    
     const invalidSupplierTerms = [
   'proximos 3 dias',
@@ -15347,6 +15447,8 @@ if (managementReportRankingAnswer) {
     previousCtx,
     wantsGrowth ? 'growth' : 'decline'
   );
+} else if (isBiggestRiskQuestion) {
+  answer = buildBiggestRiskAnswer(ctx);
 } else if (genericPayablesAnswer) {
   answer = genericPayablesAnswer;
 } else if (intuitiveMemoryAnswer) {

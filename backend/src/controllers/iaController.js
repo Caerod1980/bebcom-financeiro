@@ -2734,51 +2734,40 @@ ${
 
 const buildBiggestRiskAnswer = (ctx) => {
 
-  const risks = [];
+const risks = [];
 
-  if (ctx.pendingPayable > 0) {
-    risks.push({
-      name: 'Contas a pagar',
-      score: ctx.pendingPayable,
-      analysis:
-        'Compromissos financeiros em aberto pressionam o caixa futuro.'
-    });
-  }
+if (ctx.pendingPayable > 20000) {
+  risks.push({
+    level: '🔴',
+    title: 'Contas a pagar elevadas'
+  });
+}
 
-  if (ctx.balance < 0) {
-    risks.push({
-      name: 'Resultado negativo',
-      score: Math.abs(ctx.balance),
-      analysis:
-        'A operação está consumindo mais recursos do que gera.'
-    });
-  }
+if (ctx.balance < 0) {
+  risks.push({
+    level: '🔴',
+    title: 'Resultado negativo'
+  });
+}
 
-  const purchases =
-    ctx.expenseCategories?.find(
-      item => item.category === 'compras_mercadorias'
-    );
+if (
+  purchases &&
+  purchases.amount > ctx.totalIncome * 0.6
+) {
+  risks.push({
+    level: '🟠',
+    title: 'Compras acima de 60% das entradas'
+  });
+}
 
-  if (purchases) {
-    risks.push({
-      name: 'Compras de mercadorias',
-      score: purchases.amount,
-      analysis:
-        'Compras representam a maior pressão operacional da empresa.'
-    });
-  }
-
-  if (
-    ctx.managementReport?.averageTicket > 0 &&
-    ctx.managementReport.averageTicket < 20
-  ) {
-    risks.push({
-      name: 'Ticket médio baixo',
-      score: 1000,
-      analysis:
-        'A operação depende de volume para gerar resultado.'
-    });
-  }
+if (
+  ctx.managementReport?.averageTicket < 20
+) {
+  risks.push({
+    level: '🟡',
+    title: 'Ticket médio baixo'
+  });
+}
 
   const selected =
     risks.sort((a, b) => b.score - a.score)[0];

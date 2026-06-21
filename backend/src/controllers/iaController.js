@@ -13954,6 +13954,75 @@ A Bebcom evolui melhor quando transforma pressão em ajuste de gestão.
   return null;
 };
 
+const buildExpenseGrowthAnswer = (ctx, previousCtx) => {
+  if (!previousCtx) {
+    return 'Não encontrei período anterior suficiente para comparar despesas.';
+  }
+
+  const previousMap = new Map(
+    (previousCtx.expenseCategories || []).map((item) => [
+      item.category,
+      Number(item.amount || 0),
+    ])
+  );
+
+  const items = (ctx.expenseCategories || [])
+    .map((item) => {
+      const previous = previousMap.get(item.category) || 0;
+      const current = Number(item.amount || 0);
+      const difference = current - previous;
+
+      return {
+        category: item.category,
+        current,
+        previous,
+        difference,
+        variation:
+          previous > 0
+            ? (difference / previous) * 100
+            : null,
+      };
+    })
+    .filter((item) => item.difference > 0)
+    .sort((a, b) => b.difference - a.difference);
+
+  const list = items
+    .slice(0, 5)
+    .map((item, index) => {
+      const variationText =
+        item.variation === null
+          ? 'novo indicador'
+          : `${item.variation.toFixed(1)}%`;
+
+      return `${index + 1}. ${item.category}
+Anterior: ${formatCurrency(item.previous)}
+Atual: ${formatCurrency(item.current)}
+Aumento: ${formatCurrency(item.difference)}
+Variação: ${variationText}`;
+    })
+    .join('\n\n');
+
+  return `
+💸 DESPESAS QUE MAIS CRESCERAM — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+${list || 'Não identifiquei crescimento de despesas no comparativo.'}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Aqui estou olhando apenas pressão de custo, não crescimento saudável da operação.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Revise primeiro as despesas que cresceram em valor absoluto, porque elas são as que mais afetam o caixa.
+`.trim();
+};
+
 const buildGrowthDeclineAnswer = (ctx, previousCtx, mode = 'growth') => {
   if (!previousCtx) {
     return `
@@ -14130,7 +14199,7 @@ ${formatCurrency(selected.difference)}
 
 ${
   mode === 'growth'
-    ? `O indicador que mais cresceu foi ${selected.name}. Isso pode representar evolução positiva ou aumento de pressão, dependendo da natureza do indicador.`
+    ? `O indicador que mais cresceu foi ${selected.name}. Como estou filtrando crescimento saudável, essa leitura considera principalmente receita, resultado, ticket médio ou entradas.``
     : `O indicador que mais caiu foi ${selected.name}. Isso pode indicar perda de força, redução de pressão ou mudança operacional importante.`
 }
 
@@ -15152,12 +15221,23 @@ if (temporalAnalyticsAnswer) {
     ctx
   );
 
-  const wantsGrowth =
-  lowerQuestion.includes('mais cresceu') ||
-  lowerQuestion.includes('cresceu') ||
-  lowerQuestion.includes('aumentando') ||
-  lowerQuestion.includes('esta aumentando') ||
-  lowerQuestion.includes('está aumentando');
+  const wantsExpenseGrowth =
+  lowerQuestion.includes('despesa cresceu') ||
+  lowerQuestion.includes('despesas cresceram') ||
+  lowerQuestion.includes('aumentou de despesa') ||
+  lowerQuestion.includes('aumentaram de despesa') ||
+  lowerQuestion.includes('o que aumentou de despesa') ||
+  lowerQuestion.includes('quais despesas cresceram');
+
+const wantsGrowth =
+  !wantsExpenseGrowth &&
+  (
+    lowerQuestion.includes('mais cresceu') ||
+    lowerQuestion.includes('cresceu') ||
+    lowerQuestion.includes('aumentando') ||
+    lowerQuestion.includes('esta aumentando') ||
+    lowerQuestion.includes('está aumentando')
+  );
 
 const wantsDecline =
   lowerQuestion.includes('mais caiu') ||
@@ -15192,6 +15272,11 @@ const genericPayablesAnswer =
 
 if (managementReportRankingAnswer) {
   answer = managementReportRankingAnswer;
+} else if (wantsExpenseGrowth) {
+  answer = buildExpenseGrowthAnswer(
+    ctx,
+    previousCtx
+  );
 } else if (wantsGrowthDeclineQuestion) {
   answer = buildGrowthDeclineAnswer(
     ctx,

@@ -14199,7 +14199,7 @@ ${formatCurrency(selected.difference)}
 
 ${
   mode === 'growth'
-    ? `O indicador que mais cresceu foi ${selected.name}. Como estou filtrando crescimento saudável, essa leitura considera principalmente receita, resultado, ticket médio ou entradas.``
+    ? `O indicador que mais cresceu foi ${selected.name}. Como estou filtrando crescimento saudável, essa leitura considera principalmente receita, resultado, ticket médio ou entradas.`
     : `O indicador que mais caiu foi ${selected.name}. Isso pode indicar perda de força, redução de pressão ou mudança operacional importante.`;
 }
 

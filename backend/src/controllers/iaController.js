@@ -14031,14 +14031,42 @@ const currentItems = [
       item.current - item.previous,
   }));
 
- const selected = variations
-  .filter((item) => {
-    if (mode === 'growth') {
-      return item.difference > 0;
-    }
+  const isExpensePressureItem = (name = '') => {
+  const normalized = normalizeText(name);
 
-    return item.difference < 0;
-  })
+  return (
+    normalized.startsWith('despesa') ||
+    normalized.includes('saidas') ||
+    normalized.includes('contas a pagar') ||
+    normalized.includes('compras')
+  );
+};
+
+const isHealthyGrowthItem = (item) => {
+  const normalized = normalizeText(item.name);
+
+  return (
+    normalized.includes('entradas') ||
+    normalized.includes('receita') ||
+    normalized.includes('ticket') ||
+    normalized.includes('resultado')
+  );
+};
+
+const candidateItems =
+  mode === 'growth'
+    ? variations.filter((item) => {
+        const lowerQuestion = normalizeText(item.name);
+
+        return (
+          item.difference > 0 &&
+          isHealthyGrowthItem(item) &&
+          !isExpensePressureItem(lowerQuestion)
+        );
+      })
+    : variations.filter((item) => item.difference < 0);
+
+const selected = candidateItems
   .sort((a, b) => {
     if (mode === 'growth') {
       return b.difference - a.difference;
@@ -14047,23 +14075,27 @@ const currentItems = [
     return a.difference - b.difference;
   })[0];
 
-  if (!selected) {
-    return `
+ if (!selected) {
+  return `
 📊 COMPARATIVO EVOLUTIVO — ${ctx.periodLabel}
 
 ━━━━━━━━━━━━━━━━━━
 
-Não identifiquei ${
-      mode === 'growth' ? 'crescimento' : 'queda'
-    } relevante em relação ao período anterior.
+Não identifiquei crescimento saudável relevante em relação ao período anterior.
 
 ━━━━━━━━━━━━━━━━━━
 
 🧠 Minha leitura
 
-Os principais indicadores ficaram relativamente estáveis ou não possuem base comparável suficiente.
+Os aumentos encontrados parecem estar mais ligados a despesas, compras ou pressão financeira do que a crescimento de receita, ticket médio ou resultado.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Para analisar pressão de custo, pergunte: "Quais despesas mais cresceram?"
 `.trim();
-  }
+}
 
   return `
 📊 COMPARATIVO EVOLUTIVO — ${ctx.periodLabel}

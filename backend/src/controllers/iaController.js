@@ -15530,10 +15530,10 @@ if (managementReportRankingAnswer) {
     previousCtx,
     wantsGrowth ? 'growth' : 'decline'
   );
-else if (isBiggestProblemQuestion) {
-  answer = buildBiggestProblemAnswer(ctx);
 } else if (isBiggestRiskQuestion) {
   answer = buildBiggestRiskAnswer(ctx);
+} else if (isBiggestProblemQuestion) {
+  answer = buildBiggestProblemAnswer(ctx);
 } else if (genericPayablesAnswer) {
   answer = genericPayablesAnswer;
 } else if (intuitiveMemoryAnswer) {

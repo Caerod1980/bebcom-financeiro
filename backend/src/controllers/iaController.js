@@ -2555,66 +2555,52 @@ Compare os vencimentos dos próximos dias com as entradas previstas e evite assu
 };
 
 const buildDecisionSimulationAnswer = (ctx) => {
-  const today = new Date();
+  const totalPayables = (ctx.accounts || [])
+    .filter(
+      (account) =>
+        account.type === 'payable' &&
+        ['pending', 'overdue'].includes(account.status)
+    )
+    .reduce(
+      (acc, item) => acc + Math.abs(Number(item.amount || 0)),
+      0
+    );
 
-  const next7Days = new Date();
-  next7Days.setDate(today.getDate() + 7);
+  const currentBalance = Number(ctx.balance || 0);
+  const simulatedBalance = currentBalance - totalPayables;
 
-  const payables = (ctx.accounts || []).filter(
-    (account) =>
-      account.type === 'payable' &&
-      ['pending', 'overdue'].includes(account.status) &&
-      new Date(account.dueDate) <= next7Days
-  );
-
-  const totalPayables = payables.reduce(
-    (acc, item) =>
-      acc + Math.abs(Number(item.amount || 0)),
-    0
-  );
-
-  const projectedBalance =
-    Number(ctx.balance || 0) -
-    totalPayables;
-
-  let situation = 'Confortável';
-
-  if (projectedBalance < 0) {
-    situation = 'Atenção';
-  }
-
- return `
-🧭 SIMULAÇÃO DE DECISÃO
+  return `
+🧭 SIMULAÇÃO DE PAGAMENTO TOTAL — ${ctx.periodLabel}
 
 ━━━━━━━━━━━━━━━━━━
 
-📊 Resultado realizado do período
-${formatCurrency(ctx.balance)}
+📊 Resultado atual
+${formatCurrency(currentBalance)}
 
-💸 Pagamentos previstos (7 dias)
+💸 Total em contas a pagar
 ${formatCurrency(totalPayables)}
 
 ━━━━━━━━━━━━━━━━━━
 
-📌 Saldo após pagamentos
-${formatCurrency(projectedBalance)}
+📌 Saldo se pagar tudo hoje
+${formatCurrency(simulatedBalance)}
 
 ⚠️ Situação
-${situation}
+${simulatedBalance >= 0 ? 'Confortável' : 'Atenção'}
 
 ━━━━━━━━━━━━━━━━━━
 
 💡 Minha leitura
 
 ${
-  projectedBalance >= 0
-    ? 'Mesmo após os pagamentos previstos, o resultado permanece positivo.'
-    : 'Os pagamentos previstos pressionam o resultado do período. Avalie prioridades, renegociações e preservação de caixa.'
+  simulatedBalance >= 0
+    ? 'O resultado atual suportaria a quitação das contas em aberto.'
+    : 'Se todas as contas fossem pagas hoje, o resultado atual não seria suficiente para cobrir os compromissos pendentes.'
 }
 
 👉 Próxima ação sugerida
 
-Antes de novas compras ou despesas, confira se os pagamentos prioritários já estão cobertos pelo fluxo previsto.
+Não trate todas as contas da mesma forma. Priorize vencidos, próximos vencimentos e fornecedores críticos.
 `.trim();
 };
 
@@ -13180,6 +13166,51 @@ const getAdvancedHistoricalPeriod = (question) => {
   return null;
 };
 
+const buildResultImprovementAnswer = (ctx, previousCtx) => {
+  if (!previousCtx) {
+    return 'Não encontrei período anterior suficiente para comparar o resultado.';
+  }
+
+  const current = Number(ctx.balance || 0);
+  const previous = Number(previousCtx.balance || 0);
+  const difference = current - previous;
+
+  const improved = difference > 0;
+
+  return `
+📈 EVOLUÇÃO DO RESULTADO — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Período anterior
+${formatCurrency(previous)}
+
+Período atual
+${formatCurrency(current)}
+
+Diferença
+${formatCurrency(difference)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+${
+  improved
+    ? previous < 0 && current > 0
+      ? 'Sim. O resultado melhorou de forma importante, saindo de negativo para positivo.'
+      : 'Sim. O resultado melhorou em relação ao período anterior.'
+    : 'Não. O resultado piorou em relação ao período anterior.'
+}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Verifique se essa mudança veio principalmente de aumento das entradas, redução das compras ou controle das despesas.
+`.trim();
+};
+
 const buildHistoricalPeriodRanking = (entries, mode = 'quarter') => {
   const grouped = {};
 
@@ -14416,6 +14447,103 @@ Este é o primeiro ponto que eu atacaria antes de qualquer outra iniciativa.
 `.trim();
 };
 
+const buildCashStrengthAnswer = (ctx, previousCtx) => {
+  if (!previousCtx) {
+    return 'Não encontrei período anterior suficiente para comparar a força do caixa.';
+  }
+
+  const currentBalance = Number(ctx.balance || 0);
+  const previousBalance = Number(previousCtx.balance || 0);
+  const balanceDifference = currentBalance - previousBalance;
+
+  const payableShare =
+    ctx.totalIncome > 0
+      ? (ctx.pendingPayable / ctx.totalIncome) * 100
+      : 0;
+
+  return `
+💪 FORÇA DO CAIXA — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Resultado anterior
+${formatCurrency(previousBalance)}
+
+Resultado atual
+${formatCurrency(currentBalance)}
+
+Evolução
+${formatCurrency(balanceDifference)}
+
+Contas pendentes
+${formatCurrency(ctx.pendingPayable)}
+
+Peso das contas pendentes
+${payableShare.toFixed(1)}% das entradas
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+${
+  balanceDifference > 0
+    ? 'O caixa está mais forte que no período comparável anterior.'
+    : 'O caixa não está mais forte que no período anterior.'
+}
+
+${
+  payableShare > 50
+    ? 'Apesar da melhora, as contas pendentes ainda pressionam o caixa futuro.'
+    : 'As contas pendentes estão em nível mais controlado em relação às entradas.'
+}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Use a melhora do caixa para organizar vencimentos, evitar compras impulsivas e preservar capital de giro.
+`.trim();
+};
+
+const buildExpenseAttentionAnswer = (ctx) => {
+  const topExpense = ctx.expenseCategories?.[0];
+
+  if (!topExpense) {
+    return 'Não encontrei despesas suficientes para apontar a principal atenção.';
+  }
+
+  const share =
+    ctx.totalIncome > 0
+      ? (topExpense.amount / ctx.totalIncome) * 100
+      : 0;
+
+  return `
+🚨 DESPESA QUE MERECE MAIS ATENÇÃO — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+${topExpense.category}
+
+Valor
+${formatCurrency(topExpense.amount)}
+
+Representação
+${share.toFixed(1)}% das entradas
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Essa é a despesa com maior peso no período e, por isso, tem maior impacto sobre o caixa.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Revise primeiro esse grupo, porque pequenas melhorias nele tendem a gerar impacto maior no resultado.
+`.trim();
+};
+
 // @desc    Ask IA Bebcom
 // @route   POST /api/ia/ask
 const askIABebcom = async (req, res) => {
@@ -15004,6 +15132,28 @@ const isExecutiveAdviceQuestion =
   lowerQuestion.includes('zona de risco') ||
   lowerQuestion.includes('operacao saudavel') ||
   lowerQuestion.includes('operação saudável');
+
+  const isResultImprovementQuestion =
+  lowerQuestion.includes('resultado melhorou') ||
+  lowerQuestion.includes('resultado piorou') ||
+  lowerQuestion.includes('lucro melhorou') ||
+  lowerQuestion.includes('lucro piorou');
+
+const isCashStrengthQuestion =
+  lowerQuestion.includes('caixa está mais forte') ||
+  lowerQuestion.includes('caixa esta mais forte') ||
+  lowerQuestion.includes('caixa melhorou') ||
+  lowerQuestion.includes('caixa piorou') ||
+  lowerQuestion.includes('caixa está forte') ||
+  lowerQuestion.includes('caixa esta forte');
+
+const isExpenseAttentionQuestion =
+  lowerQuestion.includes('qual despesa merece atenção') ||
+  lowerQuestion.includes('qual despesa merece atencao') ||
+  lowerQuestion.includes('despesa que merece atenção') ||
+  lowerQuestion.includes('despesa que merece atencao') ||
+  lowerQuestion.includes('qual despesa preocupa') ||
+  lowerQuestion.includes('despesa mais preocupante');
     
     const isAttentionQuestion =
       lowerQuestion.includes('o que merece atenção');
@@ -15614,7 +15764,16 @@ if (managementReportRankingAnswer) {
         ctx,
         financialIntent.category
       );
-  } else if (isDecisionSimulationQuestion) {
+ } else if (isResultImprovementQuestion) {
+  answer = buildResultImprovementAnswer(ctx, previousCtx);
+
+} else if (isCashStrengthQuestion) {
+  answer = buildCashStrengthAnswer(ctx, previousCtx);
+
+} else if (isExpenseAttentionQuestion) {
+  answer = buildExpenseAttentionAnswer(ctx);
+
+} else if (isDecisionSimulationQuestion) {
   answer = buildDecisionSimulationAnswer(ctx);
 
 } else if (isCashForecastQuestion) {

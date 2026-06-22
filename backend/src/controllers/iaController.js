@@ -15153,7 +15153,9 @@ const isExpenseAttentionQuestion =
   lowerQuestion.includes('despesa que merece atenção') ||
   lowerQuestion.includes('despesa que merece atencao') ||
   lowerQuestion.includes('qual despesa preocupa') ||
-  lowerQuestion.includes('despesa mais preocupante');
+  lowerQuestion.includes('despesa mais preocupante') ||
+  lowerQuestion.includes('qual gasto merece atenção') ||
+  lowerQuestion.includes('qual gasto merece atencao');
     
     const isAttentionQuestion =
       lowerQuestion.includes('o que merece atenção');
@@ -15692,6 +15694,8 @@ const genericPayablesAnswer =
 
 if (managementReportRankingAnswer) {
   answer = managementReportRankingAnswer;
+} else if (isExpenseAttentionQuestion) {
+  answer = buildExpenseAttentionAnswer(ctx);
 } else if (wantsExpenseGrowth) {
   answer = buildExpenseGrowthAnswer(
     ctx,
@@ -15703,8 +15707,6 @@ if (managementReportRankingAnswer) {
     previousCtx,
     wantsGrowth ? 'growth' : 'decline'
   );
-} else if (isExpenseAttentionQuestion) {
-  answer = buildExpenseAttentionAnswer(ctx);
 } else if (isBiggestRiskQuestion) {
   answer = buildBiggestRiskAnswer(ctx);
 } else if (isBiggestProblemQuestion) {

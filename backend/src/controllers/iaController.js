@@ -14828,7 +14828,18 @@ if (
   equivalentPreviousCtx.periodLabel = `${getMonthLabel(previousMonth, previousYear)} até dia ${currentDay}`;
 }
 
-if (isExpenseAttentionQuestion) {
+const normalizedQuestion = normalizeText(question);
+
+const isExpenseAttentionQuestion =
+  normalizedQuestion.includes('qual despesa merece atencao') ||
+  normalizedQuestion.includes('despesa merece atencao') ||
+  normalizedQuestion.includes('despesa que merece atencao') ||
+  normalizedQuestion.includes('qual despesa preocupa') ||
+  normalizedQuestion.includes('despesa mais preocupante') ||
+  normalizedQuestion.includes('qual gasto merece atencao') ||
+  normalizedQuestion.includes('gasto merece atencao');
+
+  if (isExpenseAttentionQuestion) {
   return res.json({
     answer: buildExpenseAttentionAnswer(ctx),
   });
@@ -15152,18 +15163,7 @@ const isCashStrengthQuestion =
   lowerQuestion.includes('caixa piorou') ||
   lowerQuestion.includes('caixa está forte') ||
   lowerQuestion.includes('caixa esta forte');
-
-const normalizedQuestion = normalizeText(question);
-
-const isExpenseAttentionQuestion =
-  normalizedQuestion.includes('qual despesa merece atencao') ||
-  normalizedQuestion.includes('despesa merece atencao') ||
-  normalizedQuestion.includes('despesa que merece atencao') ||
-  normalizedQuestion.includes('qual despesa preocupa') ||
-  normalizedQuestion.includes('despesa mais preocupante') ||
-  normalizedQuestion.includes('qual gasto merece atencao') ||
-  normalizedQuestion.includes('gasto merece atencao');
-    
+   
     const isAttentionQuestion =
       lowerQuestion.includes('o que merece atenção');
 
@@ -15701,8 +15701,6 @@ const genericPayablesAnswer =
 
 if (managementReportRankingAnswer) {
   answer = managementReportRankingAnswer;
-} else if (isExpenseAttentionQuestion) {
-  answer = buildExpenseAttentionAnswer(ctx);
 } else if (wantsExpenseGrowth) {
   answer = buildExpenseGrowthAnswer(
     ctx,

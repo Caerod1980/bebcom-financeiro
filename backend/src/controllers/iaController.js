@@ -14828,6 +14828,12 @@ if (
   equivalentPreviousCtx.periodLabel = `${getMonthLabel(previousMonth, previousYear)} até dia ${currentDay}`;
 }
 
+if (isExpenseAttentionQuestion) {
+  return res.json({
+    answer: buildExpenseAttentionAnswer(ctx),
+  });
+}
+
 const deepDiveAnswer =
   buildDeepDiveAnswer(
     question,

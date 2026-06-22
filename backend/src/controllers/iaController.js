@@ -15707,6 +15707,18 @@ if (managementReportRankingAnswer) {
   answer = buildBiggestRiskAnswer(ctx);
 } else if (isBiggestProblemQuestion) {
   answer = buildBiggestProblemAnswer(ctx);
+} else if (isResultImprovementQuestion) {
+  answer = buildResultImprovementAnswer(ctx, previousCtx);
+
+} else if (isCashStrengthQuestion) {
+  answer = buildCashStrengthAnswer(ctx, previousCtx);
+
+} else if (isExpenseAttentionQuestion) {
+  answer = buildExpenseAttentionAnswer(ctx);
+
+} else if (isDecisionSimulationQuestion) {
+  answer = buildDecisionSimulationAnswer(ctx);
+
 } else if (genericPayablesAnswer) {
   answer = genericPayablesAnswer;
 } else if (intuitiveMemoryAnswer) {
@@ -15764,18 +15776,6 @@ if (managementReportRankingAnswer) {
         ctx,
         financialIntent.category
       );
- } else if (isResultImprovementQuestion) {
-  answer = buildResultImprovementAnswer(ctx, previousCtx);
-
-} else if (isCashStrengthQuestion) {
-  answer = buildCashStrengthAnswer(ctx, previousCtx);
-
-} else if (isExpenseAttentionQuestion) {
-  answer = buildExpenseAttentionAnswer(ctx);
-
-} else if (isDecisionSimulationQuestion) {
-  answer = buildDecisionSimulationAnswer(ctx);
-
 } else if (isCashForecastQuestion) {
   answer = buildCashForecastAnswer(ctx);
 

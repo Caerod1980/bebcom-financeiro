@@ -2733,62 +2733,89 @@ ${
 };
 
 const buildBiggestRiskAnswer = (ctx) => {
+  const risks = [];
 
-const risks = [];
+  const purchases =
+    ctx.expenseCategories?.find(
+      (item) => item.category === 'compras_mercadorias'
+    );
 
-if (ctx.pendingPayable > 20000) {
-  risks.push({
-    level: '🔴 Alto',
-    title: 'Contas a pagar elevadas',
-    impact: 'Alto',
-    description:
-      'As contas a pagar representam parcela relevante das entradas.',
-    score: ctx.pendingPayable
-  });
-}
+  const purchaseShare =
+    purchases && ctx.totalIncome > 0
+      ? (purchases.amount / ctx.totalIncome) * 100
+      : 0;
 
-if (ctx.balance < 0) {
-  risks.push({
-    level: '🔴 Alto',
-    title: 'Resultado negativo',
-    impact: 'Alto',
-    description:
-      'As saídas superam as entradas no período.',
-    score: Math.abs(ctx.balance)
-  });
-}
+  const payableShare =
+    ctx.totalIncome > 0
+      ? (ctx.pendingPayable / ctx.totalIncome) * 100
+      : 0;
 
-if (purchaseShare > 60) {
-  risks.push({
-    level: '🟠 Médio',
-    title: 'Compras pressionando caixa',
-    impact: 'Médio',
-    description:
-      `Compras representam ${purchaseShare.toFixed(1)}% das entradas.`,
-    score: purchaseShare
-  });
-}
+  if (ctx.pendingPayable > 20000) {
+    risks.push({
+      title: 'Contas a pagar elevadas',
+      score: ctx.pendingPayable,
+      indicator: formatCurrency(ctx.pendingPayable),
+      analysis:
+        `As contas a pagar representam ${payableShare.toFixed(1)}% das entradas do período.`,
+    });
+  }
 
-if ((ctx.managementReport?.averageTicket || 0) < 20) {
-  risks.push({
-    level: '🟡 Baixo',
-    title: 'Ticket médio baixo',
-    impact: 'Baixo',
-    description:
-      'O ticket médio está abaixo da meta operacional.',
-    score: 20 - (ctx.managementReport?.averageTicket || 0)
-  });
-}
+  if (ctx.balance < 0) {
+    risks.push({
+      title: 'Resultado negativo',
+      score: Math.abs(ctx.balance),
+      indicator: formatCurrency(ctx.balance),
+      analysis:
+        'A operação está consumindo mais recursos do que gera no período.',
+    });
+  }
+
+  if (purchaseShare > 60) {
+    risks.push({
+      title: 'Compras de mercadorias',
+      score: purchases.amount,
+      indicator:
+        `${formatCurrency(purchases.amount)} — ${purchaseShare.toFixed(1)}% das entradas`,
+      analysis:
+        'As compras continuam sendo uma das maiores pressões sobre o caixa e precisam ser acompanhadas junto com giro e estoque.',
+    });
+  }
+
+  const ticket =
+    Number(ctx.managementReport?.averageTicket || 0);
+
+  if (ticket > 0 && ticket < 20) {
+    risks.push({
+      title: 'Ticket médio baixo',
+      score: 1000,
+      indicator: formatCurrency(ticket),
+      analysis:
+        'O ticket médio está abaixo de R$ 20,00, o que aumenta a dependência de volume para gerar resultado.',
+    });
+  }
 
   const selected =
     risks.sort((a, b) => b.score - a.score)[0];
 
   if (!selected) {
     return `
+🚨 MAIOR RISCO ATUAL
+
+━━━━━━━━━━━━━━━━━━
+
 Nenhum risco relevante foi identificado.
 
-Minha leitura:
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha leitura
+
 Os indicadores atuais estão equilibrados.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Continue monitorando caixa, compras, contas pendentes e ticket médio.
 `.trim();
   }
 
@@ -2797,17 +2824,13 @@ Os indicadores atuais estão equilibrados.
 
 ━━━━━━━━━━━━━━━━━━
 
-${selected.name}
+${selected.title}
 
 ━━━━━━━━━━━━━━━━━━
 
 📊 Indicador
 
-${
-  selected.name === 'Ticket médio baixo'
-    ? formatCurrency(ctx.managementReport?.averageTicket || 0)
-    : formatCurrency(selected.score)
-}
+${selected.indicator}
 
 ━━━━━━━━━━━━━━━━━━
 
@@ -8171,10 +8194,10 @@ const buildOperationalRiskRadarAnswer = (ctx) => {
 
   // CONTAS PENDENTES
 
-  if (
-    ctx.pendingPayable >
-    ctx.totalIncome
-  ) {
+ if (
+  ctx.pendingPayable >
+  ctx.totalIncome * 0.5
+) {
     risks.push({
       level: '🟠 Médio',
       title: 'Contas pendentes elevadas',
@@ -8186,7 +8209,7 @@ const buildOperationalRiskRadarAnswer = (ctx) => {
 
   // COMPRAS
 
-  if (purchaseShare > 70) {
+  if (purchaseShare > 60) {
     risks.push({
       level: '🟠 Médio',
       title: 'Compras pressionando caixa',

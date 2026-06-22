@@ -15147,15 +15147,16 @@ const isCashStrengthQuestion =
   lowerQuestion.includes('caixa está forte') ||
   lowerQuestion.includes('caixa esta forte');
 
+const normalizedQuestion = normalizeText(question);
+
 const isExpenseAttentionQuestion =
-  lowerQuestion.includes('qual despesa merece atenção') ||
-  lowerQuestion.includes('qual despesa merece atencao') ||
-  lowerQuestion.includes('despesa que merece atenção') ||
-  lowerQuestion.includes('despesa que merece atencao') ||
-  lowerQuestion.includes('qual despesa preocupa') ||
-  lowerQuestion.includes('despesa mais preocupante') ||
-  lowerQuestion.includes('qual gasto merece atenção') ||
-  lowerQuestion.includes('qual gasto merece atencao');
+  normalizedQuestion.includes('qual despesa merece atencao') ||
+  normalizedQuestion.includes('despesa merece atencao') ||
+  normalizedQuestion.includes('despesa que merece atencao') ||
+  normalizedQuestion.includes('qual despesa preocupa') ||
+  normalizedQuestion.includes('despesa mais preocupante') ||
+  normalizedQuestion.includes('qual gasto merece atencao') ||
+  normalizedQuestion.includes('gasto merece atencao');
     
     const isAttentionQuestion =
       lowerQuestion.includes('o que merece atenção');
@@ -15716,9 +15717,6 @@ if (managementReportRankingAnswer) {
 
 } else if (isCashStrengthQuestion) {
   answer = buildCashStrengthAnswer(ctx, previousCtx);
-
-} else if (isExpenseAttentionQuestion) {
-  answer = buildExpenseAttentionAnswer(ctx);
 
 } else if (isDecisionSimulationQuestion) {
   const simulationPeriod = getPeriodFromQuestion(question);

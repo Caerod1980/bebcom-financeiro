@@ -15703,6 +15703,8 @@ if (managementReportRankingAnswer) {
     previousCtx,
     wantsGrowth ? 'growth' : 'decline'
   );
+} else if (isExpenseAttentionQuestion) {
+  answer = buildExpenseAttentionAnswer(ctx);
 } else if (isBiggestRiskQuestion) {
   answer = buildBiggestRiskAnswer(ctx);
 } else if (isBiggestProblemQuestion) {
@@ -15717,7 +15719,42 @@ if (managementReportRankingAnswer) {
   answer = buildExpenseAttentionAnswer(ctx);
 
 } else if (isDecisionSimulationQuestion) {
-  answer = buildDecisionSimulationAnswer(ctx);
+  const simulationPeriod = getPeriodFromQuestion(question);
+
+const limitDay =
+  getPartialComparisonLimitDay(question, simulationPeriod);
+
+let simulationCtx = ctx;
+
+if (limitDay) {
+  const currentEndDay = Math.min(
+    limitDay,
+    new Date(
+      simulationPeriod.year,
+      simulationPeriod.month,
+      0
+    ).getDate()
+  );
+
+  simulationCtx = await buildContext({
+    ...simulationPeriod,
+    end: new Date(
+      simulationPeriod.year,
+      simulationPeriod.month - 1,
+      currentEndDay,
+      23,
+      59,
+      59,
+      999
+    ),
+    customLabel: `${getMonthLabel(
+      simulationPeriod.month,
+      simulationPeriod.year
+    )} até dia ${currentEndDay}`,
+  });
+}
+
+answer = buildDecisionSimulationAnswer(simulationCtx);
 
 } else if (genericPayablesAnswer) {
   answer = genericPayablesAnswer;

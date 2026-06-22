@@ -2738,34 +2738,45 @@ const risks = [];
 
 if (ctx.pendingPayable > 20000) {
   risks.push({
-    level: '🔴',
-    title: 'Contas a pagar elevadas'
+    level: '🔴 Alto',
+    title: 'Contas a pagar elevadas',
+    impact: 'Alto',
+    description:
+      'As contas a pagar representam parcela relevante das entradas.',
+    score: ctx.pendingPayable
   });
 }
 
 if (ctx.balance < 0) {
   risks.push({
-    level: '🔴',
-    title: 'Resultado negativo'
+    level: '🔴 Alto',
+    title: 'Resultado negativo',
+    impact: 'Alto',
+    description:
+      'As saídas superam as entradas no período.',
+    score: Math.abs(ctx.balance)
   });
 }
 
-if (
-  purchases &&
-  purchases.amount > ctx.totalIncome * 0.6
-) {
+if (purchaseShare > 60) {
   risks.push({
-    level: '🟠',
-    title: 'Compras acima de 60% das entradas'
+    level: '🟠 Médio',
+    title: 'Compras pressionando caixa',
+    impact: 'Médio',
+    description:
+      `Compras representam ${purchaseShare.toFixed(1)}% das entradas.`,
+    score: purchaseShare
   });
 }
 
-if (
-  ctx.managementReport?.averageTicket < 20
-) {
+if ((ctx.managementReport?.averageTicket || 0) < 20) {
   risks.push({
-    level: '🟡',
-    title: 'Ticket médio baixo'
+    level: '🟡 Baixo',
+    title: 'Ticket médio baixo',
+    impact: 'Baixo',
+    description:
+      'O ticket médio está abaixo da meta operacional.',
+    score: 20 - (ctx.managementReport?.averageTicket || 0)
   });
 }
 

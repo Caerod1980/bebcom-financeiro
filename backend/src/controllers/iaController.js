@@ -14544,7 +14544,7 @@ Revise primeiro esse grupo, porque pequenas melhorias nele tendem a gerar impact
 `.trim();
 };
 
-const buildTicketComparisonAnswer = (
+const buildTicketEvolutionAnswer = (
   ctx,
   previousCtx
 ) => {
@@ -15940,10 +15940,10 @@ if (managementReportRankingAnswer) {
     previousCtx
   );
 } else if (isTicketComparisonQuestion) {
-  answer = buildTicketComparisonAnswer(
-    ctx,
-    equivalentPreviousCtx
-  );
+ answer = buildTicketEvolutionAnswer(
+  ctx,
+  equivalentPreviousCtx
+);
 
 } else if (isBestIndicatorQuestion) {
   answer = buildBestIndicatorAnswer(

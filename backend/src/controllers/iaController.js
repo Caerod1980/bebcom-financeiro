@@ -14544,6 +14544,215 @@ Revise primeiro esse grupo, porque pequenas melhorias nele tendem a gerar impact
 `.trim();
 };
 
+const buildTicketComparisonAnswer = (
+  ctx,
+  previousCtx
+) => {
+
+  const current =
+    Number(ctx.managementReport?.averageTicket || 0);
+
+  const previous =
+    Number(previousCtx.managementReport?.averageTicket || 0);
+
+  if (!current || !previous) {
+    return 'Não encontrei dados suficientes para comparar o ticket médio.';
+  }
+
+  const diff = current - previous;
+
+  const variation =
+    previous > 0
+      ? (diff / previous) * 100
+      : 0;
+
+  const improved = diff > 0;
+
+  return `
+🎯 EVOLUÇÃO DO TICKET MÉDIO
+
+━━━━━━━━━━━━━━━━━━
+
+Anterior
+${formatCurrency(previous)}
+
+Atual
+${formatCurrency(current)}
+
+Diferença
+${formatCurrency(diff)}
+
+Variação
+${variation.toFixed(1)}%
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+O ticket médio ${improved ? 'aumentou' : 'caiu'} ${Math.abs(variation).toFixed(1)}%.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+${improved
+  ? 'Mantenha as ações que aumentaram o valor médio por cliente.'
+  : 'Trabalhe combos, vendas complementares e produtos de maior margem.'}
+`.trim();
+};
+
+const buildBestIndicatorAnswer = (
+  ctx,
+  previousCtx
+) => {
+
+  const indicators = [
+    {
+      name: 'Entradas',
+      current: ctx.totalIncome,
+      previous: previousCtx.totalIncome,
+    },
+    {
+      name: 'Resultado',
+      current: ctx.balance,
+      previous: previousCtx.balance,
+    },
+    {
+      name: 'Ticket Médio',
+      current: ctx.managementReport?.averageTicket || 0,
+      previous:
+        previousCtx.managementReport?.averageTicket || 0,
+    },
+  ];
+
+  const ranked = indicators
+    .map(item => ({
+      ...item,
+      variation:
+        item.previous !== 0
+          ? (
+              ((item.current - item.previous) /
+                item.previous) *
+              100
+            )
+          : 0,
+    }))
+    .sort(
+      (a, b) =>
+        b.variation - a.variation
+    );
+
+  const winner = ranked[0];
+
+  return `
+🏆 INDICADOR COM MAIOR EVOLUÇÃO
+
+━━━━━━━━━━━━━━━━━━
+
+${winner.name}
+
+Anterior
+${formatCurrency(winner.previous)}
+
+Atual
+${formatCurrency(winner.current)}
+
+Variação
+${winner.variation.toFixed(1)}%
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Foi o indicador com maior crescimento no período comparado.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Verifique se esse crescimento está sendo convertido em caixa e resultado.
+`.trim();
+};
+
+const buildWhereSpendingAnswer = (ctx) => {
+
+  const top =
+    ctx.expenseCategories?.[0];
+
+  if (!top) {
+    return 'Não encontrei despesas.';
+  }
+
+  const share =
+    ctx.totalExpenses > 0
+      ? (top.amount / ctx.totalExpenses) * 100
+      : 0;
+
+  return `
+💸 MAIOR CENTRO DE GASTO
+
+━━━━━━━━━━━━━━━━━━
+
+${top.category}
+
+Valor
+${formatCurrency(top.amount)}
+
+Participação
+${share.toFixed(1)}% das despesas
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+É o grupo que mais consome recursos da operação atualmente.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Comece qualquer revisão financeira por esse grupo.
+`.trim();
+};
+
+const buildCashConsumerAnswer = (ctx) => {
+
+  const suppliers =
+    ctx.expensesByPerson || [];
+
+  if (!suppliers.length) {
+    return 'Não encontrei fornecedores suficientes.';
+  }
+
+  const leader = suppliers[0];
+
+  return `
+🏦 MAIOR CONSUMIDOR DE CAIXA
+
+━━━━━━━━━━━━━━━━━━
+
+${leader.name}
+
+Valor
+${formatCurrency(leader.amount)}
+
+Lançamentos
+${leader.count}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Este fornecedor foi quem mais consumiu caixa no período analisado.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Avalie volume comprado, prazo negociado e giro dos produtos adquiridos.
+`.trim();
+};
+
 // @desc    Ask IA Bebcom
 // @route   POST /api/ia/ask
 const askIABebcom = async (req, res) => {
@@ -15650,6 +15859,31 @@ if (temporalAnalyticsAnswer) {
     ctx
   );
 
+  const isTicketComparisonQuestion =
+  normalizedQuestion.includes('ticket medio melhorou') ||
+  normalizedQuestion.includes('ticket medio piorou') ||
+  normalizedQuestion.includes('ticket medio caiu') ||
+  normalizedQuestion.includes('evolucao do ticket') ||
+  normalizedQuestion.includes('comparacao do ticket');
+
+
+  const isBestIndicatorQuestion =
+  normalizedQuestion.includes('indicador mais evoluiu') ||
+  normalizedQuestion.includes('qual indicador evoluiu') ||
+  normalizedQuestion.includes('indicador teve maior crescimento');
+
+
+  const isWhereSpendingQuestion =
+  normalizedQuestion.includes('onde estou gastando mais') ||
+  normalizedQuestion.includes('onde gasto mais') ||
+  normalizedQuestion.includes('onde estou gastando');
+
+  const isCashConsumerQuestion =
+  normalizedQuestion.includes('quem mais consome meu caixa') ||
+  normalizedQuestion.includes('quem consome meu caixa') ||
+  normalizedQuestion.includes('quem drena meu caixa');
+
+ 
   const wantsExpenseGrowth =
   lowerQuestion.includes('despesa cresceu') ||
   lowerQuestion.includes('despesas cresceram') ||
@@ -15678,7 +15912,6 @@ const wantsDecline =
 const wantsGrowthDeclineQuestion =
   wantsGrowth || wantsDecline;
 
- 
     let answer = '';
 
 const earlySupplierPayableName =
@@ -15706,6 +15939,23 @@ if (managementReportRankingAnswer) {
     ctx,
     previousCtx
   );
+} else if (isTicketComparisonQuestion) {
+  answer = buildTicketComparisonAnswer(
+    ctx,
+    equivalentPreviousCtx
+  );
+
+} else if (isBestIndicatorQuestion) {
+  answer = buildBestIndicatorAnswer(
+    ctx,
+    equivalentPreviousCtx
+  );
+
+} else if (isWhereSpendingQuestion) {
+  answer = buildWhereSpendingAnswer(ctx);
+
+} else if (isCashConsumerQuestion) {
+  answer = buildCashConsumerAnswer(ctx);
 } else if (wantsGrowthDeclineQuestion) {
   answer = buildGrowthDeclineAnswer(
     ctx,

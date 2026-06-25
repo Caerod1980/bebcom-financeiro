@@ -14753,6 +14753,336 @@ Avalie volume comprado, prazo negociado e giro dos produtos adquiridos.
 `.trim();
 };
 
+
+const formatPercent = (value) =>
+  `${Number(value || 0).toFixed(1)}%`;
+
+const getPurchaseAmount = (ctx) => {
+  const purchases = ctx.expenseCategories?.find(
+    (item) => item.category === 'compras_mercadorias'
+  );
+
+  return Number(purchases?.amount || 0);
+};
+
+const getPurchaseSuppliers = (ctx) => {
+  const grouped = {};
+
+  (ctx.entries || [])
+    .filter(
+      (entry) =>
+        entry.type === 'expense' &&
+        entry.category === 'compras_mercadorias'
+    )
+    .forEach((entry) => {
+      const rawName =
+        entry.person ||
+        entry.description ||
+        '';
+
+      const name = String(rawName).trim();
+
+      if (
+        !name ||
+        normalizeText(name) === 'nao informado' ||
+        normalizeText(name) === 'sem fornecedor'
+      ) {
+        return;
+      }
+
+      if (!grouped[name]) {
+        grouped[name] = {
+          name,
+          amount: 0,
+          count: 0,
+        };
+      }
+
+      grouped[name].amount += Math.abs(Number(entry.amount || 0));
+      grouped[name].count += 1;
+    });
+
+  return Object.values(grouped).sort(
+    (a, b) => b.amount - a.amount
+  );
+};
+
+const buildSupplierPurchaseEvolutionAnswer = (
+  ctx,
+  previousCtx,
+  mode = 'growth'
+) => {
+  if (!previousCtx) {
+    return 'Não encontrei período anterior suficiente para comparar fornecedores.';
+  }
+
+  const currentSuppliers = getPurchaseSuppliers(ctx);
+  const previousSuppliers = getPurchaseSuppliers(previousCtx);
+
+  const allNames = [
+    ...new Set([
+      ...currentSuppliers.map((item) => item.name),
+      ...previousSuppliers.map((item) => item.name),
+    ]),
+  ];
+
+  const comparisons = allNames
+    .map((name) => {
+      const current =
+        currentSuppliers.find(
+          (item) => normalizeText(item.name) === normalizeText(name)
+        )?.amount || 0;
+
+      const previous =
+        previousSuppliers.find(
+          (item) => normalizeText(item.name) === normalizeText(name)
+        )?.amount || 0;
+
+      const difference = current - previous;
+
+      const variation =
+        previous > 0
+          ? (difference / previous) * 100
+          : null;
+
+      return {
+        name,
+        current,
+        previous,
+        difference,
+        variation,
+      };
+    })
+    .filter((item) =>
+      mode === 'growth'
+        ? item.difference > 0
+        : item.difference < 0
+    );
+
+  const selected = comparisons.sort((a, b) =>
+    mode === 'growth'
+      ? b.difference - a.difference
+      : a.difference - b.difference
+  )[0];
+
+  if (!selected) {
+    return `
+📊 COMPARATIVO DE FORNECEDORES — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Não identifiquei ${
+      mode === 'growth'
+        ? 'crescimento relevante em fornecedores'
+        : 'redução relevante em fornecedores'
+    } no período comparado.
+`.trim();
+  }
+
+  return `
+${
+  mode === 'growth'
+    ? '📈 FORNECEDOR QUE MAIS CRESCEU'
+    : '📉 FORNECEDOR QUE MAIS REDUZIU COMPRAS'
+} — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+${selected.name}
+
+Período anterior
+${formatCurrency(selected.previous)}
+
+Período atual
+${formatCurrency(selected.current)}
+
+Diferença
+${formatCurrency(selected.difference)}
+
+Variação
+${
+  selected.variation === null
+    ? 'Novo fornecedor no período'
+    : formatPercent(selected.variation)
+}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+${
+  mode === 'growth'
+    ? `Esse foi o fornecedor que mais aumentou o consumo de caixa em compras de mercadorias.`
+    : `Esse foi o fornecedor com maior redução de compras no período comparado.`
+}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Compare essa mudança com giro de estoque, margem e necessidade real de reposição.
+`.trim();
+};
+
+const buildMarginImprovementAnswer = (ctx, previousCtx) => {
+  if (!previousCtx) {
+    return 'Não encontrei período anterior suficiente para comparar margem.';
+  }
+
+  const currentMargin =
+    ctx.totalIncome > 0
+      ? (ctx.balance / ctx.totalIncome) * 100
+      : 0;
+
+  const previousMargin =
+    previousCtx.totalIncome > 0
+      ? (previousCtx.balance / previousCtx.totalIncome) * 100
+      : 0;
+
+  const diff = currentMargin - previousMargin;
+
+  return `
+📈 EVOLUÇÃO DA MARGEM — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Margem anterior
+${formatPercent(previousMargin)}
+
+Margem atual
+${formatPercent(currentMargin)}
+
+Diferença
+${formatPercent(diff)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+${
+  diff > 0
+    ? 'Sim. A margem está melhorando em relação ao período comparável anterior.'
+    : 'Não. A margem piorou em relação ao período comparável anterior.'
+}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Investigue se a variação veio de preço, compras, despesas ou mix de produtos.
+`.trim();
+};
+
+const buildBreakEvenSalesAnswer = (ctx) => {
+  const balance = Number(ctx.balance || 0);
+
+  if (balance >= 0) {
+    return `
+✅ PONTO DE EQUILÍBRIO — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Resultado atual
+${formatCurrency(balance)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+A operação já está acima do zero neste período.
+
+🎯 Minha recomendação
+
+Agora o foco deve ser preservar margem, controlar compras e proteger o caixa.
+`.trim();
+  }
+
+  const purchases = getPurchaseAmount(ctx);
+
+  const contributionMargin =
+    ctx.totalIncome > 0
+      ? Math.max(
+          0.1,
+          Math.min(
+            0.4,
+            (ctx.totalIncome - purchases) / ctx.totalIncome
+          )
+        )
+      : 0.2;
+
+  const neededResult = Math.abs(balance);
+  const estimatedSalesNeeded =
+    neededResult / contributionMargin;
+
+  return `
+🎯 QUANTO PRECISO VENDER PARA ZERAR O MÊS — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Resultado atual
+${formatCurrency(balance)}
+
+Resultado necessário para zerar
+${formatCurrency(neededResult)}
+
+Margem estimada usada
+${formatPercent(contributionMargin * 100)}
+
+━━━━━━━━━━━━━━━━━━
+
+📌 Venda estimada necessária
+${formatCurrency(estimatedSalesNeeded)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Esse valor é uma estimativa baseada na relação atual entre entradas e compras de mercadorias.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Além de vender mais, revise compras e despesas, porque reduzir saída também aproxima a operação do zero.
+`.trim();
+};
+
+const buildPurchaseCutSimulationAnswer = (ctx, percent = 10) => {
+  const purchases = getPurchaseAmount(ctx);
+  const saving = purchases * (percent / 100);
+  const projectedResult = Number(ctx.balance || 0) + saving;
+
+  return `
+🧮 SIMULAÇÃO — CORTE DE ${percent}% NAS COMPRAS
+
+━━━━━━━━━━━━━━━━━━
+
+Compras atuais
+${formatCurrency(purchases)}
+
+Redução simulada
+${formatCurrency(saving)}
+
+Resultado atual
+${formatCurrency(ctx.balance)}
+
+Resultado projetado
+${formatCurrency(projectedResult)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Mantidas as demais condições, reduzir ${percent}% das compras melhoraria diretamente o resultado em ${formatCurrency(saving)}.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Antes de cortar compras, confirme se há excesso de estoque, produtos de baixo giro ou compras que podem ser postergadas.
+`.trim();
+};
+
 // @desc    Ask IA Bebcom
 // @route   POST /api/ia/ask
 const askIABebcom = async (req, res) => {
@@ -15517,6 +15847,38 @@ if (conversationalContextAnswer) {
   lowerQuestion.includes('principal problema') ||
   lowerQuestion.includes('maior gargalo');
 
+  const isSupplierGrowthQuestion =
+  normalizedQuestion.includes('fornecedor mais cresceu') ||
+  normalizedQuestion.includes('qual fornecedor mais cresceu') ||
+  normalizedQuestion.includes('fornecedor aumentou mais') ||
+  normalizedQuestion.includes('fornecedor que mais aumentou');
+
+const isSupplierReductionQuestion =
+  normalizedQuestion.includes('fornecedor reduziu compras') ||
+  normalizedQuestion.includes('qual fornecedor reduziu compras') ||
+  normalizedQuestion.includes('fornecedor que mais reduziu') ||
+  normalizedQuestion.includes('qual fornecedor caiu mais');
+
+const isMarginImprovementQuestion =
+  normalizedQuestion.includes('margem esta melhorando') ||
+  normalizedQuestion.includes('margem está melhorando') ||
+  normalizedQuestion.includes('minha margem esta melhorando') ||
+  normalizedQuestion.includes('minha margem melhorou') ||
+  normalizedQuestion.includes('margem melhorou');
+
+const isBreakEvenSalesQuestion =
+  normalizedQuestion.includes('quanto preciso vender para zerar') ||
+  normalizedQuestion.includes('quanto preciso vender pra zerar') ||
+  normalizedQuestion.includes('quanto falta vender para zerar') ||
+  normalizedQuestion.includes('quanto falta para zerar o mes') ||
+  normalizedQuestion.includes('quanto falta para zerar');
+
+const isPurchaseCutSimulationQuestion =
+  normalizedQuestion.includes('cortar 10% das compras') ||
+  normalizedQuestion.includes('cortar 10 das compras') ||
+  normalizedQuestion.includes('reduzir 10% das compras') ||
+  normalizedQuestion.includes('reduzir 10 das compras');
+
    
     const invalidSupplierTerms = [
   'proximos 3 dias',
@@ -15956,6 +16318,32 @@ if (managementReportRankingAnswer) {
 
 } else if (isCashConsumerQuestion) {
   answer = buildCashConsumerAnswer(ctx);
+} else if (isSupplierGrowthQuestion) {
+  answer = buildSupplierPurchaseEvolutionAnswer(
+    ctx,
+    equivalentPreviousCtx,
+    'growth'
+  );
+
+} else if (isSupplierReductionQuestion) {
+  answer = buildSupplierPurchaseEvolutionAnswer(
+    ctx,
+    equivalentPreviousCtx,
+    'decline'
+  );
+
+} else if (isMarginImprovementQuestion) {
+  answer = buildMarginImprovementAnswer(
+    ctx,
+    equivalentPreviousCtx
+  );
+
+} else if (isBreakEvenSalesQuestion) {
+  answer = buildBreakEvenSalesAnswer(ctx);
+
+} else if (isPurchaseCutSimulationQuestion) {
+  answer = buildPurchaseCutSimulationAnswer(ctx, 10);
+
 } else if (wantsGrowthDeclineQuestion) {
   answer = buildGrowthDeclineAnswer(
     ctx,

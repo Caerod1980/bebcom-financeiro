@@ -1773,13 +1773,15 @@ if (invalidSupplierTerms.includes(supplier)) {
   return null;
 };
 const buildSupplierPayableAnswer = (ctx, supplierName) => {
-  const supplier = String(supplierName || '').toLowerCase().trim();
+  const supplier = normalizeText(supplierName)
+  .replace(/^(?:a|o|as|os|ao|aos)\s+/i, '')
+  .trim();
 
   if (!supplier) return null;
 
   const accounts = (ctx.accounts || []).filter((account) => {
-    const person = String(account.person || '').toLowerCase();
-    const description = String(account.description || '').toLowerCase();
+    const person = normalizeText(account.person);
+    const description = normalizeText(account.description);
 
     return (
       account.type === 'payable' &&

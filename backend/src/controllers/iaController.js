@@ -2921,37 +2921,83 @@ Comece por combos fáceis de entender e produtos que já têm giro. Isso aumenta
 `.trim();
 };
 
+
 const buildExpenseAnswer = (ctx) => {
-  const topExpenses = ctx.expenseCategories
+  const categories = ctx.expenseCategories || [];
+
+  const topExpenses = categories
     .slice(0, 5)
-    .map(
-      (item, index) =>
-        `${index + 1}. ${item.category}: ${formatCurrency(item.amount)}`
+    .map((item, index) =>
+      `${index + 1}. ${item.category}: ${formatCurrency(item.amount)}`
     )
     .join('\n');
 
-return `
-💸 ANÁLISE DE DESPESAS — ${ctx.periodLabel}
+  const actions = {
+    compras_mercadorias:
+      'Revisar giro de estoque, comparar fornecedores, negociar prazos e evitar compras acima da demanda. Compras do período não equivalem necessariamente ao custo das mercadorias vendidas.',
+    funcionarios:
+      'Avaliar escalas, horas extras e produtividade, preservando atendimento, obrigações trabalhistas e equipe essencial.',
+    outras_despesas:
+      'Abrir os lançamentos individualmente, identificar gastos recorrentes e eliminar despesas sem retorno operacional.',
+    emprestimos:
+      'Analisar juros, parcelas e possibilidades de renegociação, sem confundir pagamento de principal com despesa operacional.',
+    energia:
+      'Verificar consumo, equipamentos de refrigeração, manutenção preventiva e eficiência energética.',
+    impostos:
+      'Conferir classificação e pagamentos com a contabilidade, sem comprometer obrigações legais.',
+    aluguel:
+      'Avaliar condições contratuais e eventuais possibilidades de negociação.',
+    manutencao:
+      'Priorizar manutenção preventiva para evitar falhas e custos maiores.',
+    internet:
+      'Revisar plano contratado e alternativas sem prejudicar a operação.',
+    contador:
+      'Avaliar serviços contratados e necessidades reais, preservando a conformidade.'
+  };
+
+  const recommendations = categories
+    .slice(0, 5)
+    .map((item, index) => {
+      const action = actions[item.category] ||
+        'Examinar os lançamentos e identificar oportunidades de economia sem prejudicar a operação.';
+
+      return `${index + 1}. ${item.category}
+${action}`;
+    })
+    .join('\n\n');
+
+  return `💸 ANÁLISE E REDUÇÃO DE DESPESAS — ${ctx.periodLabel}
 
 ━━━━━━━━━━━━━━━━━━
 
-💰 Total de despesas
+💰 Total de saídas classificadas como despesas
 ${formatCurrency(ctx.totalExpenses)}
 
 ━━━━━━━━━━━━━━━━━━
 
-📊 Maiores grupos de despesas
+📊 MAIORES GRUPOS
 
-${topExpenses || 'Não encontrei despesas classificadas suficientes neste período.'}
+${topExpenses || 'Não há despesas classificadas neste período.'}
 
-${buildConsultiveClosing({
-  situation:
-    'As despesas mostram onde está concentrada a pressão financeira da operação.',
+━━━━━━━━━━━━━━━━━━
 
-  recommendation:
-    'Comece revisando o maior grupo de despesa, pois ele tende a gerar o maior impacto financeiro.'
-})}
-`.trim();
+🎯 OPORTUNIDADES DE MELHORIA
+
+${recommendations || 'Não há dados suficientes para identificar categorias prioritárias.'}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 MINHA ANÁLISE
+
+Os maiores grupos merecem investigação primeiro, mas valor elevado não significa necessariamente desperdício.
+
+É importante distinguir compras para estoque, despesas operacionais, parcelas de empréstimos e obrigações financeiras.
+
+━━━━━━━━━━━━━━━━━━
+
+✅ MINHA RECOMENDAÇÃO
+
+Comece examinando os lançamentos das três maiores categorias. Identifique quais gastos podem ser renegociados, reduzidos ou reorganizados sem comprometer estoque essencial, atendimento e qualidade da operação.`;
 };
 
 const getSharePercent = (value, total) => {
@@ -8164,105 +8210,75 @@ Acompanhe diariamente se a média de vendas está subindo e se as despesas estã
 `.trim();
 };
 
+
 const buildOperationalRiskRadarAnswer = (ctx) => {
   const risks = [];
+  const income = Number(ctx.totalIncome || 0);
+  const expenses = Number(ctx.totalExpenses || 0);
+  const balance = Number(ctx.balance || 0);
+  const payable = Number(ctx.pendingPayable || 0);
+  const ticket = Number(ctx.managementReport?.averageTicket || 0);
 
-  const purchases =
-    ctx.expenseCategories?.find(
-      item =>
-        item.category === 'compras_mercadorias'
-    );
+  const purchases = ctx.expenseCategories?.find(
+    item => item.category === 'compras_mercadorias'
+  );
 
-  const purchaseShare =
-    purchases && ctx.totalIncome > 0
-      ? (
-          purchases.amount /
-          ctx.totalIncome
-        ) * 100
-      : 0;
+  const purchaseAmount = Number(purchases?.amount || 0);
+  const purchaseShare = income > 0
+    ? purchaseAmount / income * 100
+    : null;
 
-  // CAIXA NEGATIVO
-
-  if (ctx.balance < 0) {
-    risks.push({
-      level: '🔴 Alto',
-      title: 'Caixa negativo',
-      impact: 'Alto',
-      description:
-        'As saídas superam as entradas no período.'
-    });
+  if (balance < 0) {
+    risks.push(`🔴 RESULTADO NEGATIVO
+Saídas superam entradas em ${formatCurrency(Math.abs(balance))}.
+Prioridade: revisar desembolsos e compromissos imediatos.`);
   }
 
-  // CONTAS PENDENTES
-
- if (
-  ctx.pendingPayable >
-  ctx.totalIncome * 0.5
-) {
-    risks.push({
-      level: '🟠 Médio',
-      title: 'Contas pendentes elevadas',
-      impact: 'Médio',
-      description:
-        'As contas a pagar representam parcela relevante das entradas.'
-    });
+  if (income > 0 && payable / income > 0.3) {
+    risks.push(`🟠 CONTAS A PAGAR
+Total pendente: ${formatCurrency(payable)}
+Equivale a ${(payable / income * 100).toFixed(1)}% das entradas do período.
+Atenção: comparar vencimentos com caixa disponível e recebimentos previstos.`);
   }
 
-  // COMPRAS
-
-  if (purchaseShare > 60) {
-    risks.push({
-      level: '🟠 Médio',
-      title: 'Compras pressionando caixa',
-      impact: 'Médio',
-      description:
-        `Compras representam ${purchaseShare.toFixed(1)}% das entradas.`
-    });
+  if (purchaseShare !== null && purchaseShare > 50) {
+    risks.push(`🟠 COMPRAS DE MERCADORIAS
+Total: ${formatCurrency(purchaseAmount)}
+Representam ${purchaseShare.toFixed(1)}% das entradas.
+Atenção: revisar giro, reposição, preços e prazos de fornecedores.
+Esse percentual não representa margem de lucro nem custo das mercadorias vendidas.`);
   }
 
-  // TICKET
-
-  if (
-    ctx.managementReport?.averageTicket >= 20
-  ) {
-    risks.push({
-      level: '🟢 Positivo',
-      title: 'Ticket médio saudável',
-      impact: 'Positivo',
-      description:
-        'O cliente continua comprando bem.'
-    });
+  if (ticket > 0) {
+    risks.push(`📊 TICKET MÉDIO
+Valor registrado: ${formatCurrency(ticket)}
+Sem comparação histórica, não é possível classificar isoladamente esse valor como bom ou ruim.`);
+  } else {
+    risks.push(`⚪ TICKET MÉDIO
+Não há indicador disponível para uma avaliação confiável.`);
   }
 
-  const list = risks
-    .map(
-      risk => `
-${risk.level}
-${risk.title}
+  if (balance >= 0) {
+    risks.push(`🟢 RESULTADO DO PERÍODO
+Entradas superam saídas em ${formatCurrency(balance)}.
+Esse resultado não representa necessariamente o saldo bancário disponível.`);
+  }
 
-Impacto:
-${risk.impact}
-
-${risk.description}
-`
-    )
-    .join('\n━━━━━━━━━━━━━━━━━━\n');
-
-  return `
-🚨 RADAR DE RISCO OPERACIONAL
+  return `🚨 RADAR DE RISCO OPERACIONAL — ${ctx.periodLabel}
 
 ━━━━━━━━━━━━━━━━━━
 
-${list}
+${risks.join('\n\n━━━━━━━━━━━━━━━━━━\n\n')}
 
 ━━━━━━━━━━━━━━━━━━
 
-🎯 Minha recomendação
+🎯 PRIORIDADES GERENCIAIS
 
-Priorize primeiro os riscos vermelhos, depois os laranjas.
+1. Conferir os próximos vencimentos e o caixa disponível.
+2. Revisar compras conforme giro real do estoque.
+3. Monitorar despesas e evolução do ticket médio.
 
-Os indicadores verdes representam forças atuais da operação.
-`.trim();
+Os alertas são indicadores de atenção, não conclusões definitivas sobre a saúde financeira da empresa.`;
 };
 
 const calculateRiskScore = (ctx) => {

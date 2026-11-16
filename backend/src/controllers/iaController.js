@@ -15087,6 +15087,214 @@ Antes de cortar compras, confirme se há excesso de estoque, produtos de baixo g
 
 // @desc    Ask IA Bebcom
 // @route   POST /api/ia/ask
+
+const buildObjectiveSalesRankingAnswer = async (question) => {
+  const q = normalizeText(question);
+  const best = /\b(melhor|maior|melhores|maiores)\b/.test(q);
+  const worst = /\b(pior|menor|piores|menores)\b/.test(q);
+
+  if (!best && !worst) return null;
+
+  const weekend = /\b(fim|final) de semana\b/.test(q);
+  const monthRank = /\b(melhor|maior|pior|menor) mes\b/.test(q);
+  const dayRank = /\b(dia|dias)\b/.test(q) && !weekend;
+
+  if (!weekend && !monthRank && !dayRank) return null;
+  if (!/faturamento|venda|vendas|mes|dia|semana/.test(q)) return null;
+
+  const now = new Date();
+  const yearMatch = q.match(/\b(20\d{2})\b/);
+  const year = yearMatch ? Number(yearMatch[1]) : now.getFullYear();
+  const historical = /\b(historia|historico|historica|historicos)\b/.test(q);
+
+  const month = monthNames.find(item =>
+    item.names.some(name =>
+      new RegExp(`\\b${normalizeText(name)}\\b`).test(q)
+    )
+  );
+
+  const yearScope = !historical &&
+    (Boolean(yearMatch) || /\b(ano|este ano|ate agora)\b/.test(q));
+
+  const start = historical
+    ? new Date(2021, 0, 1)
+    : month
+      ? new Date(year, month.number - 1, 1)
+      : yearScope
+        ? new Date(year, 0, 1)
+        : null;
+
+  const end = historical
+    ? now
+    : month
+      ? new Date(year, month.number, 0, 23, 59, 59, 999)
+      : yearScope
+        ? new Date(year, 11, 31, 23, 59, 59, 999)
+        : null;
+
+  if (!start) return null;
+
+  const boundedEnd = end > now ? now : end;
+  const label = historical
+    ? 'historia da Bebcom'
+    : month
+      ? getMonthLabel(month.number, year)
+      : `ano de ${year}`;
+
+  if (monthRank) {
+    let reports = await ManagementReport.find({
+      year: historical ? { $gte: 2021 } : year
+    });
+
+    reports = reports.filter(r =>
+      historical || (month ? Number(r.month) === month.number : true)
+    );
+
+    const ranked = reports
+      .map(r => ({
+        year: Number(r.year),
+        month: Number(r.month),
+        amount: getManagementReportValue(r),
+        tickets: Number(r.totalTickets || 0),
+        ticket: Number(r.averageTicket || 0)
+      }))
+      .filter(r =>
+        r.amount > 0 &&
+        new Date(r.year, r.month - 1, 1) <= now
+      )
+      .sort((a, b) =>
+        best ? b.amount - a.amount : a.amount - b.amount
+      );
+
+    if (!ranked.length) {
+      return `Nao encontrei faturamento no Relatorio Gerencial para ${label}.`;
+    }
+
+    const r = ranked[0];
+
+    return `🏆 ${best ? 'MELHOR' : 'PIOR'} MES — ${label}
+
+📅 ${getMonthLabel(r.month, r.year)}
+💰 Faturamento comercial: ${formatCurrency(r.amount)}
+🧾 Comandas: ${r.tickets}
+🎯 Ticket medio: ${formatCurrency(r.ticket)}
+
+Fonte: Relatorio Gerencial.`;
+  }
+
+  const entries = await Entry.find({
+    deleted: { $ne: true },
+    type: 'income',
+    date: { $gte: start, $lte: boundedEnd }
+  });
+
+  const daily = new Map();
+
+  for (const e of entries) {
+    const d = new Date(e.date);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+    const item = daily.get(key) || {
+      date: new Date(d.getFullYear(), d.getMonth(), d.getDate()),
+      amount: 0,
+      count: 0
+    };
+
+    item.amount += Math.abs(Number(e.amount || 0));
+    item.count++;
+    daily.set(key, item);
+  }
+
+  if (weekend) {
+    const grouped = new Map();
+
+    for (const item of daily.values()) {
+      const weekday = item.date.getDay();
+      if (![5, 6, 0].includes(weekday)) continue;
+
+      const friday = new Date(item.date);
+      friday.setDate(
+        friday.getDate() -
+        (weekday === 0 ? 2 : weekday === 6 ? 1 : 0)
+      );
+
+      const sunday = new Date(friday);
+      sunday.setDate(friday.getDate() + 2);
+
+      if (friday < start || sunday > boundedEnd) continue;
+
+      const key = friday.toLocaleDateString('pt-BR');
+
+      const w = grouped.get(key) || {
+        friday,
+        sunday,
+        amount: 0,
+        count: 0,
+        days: new Set()
+      };
+
+      w.amount += item.amount;
+      w.count += item.count;
+      w.days.add(weekday);
+
+      grouped.set(key, w);
+    }
+
+    const ranked = [...grouped.values()]
+      .filter(w => w.days.size === 3)
+      .sort((a, b) =>
+        best ? b.amount - a.amount : a.amount - b.amount
+      );
+
+    if (!ranked.length) {
+      return `Nao encontrei fins de semana completos (sexta a domingo, com entradas nos tres dias) em ${label}.`;
+    }
+
+    if (worst && ranked.length < 2) {
+      return `Ha apenas um fim de semana completo com entradas em ${label}; nao e possivel determinar o pior.`;
+    }
+
+    const w = ranked[0];
+
+    return `🏆 ${best ? 'MELHOR' : 'PIOR'} FIM DE SEMANA — ${label}
+
+📅 ${w.friday.toLocaleDateString('pt-BR')} a ${w.sunday.toLocaleDateString('pt-BR')}
+💰 Entradas registradas: ${formatCurrency(w.amount)}
+📋 Lancamentos: ${w.count}
+
+Criterio: sexta-feira, sabado e domingo completos.
+Fonte: lancamentos de entradas.`;
+  }
+
+  const countMatch = q.match(/\b(cinco|5) melhores dias\b/);
+  const limit = countMatch ? 5 : 1;
+
+  const ranked = [...daily.values()]
+    .filter(d => d.amount > 0)
+    .sort((a, b) =>
+      best ? b.amount - a.amount : a.amount - b.amount
+    )
+    .slice(0, limit);
+
+  if (!ranked.length) {
+    return `Nao encontrei entradas registradas em ${label}.`;
+  }
+
+  const lines = ranked.map(
+    (d, i) =>
+      `${i + 1}. ${d.date.toLocaleDateString('pt-BR')} — ${formatCurrency(d.amount)} — ${d.count} lancamento(s)`
+  );
+
+  return `🏆 ${limit === 1
+    ? (best ? 'MELHOR' : 'PIOR') + ' DIA'
+    : 'CINCO MELHORES DIAS'} — ${label}
+
+${lines.join('\n')}
+
+Fonte: lancamentos de entradas.
+Dias sem entradas nao entram no ranking.`;
+};
+
 const askIABebcom = async (req, res) => {
   try {
     const { question } = req.body;
@@ -15435,6 +15643,13 @@ const isExpenseAttentionQuestion =
   return res.json({
     answer: buildExpenseAttentionAnswer(ctx),
   });
+}
+
+
+const objectiveSalesRankingAnswer = await buildObjectiveSalesRankingAnswer(question);
+
+if (objectiveSalesRankingAnswer) {
+  return res.json({ answer: objectiveSalesRankingAnswer });
 }
 
 const deepDiveAnswer =

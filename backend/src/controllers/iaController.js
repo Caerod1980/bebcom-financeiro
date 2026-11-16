@@ -1492,6 +1492,7 @@ const getMonthLabel = (month, year) => {
   return `${fullMonths[month - 1]}/${year}`;
 };
 
+
 const getCategoryTotals = (entries, type) => {
   const grouped = {};
 
@@ -1501,16 +1502,25 @@ const getCategoryTotals = (entries, type) => {
       const key = entry.category || 'sem_categoria';
 
       if (!grouped[key]) {
-        grouped[key] = 0;
+        grouped[key] = {
+          amount: 0,
+          count: 0,
+        };
       }
 
-      grouped[key] += Math.abs(Number(entry.amount || 0));
+      grouped[key].amount += Math.abs(Number(entry.amount || 0));
+      grouped[key].count += 1;
     });
 
   return Object.entries(grouped)
-    .map(([category, amount]) => ({ category, amount }))
+    .map(([category, data]) => ({
+      category,
+      amount: data.amount,
+      count: data.count,
+    }))
     .sort((a, b) => b.amount - a.amount);
 };
+
 
 const normalizeText = (value) =>
   String(value || '')
@@ -5938,8 +5948,11 @@ ${formatRanking(
   (ctx.expenseCategories || []).map((item) => ({
     name: item.category,
     amount: item.amount,
-    count: 0,
-  }))
+    count: item.count,
+  })),
+  /\b(?:cinco|5)\b/.test(normalizeText(question)) ? 5 :
+  /\b(?:tres|3)\b/.test(normalizeText(question)) ? 3 :
+  /\b(?:dez|10)\b/.test(normalizeText(question)) ? 10 : 10
 )}
 
 ━━━━━━━━━━━━━━━━━━
@@ -13818,7 +13831,7 @@ if (
   lower.includes('final de semana') ||
   lower.includes('fim de semana')
 ) {
-const weeks = buildWeekRanking(
+const weekends = buildWeekRanking(
   ctx.entries,
   'income',
   ctx.start,

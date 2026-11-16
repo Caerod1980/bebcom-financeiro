@@ -7434,114 +7434,157 @@ Não trate todas as contas da mesma forma. Priorize vencidos e fornecedores esse
 `.trim();
 }
 
-// Pergunta 4
-if (
-  lower.includes('vendendo mais clientes') ||
-  lower.includes('vendendo melhor') ||
-  lower.includes('mesmos clientes')
-) {
-  const currentTicket =
-    currentCtx.managementReport?.averageTicket || 0;
 
-  const previousTicket =
-    previousCtx?.managementReport?.averageTicket || 0;
+  // Pergunta 4 — Comparação comercial confiável
+  if (
+    lower.includes('vendendo mais clientes') ||
+    lower.includes('vendendo melhor') ||
+    lower.includes('mesmos clientes')
+  ) {
+    const currentReport = currentCtx.managementReport;
+    const previousReport = previousCtx?.managementReport;
 
- const currentSales =
-  currentCtx.managementReport?.totalTickets || 0;
+    if (!currentReport) {
+      return `
+👥 CLIENTES OU TICKET
 
-const previousSales =
-  previousCtx?.managementReport?.totalTickets || 0;
+Não encontrei um Relatório Gerencial para o período consultado.
 
-  const ticketVariation =
-    previousTicket > 0
-      ? calculateVariation(
-          currentTicket,
-          previousTicket
-        )
-      : 0;
+Para analisar comandas e ticket médio, preciso dos
+indicadores comerciais registrados no sistema.
+`.trim();
+    }
 
-  const salesVariation =
-    previousSales > 0
-      ? calculateVariation(
+    const currentTicket =
+      Number(currentReport.averageTicket || 0);
+
+    const currentSales =
+      Number(currentReport.totalTickets || 0);
+
+    const previousTicket =
+      Number(previousReport?.averageTicket || 0);
+
+    const previousSales =
+      Number(previousReport?.totalTickets || 0);
+
+    const now = new Date();
+
+    const isCurrentMonth =
+      Number(currentCtx.month) === now.getMonth() + 1 &&
+      Number(currentCtx.year) === now.getFullYear();
+
+    const ticketVariation =
+      previousTicket > 0 && currentTicket > 0
+        ? calculateVariation(currentTicket, previousTicket)
+        : null;
+
+    let salesVariation = null;
+    let previousComparableSales = null;
+    let comparisonMethod = '';
+    let comparisonWarning = '';
+
+    if (previousSales > 0 && currentSales > 0) {
+      if (isCurrentMonth) {
+        const estimatedPrevious = buildPartialMetric({
+          report: previousReport,
+          limitDay: now.getDate(),
+          useRealCurrent: false,
+        });
+
+        previousComparableSales = estimatedPrevious.tickets;
+
+        comparisonMethod =
+          'Estimativa proporcional das comandas do mês anterior.';
+
+        comparisonWarning =
+          'A estimativa considera o mês atual acumulado até hoje. ' +
+          'Se o Relatório Gerencial ainda não foi atualizado até hoje, ' +
+          'os períodos não são equivalentes e a variação não deve ' +
+          'ser interpretada como uma queda ou crescimento confirmado.';
+      } else {
+        previousComparableSales = previousSales;
+
+        comparisonMethod =
+          'Comparação entre relatórios mensais encerrados.';
+      }
+
+      if (previousComparableSales > 0) {
+        salesVariation = calculateVariation(
           currentSales,
-          previousSales
-        )
-      : 0;
+          previousComparableSales
+        );
+      }
+    }
 
- let diagnosis = '';
+    const formatVariation = (value) =>
+      value === null || !Number.isFinite(value)
+        ? 'Não disponível'
+        : `${value > 0 ? '+' : ''}${value.toFixed(1)}%`;
 
-if (
-  salesVariation < 0 &&
-  ticketVariation < 0
-) {
-  if (
-    Math.abs(salesVariation) >
-    Math.abs(ticketVariation)
-  ) {
-    diagnosis =
-      'O principal problema está na redução do volume de vendas.';
-  } else {
-    diagnosis =
-      'O principal problema está na redução do ticket médio.';
-  }
-}
-else if (
-  salesVariation > 0 &&
-  ticketVariation > 0
-) {
-  if (
-    salesVariation >
-    ticketVariation
-  ) {
-    diagnosis =
-      'O crescimento está sendo impulsionado principalmente pelo aumento do número de vendas.';
-  } else {
-    diagnosis =
-      'O crescimento está sendo impulsionado principalmente pelo aumento do ticket médio.';
-  }
-}
-else if (
-  salesVariation > 0
-) {
-  diagnosis =
-    'A operação está atraindo mais clientes, mesmo sem aumento relevante do ticket médio.';
-}
-else if (
-  ticketVariation > 0
-) {
-  diagnosis =
-    'Os clientes estão comprando mais por venda realizada.';
-}
-else {
-  diagnosis =
-    'Os indicadores apresentam comportamento misto e exigem análise complementar.';
-}
-  return `
+    let diagnosis = '';
+
+    if (isCurrentMonth) {
+      diagnosis =
+        'O ticket médio atual pode ser acompanhado normalmente. ' +
+        'A comparação de comandas é apenas indicativa, pois ' +
+        'utiliza uma estimativa proporcional do mês anterior. ' +
+        'Não é possível afirmar que houve perda ou ganho de ' +
+        'clientes únicos com esses dados.';
+    } else if (
+      salesVariation !== null &&
+      ticketVariation !== null
+    ) {
+      if (salesVariation < 0 && ticketVariation < 0) {
+        diagnosis =
+          'Houve redução tanto na quantidade de comandas ' +
+          'quanto no ticket médio entre os meses analisados.';
+      } else if (
+        salesVariation > 0 && ticketVariation > 0
+      ) {
+        diagnosis =
+          'A operação apresentou crescimento na quantidade ' +
+          'de comandas e no ticket médio.';
+      } else if (salesVariation > 0) {
+        diagnosis =
+          'A quantidade de comandas aumentou, mas o ticket ' +
+          'médio não acompanhou esse crescimento.';
+      } else if (ticketVariation > 0) {
+        diagnosis =
+          'O ticket médio aumentou, mas isso não significa ' +
+          'necessariamente crescimento no número de clientes.';
+      } else {
+        diagnosis =
+          'Os indicadores apresentam estabilidade ou ' +
+          'comportamento misto e exigem análise complementar.';
+      }
+    } else {
+      diagnosis =
+        'Os dados disponíveis não permitem uma comparação ' +
+        'comercial completa e confiável.';
+    }
+
+    return `
 👥 CLIENTES OU TICKET
 
 ━━━━━━━━━━━━━━━━━━
 
 🎯 Ticket médio atual
-
 ${formatCurrency(currentTicket)}
 
-📦 Quantidade de vendas
-
-${
-  currentSales > 0
-    ? currentSales
-    : 'Não disponível'
-}
+📦 Comandas registradas
+${currentSales > 0 ? currentSales : 'Não disponível'}
 
 ━━━━━━━━━━━━━━━━━━
 
-📈 Evolução do ticket
+📈 Evolução do ticket médio
+${formatVariation(ticketVariation)}
 
-${ticketVariation.toFixed(1)}%
+📈 Evolução das comandas
+${formatVariation(salesVariation)}
 
-📈 Evolução das vendas
+${comparisonMethod}
 
-${salesVariation.toFixed(1)}%
+${comparisonWarning}
 
 ━━━━━━━━━━━━━━━━━━
 
@@ -7553,15 +7596,24 @@ ${diagnosis}
 
 💡 Leitura institucional
 
-Historicamente a Bebcom cresceu combinando variedade, atendimento e adaptação rápida às necessidades dos clientes.
+A Bebcom cresceu combinando variedade, atendimento
+e adaptação às necessidades dos clientes.
+
+Quantidade de comandas não representa necessariamente
+quantidade de clientes únicos.
 
 ━━━━━━━━━━━━━━━━━━
 
 🎯 Minha recomendação
 
-Use essa leitura para decidir a ação correta: se o problema for queda de vendas, foque em fluxo, divulgação e recorrência; se for queda de ticket médio, foque em combos, adicionais e produtos de maior margem.
+Acompanhe conjuntamente o ticket médio e o volume
+de comandas.
+
+Quando a comparação envolver estimativas, confirme
+a data de atualização do relatório antes de tomar
+decisões sobre queda ou crescimento das vendas.
 `.trim();
-}   
+  }
   
   return null;
 };

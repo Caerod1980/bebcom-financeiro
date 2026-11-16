@@ -15100,6 +15100,12 @@ const askIABebcom = async (req, res) => {
    const comparisonPeriods = getComparisonPeriods(question);
    const analyticalPeriod = getAnalyticalPeriod(question);
 
+    // Consultas objetivas: ano isolado deve abranger janeiro a dezembro.
+    const simpleAnnualQuery = normalizeText(question).match(/\b(?:em|de|do|no|durante)\s+(20\d{2})\s*\??$/);
+    const simpleAnnualIntent = /(?:quanto|total|gastei|gasto|despesas? com|despesas? da|despesas? de)/i.test(question);
+    const annualSimplePeriod = simpleAnnualQuery && simpleAnnualIntent && !/\b(?:janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b/.test(normalizeText(question))
+      ? Number(simpleAnnualQuery[1]) : null;
+
     let period;
     let ctx;
     let previousCtx;
@@ -15130,7 +15136,17 @@ const askIABebcom = async (req, res) => {
       mainOpportunity: null,
 };
 
-  if (specificDatePeriod) {
+  if (annualSimplePeriod) {
+  period = {
+    month: null,
+    year: annualSimplePeriod,
+    start: new Date(annualSimplePeriod, 0, 1),
+    end: new Date(annualSimplePeriod, 11, 31, 23, 59, 59, 999),
+    customLabel: `Ano de ${annualSimplePeriod}`,
+  };
+  ctx = await buildContext(period);
+  previousCtx = { ...ctx };
+} else if (specificDatePeriod) {
   period = {
     month: null,
     year: null,
@@ -15282,6 +15298,41 @@ if (limitDay) {
 period = currentPeriod;
 ctx = await buildContext(currentPeriod);
 previousCtx = await buildContext(previousPeriod);
+    }
+
+    // Prioridade para consultas objetivas, antes das rotinas consultivas.
+    const objectiveQuestion = normalizeText(question);
+    const objectiveTotal = /(?:quanto|total|gastei|gasto|despesas?)/.test(objectiveQuestion);
+    const objectiveExpense = /(?:gastei|gasto|despesas?|saidas|paguei)/.test(objectiveQuestion);
+    const objectiveCategoryMap = [
+      { key: 'funcionarios', rx: /\b(?:funcionarios?|salarios?|folha de pagamento)\b/ },
+      { key: 'energia', rx: /\b(?:energia|energia eletrica|luz)\b/ },
+      { key: 'compras_mercadorias', rx: /\b(?:compras? de mercadorias?|mercadorias)\b/ },
+    ];
+    const objectiveCategory = objectiveCategoryMap.find(x => x.rx.test(objectiveQuestion));
+    const isSpecificDescription = /\b(?:descricao|descrição)\s+(.+?)\s+(?:em|de|no)\s+20\d{2}/i.test(question);
+    const descriptionMatch = question.match(/\bdescri[cç][aã]o\s+(.+?)\s+(?:em|de|no)\s+20\d{2}/i);
+    const objectivePayableMatch = objectiveQuestion.match(/^(?:quanto tenho em |qual (?:e o )?total de )?contas a pagar (?:para|pra|do|da|de) (.+?)\??$/)
+      || objectiveQuestion.match(/^quanto (?:tenho )?(?:a pagar|devo) (?:para|pra|ao|a) (.+?)\??$/);
+    const objectiveSupplierMatch = objectiveQuestion.match(/^(?:quanto (?:gastei|gasto|paguei)|qual (?:foi )?o total de despesas) com (?:a |o )?(.+?) (?:em (?:janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro) de 20\d{2}|em 20\d{2})\??$/);
+
+    if (objectivePayableMatch) {
+      return res.json({ answer: buildSupplierPayableAnswer(ctx, objectivePayableMatch[1].trim()) });
+    }
+    if (objectiveTotal && objectiveExpense && descriptionMatch) {
+      const term = normalizeText(descriptionMatch[1]);
+      const matches = ctx.entries.filter(e => e.type === 'expense' && normalizeText(e.description).includes(term));
+      const total = matches.reduce((sum,e) => sum + Math.abs(Number(e.amount || 0)), 0);
+      return res.json({ answer: `DESPESAS POR DESCRIÇÃO — ${ctx.periodLabel}\n\nDescrição: ${descriptionMatch[1].trim()}\nTotal: ${formatCurrency(total)}\nLançamentos: ${matches.length}` });
+    }
+    if (objectiveTotal && objectiveExpense && objectiveCategory) {
+      return res.json({ answer: buildCategoryTotalAnswer(ctx, objectiveCategory.key) });
+    }
+    if (objectiveSupplierMatch && !objectiveCategory) {
+      const supplier = objectiveSupplierMatch[1].trim();
+      const matches = ctx.entries.filter(e => e.type === 'expense' && (normalizeText(e.person).includes(supplier) || normalizeText(e.description).includes(supplier)));
+      const total = matches.reduce((sum,e) => sum + Math.abs(Number(e.amount || 0)), 0);
+      return res.json({ answer: `DESPESAS COM FORNECEDOR — ${ctx.periodLabel}\n\nFornecedor: ${supplier}\nTotal: ${formatCurrency(total)}\nLançamentos: ${matches.length}\n\nConsulta nos campos Pessoa/Empresa e Descrição.` });
     }
 
      if (period?.month && period?.year) {

@@ -3684,12 +3684,30 @@ Para analisar vendas, comandas e ticket médio pelo histórico gerencial, precis
   
   // ETAPA 6.3 — Comparação regressiva somente para data anterior
   // A resposta comercial padrão permanece inalterada.
-  if (
-    isCurrentMonth &&
-    Number.isInteger(requestedDay) &&
-    requestedDay >= 1 &&
-    requestedDay < lastClosedDay
-  ) {
+ 
+if (
+  Number.isInteger(requestedDay) &&
+  requestedDay >= 1 &&
+  requestedDay <= daysInSelectedMonth &&
+  (
+    (
+      isCurrentMonth &&
+      requestedDay < lastClosedDay
+    ) ||
+    (
+      !isCurrentMonth &&
+      (
+        Number(ctx.year) < brazilYear ||
+        (
+          Number(ctx.year) === brazilYear &&
+          Number(ctx.month) < brazilMonth
+        )
+      ) &&
+      requestedDay < daysInSelectedMonth
+    )
+  )
+) {
+
     const previousMonthForEstimate =
       Number(ctx.month) === 1 ? 12 : Number(ctx.month) - 1;
 
@@ -3745,7 +3763,13 @@ Para analisar vendas, comandas e ticket médio pelo histórico gerencial, precis
     );
 
     // Estimativa regressiva a partir do Relatório Gerencial.
-    const factor = requestedDay / lastClosedDay;
+    
+const referenceDay = isCurrentMonth
+  ? lastClosedDay
+  : daysInSelectedMonth;
+
+const factor = requestedDay / referenceDay;
+
 
     const estimatedRevenue =
       getManagementReportValue(currentReport) * factor;
@@ -3846,9 +3870,15 @@ ${formatEstimateVariation(ticketsVariationEstimate)}
 O faturamento atual utiliza lançamentos diários quando
 disponíveis para o período solicitado.
 
-As comandas atuais são estimadas proporcionalmente
-a partir do Relatório Gerencial, considerando o
-último dia fechado como dia ${lastClosedDay}.
+As comandas são estimadas proporcionalmente
+a partir do Relatório Gerencial.
+
+Dia de referência utilizado: ${referenceDay}.
+
+Para meses encerrados, a estimativa considera
+a quantidade total de dias do mês.
+
+Para o mês atual, considera o último dia fechado.
 
 O faturamento e as comandas do mês anterior são
 estimativas proporcionais do relatório mensal.

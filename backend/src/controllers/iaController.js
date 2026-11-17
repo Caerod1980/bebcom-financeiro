@@ -3636,15 +3636,50 @@ Para analisar vendas, comandas e ticket médio pelo histórico gerencial, precis
     Number(currentReport.averageTicket || 0);
 
 
-  const now = new Date();
+  
+  // ETAPA 6.2 — Data comercial da Bebcom (Brasil)
+  const brazilDateParts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  }).formatToParts(new Date());
 
-const isCurrentMonth =
-  Number(ctx.month) === now.getMonth() + 1 &&
-  Number(ctx.year) === now.getFullYear();
+  const getBrazilPart = (type) =>
+    Number(
+      brazilDateParts.find((part) => part.type === type)?.value
+    );
 
-const currentDay = isCurrentMonth
-  ? now.getDate()
-  : getDaysInMonth(ctx.month, ctx.year);
+  const brazilYear = getBrazilPart('year');
+  const brazilMonth = getBrazilPart('month');
+  const brazilDay = getBrazilPart('day');
+
+  const isCurrentMonth =
+    Number(ctx.month) === brazilMonth &&
+    Number(ctx.year) === brazilYear;
+
+  // Por padrão, considerar o último dia fechado.
+  const lastClosedDay = Math.max(1, brazilDay - 1);
+
+  // Permitir perguntas como "até 15 de novembro"
+  // ou "até o dia 15".
+  const explicitDateMatch = lower.match(
+    /ate\s+(?:o\s+dia\s+)?(\d{1,2})(?:\s+de\s+[a-z]+)?/
+  );
+
+  const requestedDay = explicitDateMatch
+    ? Number(explicitDateMatch[1])
+    : null;
+
+  const daysInSelectedMonth =
+    getDaysInMonth(ctx.month, ctx.year);
+
+  const currentDay = isCurrentMonth
+    ? Math.min(
+        requestedDay || lastClosedDay,
+        lastClosedDay
+      )
+    : requestedDay || daysInSelectedMonth;
 
 const currentPartial = buildPartialMetric({
   report: currentReport,

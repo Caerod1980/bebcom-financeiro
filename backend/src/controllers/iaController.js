@@ -3681,6 +3681,211 @@ Para analisar vendas, comandas e ticket médio pelo histórico gerencial, precis
       )
     : requestedDay || daysInSelectedMonth;
 
+  
+  // ETAPA 6.3 — Comparação regressiva somente para data anterior
+  // A resposta comercial padrão permanece inalterada.
+  if (
+    isCurrentMonth &&
+    Number.isInteger(requestedDay) &&
+    requestedDay >= 1 &&
+    requestedDay < lastClosedDay
+  ) {
+    const previousMonthForEstimate =
+      Number(ctx.month) === 1 ? 12 : Number(ctx.month) - 1;
+
+    const previousYearForEstimate =
+      Number(ctx.month) === 1 ? Number(ctx.year) - 1 : Number(ctx.year);
+
+    const previousReportForEstimate = validReports.find(
+      (report) =>
+        Number(report.month) === previousMonthForEstimate &&
+        Number(report.year) === previousYearForEstimate
+    );
+
+    // Usar a data comercial do lançamento em São Paulo.
+    const entryDayInBrazil = (dateValue) => {
+      const date = new Date(dateValue);
+
+      if (Number.isNaN(date.getTime())) return null;
+
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+      }).formatToParts(date);
+
+      const getPart = (type) =>
+        Number(parts.find((part) => part.type === type)?.value);
+
+      return {
+        year: getPart('year'),
+        month: getPart('month'),
+        day: getPart('day'),
+      };
+    };
+
+    const selectedEntries = dailyIncomeEntries.filter((entry) => {
+      const date = entryDayInBrazil(entry.date);
+
+      return (
+        date &&
+        date.year === Number(ctx.year) &&
+        date.month === Number(ctx.month) &&
+        date.day <= requestedDay
+      );
+    });
+
+    const hasSelectedDailyData = selectedEntries.length > 0;
+
+    const actualRevenue = selectedEntries.reduce(
+      (total, entry) =>
+        total + Math.abs(Number(entry.amount || 0)),
+      0
+    );
+
+    // Estimativa regressiva a partir do Relatório Gerencial.
+    const factor = requestedDay / lastClosedDay;
+
+    const estimatedRevenue =
+      getManagementReportValue(currentReport) * factor;
+
+    const estimatedTickets =
+      Number(currentReport.totalTickets || 0) * factor;
+
+    const selectedRevenue = hasSelectedDailyData
+      ? actualRevenue
+      : estimatedRevenue;
+
+    const selectedRevenueSource = hasSelectedDailyData
+      ? 'Lançamentos diários registrados até a data solicitada'
+      : 'Estimativa proporcional do Relatório Gerencial';
+
+    const estimatedTicket =
+      estimatedTickets > 0
+        ? selectedRevenue / estimatedTickets
+        : 0;
+
+    // Comparação proporcional do mês anterior.
+    const previousEstimate = buildPartialMetric({
+      report: previousReportForEstimate,
+      limitDay: requestedDay,
+      useRealCurrent: false,
+    });
+
+    const revenueVariationEstimate =
+      previousEstimate.revenue > 0
+        ? calculateVariation(
+            selectedRevenue,
+            previousEstimate.revenue
+          )
+        : null;
+
+    const ticketsVariationEstimate =
+      previousEstimate.tickets > 0
+        ? calculateVariation(
+            estimatedTickets,
+            previousEstimate.tickets
+          )
+        : null;
+
+    const formatEstimateVariation = (value) =>
+      value === null || !Number.isFinite(value)
+        ? 'Sem base suficiente'
+        : `${value > 0 ? '+' : ''}${value.toFixed(1)}%`;
+
+    return `
+📈 EVOLUÇÃO COMERCIAL DA BEBCOM
+${getMonthLabel(ctx.month, ctx.year)} até dia ${requestedDay}
+
+━━━━━━━━━━━━━━━━━━
+
+📌 Faturamento acumulado
+${formatCurrency(selectedRevenue)}
+
+Fonte:
+${selectedRevenueSource}
+
+📦 Comandas estimadas
+${formatTickets(estimatedTickets)}
+
+🎯 Ticket médio de referência
+${estimatedTickets > 0
+  ? formatCurrency(estimatedTicket)
+  : 'Não disponível'}
+
+━━━━━━━━━━━━━━━━━━
+
+📊 COMPARAÇÃO COM ${getMonthLabel(
+      previousMonthForEstimate,
+      previousYearForEstimate
+    ).toUpperCase()}
+
+Período comparável: dias 1 a ${requestedDay}
+
+Faturamento anterior estimado:
+${formatCurrency(previousEstimate.revenue)}
+
+Comandas anteriores estimadas:
+${formatTickets(previousEstimate.tickets)}
+
+━━━━━━━━━━━━━━━━━━
+
+📈 VARIAÇÃO ENTRE OS PERÍODOS
+
+Faturamento:
+${formatEstimateVariation(revenueVariationEstimate)}
+
+Comandas:
+${formatEstimateVariation(ticketsVariationEstimate)}
+
+━━━━━━━━━━━━━━━━━━
+
+⚠️ METODOLOGIA
+
+O faturamento atual utiliza lançamentos diários quando
+disponíveis para o período solicitado.
+
+As comandas atuais são estimadas proporcionalmente
+a partir do Relatório Gerencial, considerando o
+último dia fechado como dia ${lastClosedDay}.
+
+O faturamento e as comandas do mês anterior são
+estimativas proporcionais do relatório mensal.
+
+O ticket médio apresentado é uma referência
+calculada a partir dos valores acima, não um
+fechamento diário confirmado.
+
+A estimativa pressupõe distribuição uniforme das
+vendas e que o relatório atual esteja preenchido
+até o último dia fechado.
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Esta é uma comparação indicativa de períodos
+equivalentes em dias corridos.
+
+A variação de faturamento considera a fonte
+identificada acima; a variação de comandas
+utiliza estimativas.
+
+Diferenças entre dias da semana, sazonalidade
+e atualizações incompletas podem alterar
+o resultado efetivo.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Utilize esta comparação para acompanhar tendências.
+Antes de tomar decisões comerciais, confirme
+o fechamento dos registros do período.
+`.trim();
+  }
+
 const currentPartial = buildPartialMetric({
   report: currentReport,
   limitDay: currentDay,

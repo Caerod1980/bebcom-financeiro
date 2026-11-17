@@ -3604,9 +3604,37 @@ Para analisar vendas, comandas e ticket médio pelo histórico gerencial, precis
 `.trim();
   }
 
-  const currentRevenue = getManagementReportValue(currentReport);
-  const currentTickets = Number(currentReport.totalTickets || 0);
-  const currentTicket = Number(currentReport.averageTicket || 0);
+ 
+  // ETAPA 6.1 — Prioridade dos lançamentos diários
+  const dailyIncomeEntries = (ctx.entries || []).filter(
+    (entry) =>
+      entry.type === 'income' &&
+      entry.deleted !== true
+  );
+
+  const dailyRevenue = dailyIncomeEntries.reduce(
+    (total, entry) =>
+      total + Math.abs(Number(entry.amount || 0)),
+    0
+  );
+
+  const hasDailyRevenue =
+    dailyIncomeEntries.length > 0;
+
+  const currentRevenue = hasDailyRevenue
+    ? dailyRevenue
+    : getManagementReportValue(currentReport);
+
+  const currentRevenueSource = hasDailyRevenue
+    ? 'Lançamentos diários de faturamento disponíveis'
+    : 'Relatório Gerencial';
+
+  const currentTickets =
+    Number(currentReport.totalTickets || 0);
+
+  const currentTicket =
+    Number(currentReport.averageTicket || 0);
+
 
   const now = new Date();
 
@@ -3850,10 +3878,18 @@ Por isso, comparações contra meses fechados devem ser lidas como parciais. A l
 
 ━━━━━━━━━━━━━━━━━━
 
-📌 Leitura atual pelo Relatório Gerencial
+
+📌 Leitura comercial atual
 
 Faturamento:
 ${formatCurrency(currentRevenue)}
+
+Fonte do faturamento:
+${currentRevenueSource}
+
+Comandas e ticket médio:
+Relatório Gerencial
+
 
 Comandas:
 ${currentTickets}

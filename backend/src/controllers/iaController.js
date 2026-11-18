@@ -17160,8 +17160,9 @@ const isAdverseSimulationQuestion =
   });
 
     
+
 const mixedIncomeMatch = normalizedQuestion.match(
-  /\b(?:entradas?|recebimentos?)\b(?:(?!\bcompras?\b)[\s\S])*?\b(?:aumentassem|aumentasse|aumentar|aumentarem|aumentando|crescessem|crescesse|crescer|crescimento|aumento)\b(?:\s+(?:em|de))?\s+(\d+(?:[.,]\d+)?)\s*%/
+  /\b(?:entradas?|recebimentos?)\b(?:(?!\bcompras?\b)[\s\S])*?\b(?:aumentassem|aumentasse|aumentar|aumentarem|aumentando|crescessem|crescesse|crescer|crescimento|aumento)\b(?:\s+(?:em|de))?\s+(?:(?:aproximadamente|cerca\s+de|por\s+volta\s+de)\s+)?(\d+(?:[.,]\d+)?)\s*%/
 );
 
 

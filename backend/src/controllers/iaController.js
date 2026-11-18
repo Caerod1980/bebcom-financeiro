@@ -15514,6 +15514,57 @@ Além de vender mais, revise compras e despesas, porque reduzir saída também a
 `.trim();
 };
 
+
+const buildMarginChangeSimulationAnswer = (
+  ctx,
+  initialMargin,
+  finalMargin
+) => {
+  const income = Number(ctx.totalIncome || 0);
+
+  const initialValue = income * initialMargin / 100;
+  const finalValue = income * finalMargin / 100;
+  const difference = finalValue - initialValue;
+  const percentagePoints = finalMargin - initialMargin;
+
+  return `
+📊 SIMULAÇÃO DE MARGEM — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+💰 Base de cálculo
+${formatCurrency(income)}
+
+📌 Margem inicial: ${initialMargin}%
+Valor estimado: ${formatCurrency(initialValue)}
+
+📌 Margem projetada: ${finalMargin}%
+Valor estimado: ${formatCurrency(finalValue)}
+
+━━━━━━━━━━━━━━━━━━
+
+📈 IMPACTO FINANCEIRO SIMULADO
+
+Diferença: ${formatCurrency(difference)}
+Variação da margem: ${percentagePoints.toFixed(1)} pontos percentuais
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Esta é uma simulação matemática, considerando a mesma base de entradas e a aplicação das duas margens informadas.
+
+Não representa lucro efetivamente apurado nem confirma que a margem projetada será alcançada.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Avalie preços, custos, mix de produtos e giro antes de estabelecer uma nova meta de margem.
+  `.trim();
+};
+
+
 const buildPurchaseCutSimulationAnswer = (ctx, percent = 10) => {
   const purchases = getPurchaseAmount(ctx);
   const saving = purchases * (percent / 100);
@@ -16593,6 +16644,14 @@ if (conversationalContextAnswer) {
     /\bfornecedor(?:es)?\b/.test(normalizedQuestion) &&
     /\b(reduziu|reduziram|reducao|diminuiu|diminuiram|diminuicao|queda|caiu|cairam)\b/.test(normalizedQuestion);
 
+  
+const marginChangeMatch = normalizedQuestion.match(
+  /\bmargem(?: de lucro)?\b.*?\b(?:de|dos)\s+(\d+(?:[.,]\d+)?)\s*%\s+(?:para|a|ate)\s+(\d+(?:[.,]\d+)?)\s*%/
+);
+
+const isMarginChangeSimulationQuestion =
+  Boolean(marginChangeMatch);
+
 
 const isMarginImprovementQuestion =
   normalizedQuestion.includes('margem esta melhorando') ||
@@ -17042,7 +17101,15 @@ const genericPayablesAnswer =
   buildGenericPayablesAnswer(ctx, question);
 
 
-if (isPurchasesVsIncomeGrowthQuestion) {
+
+if (isMarginChangeSimulationQuestion) {
+  answer = buildMarginChangeSimulationAnswer(
+    ctx,
+    Number(marginChangeMatch[1].replace(',', '.')),
+    Number(marginChangeMatch[2].replace(',', '.'))
+  );
+
+} else if (isPurchasesVsIncomeGrowthQuestion) {
   answer = buildPurchasesVsIncomeGrowthAnswer(
     ctx,
     equivalentPreviousCtx

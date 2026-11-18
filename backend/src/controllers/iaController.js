@@ -15933,7 +15933,11 @@ ${formatCurrency(incomeIncrease + purchaseReduction)}
 
 🧠 Minha análise
 
-O cenário combina aumento de entradas e menor desembolso com compras. Os demais valores permanecem constantes.
+
+${purchasePercent === 100
+  ? `O crescimento de ${pct(incomePercent)}% nas entradas, combinado com a eliminação integral das compras de mercadorias, produz uma melhoria matemática expressiva no saldo financeiro. Entretanto, manter ou ampliar as entradas sem reposição pode ser inviável, dependendo do estoque disponível e da demanda. O saldo projetado não representa uma melhoria operacional garantida.`
+  : 'O cenário combina aumento de entradas e menor desembolso com compras. Os demais valores permanecem constantes.'}
+
 
 Esta é uma simulação de saldo financeiro, não uma previsão de lucro.
 
@@ -15941,7 +15945,10 @@ Esta é uma simulação de saldo financeiro, não uma previsão de lucro.
 
 🎯 Minha recomendação
 
-Avalie se o crescimento das entradas é viável sem exigir reposições adicionais de estoque. Reduzir compras não deve comprometer produtos essenciais ou vendas futuras.
+
+${purchasePercent === 100
+  ? 'Não recomendo suspender integralmente as compras como estratégia permanente. Antes de considerar esse cenário, verifique o estoque disponível, o giro dos produtos essenciais e a capacidade de atender à demanda projetada. Planeje reposições seletivas para evitar rupturas de estoque e perda de vendas futuras.'
+  : 'Avalie se o crescimento das entradas é viável sem exigir reposições adicionais de estoque. Reduzir compras não deve comprometer produtos essenciais ou vendas futuras.'}
 `.trim();
 };
 

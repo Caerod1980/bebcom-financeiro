@@ -16900,14 +16900,20 @@ if (temporalAnalyticsAnswer) {
   normalizedQuestion.includes('quem consome meu caixa') ||
   normalizedQuestion.includes('quem drena meu caixa');
 
- 
+
+  // ETAPA 6.4 — Priorizar crescimento de categorias de despesas.
+  // Evita que perguntas sobre despesas sejam tratadas como crescimento de entradas.
   const wantsExpenseGrowth =
-  lowerQuestion.includes('despesa cresceu') ||
-  lowerQuestion.includes('despesas cresceram') ||
-  lowerQuestion.includes('aumentou de despesa') ||
-  lowerQuestion.includes('aumentaram de despesa') ||
-  lowerQuestion.includes('o que aumentou de despesa') ||
-  lowerQuestion.includes('quais despesas cresceram');
+    normalizedQuestion.includes('despesa cresceu') ||
+    normalizedQuestion.includes('despesas cresceram') ||
+    normalizedQuestion.includes('aumentou de despesa') ||
+    normalizedQuestion.includes('aumentaram de despesa') ||
+    normalizedQuestion.includes('o que aumentou de despesa') ||
+    normalizedQuestion.includes('quais despesas cresceram') ||
+    (
+      /\b(despesa|despesas|categoria de despesa|categorias de despesas)\b/.test(normalizedQuestion) &&
+      /\b(cresceu|cresceram|crescimento|aumentou|aumentaram|aumento|mais cresceu|mais aumentou)\b/.test(normalizedQuestion)
+    );
 
 const wantsGrowth =
   !wantsExpenseGrowth &&

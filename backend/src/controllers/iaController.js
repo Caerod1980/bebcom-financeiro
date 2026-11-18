@@ -17126,9 +17126,11 @@ if (conversationalContextAnswer) {
     /\b(reduziu|reduziram|reducao|diminuiu|diminuiram|diminuicao|queda|caiu|cairam)\b/.test(normalizedQuestion);
 
     
+
 const doubleReductionIncomeMatch = normalizedQuestion.match(
-  /\b(?:entradas?|recebimentos?)\b(?:(?!\bcompras?\b)[\s\S])*?\b(?:diminuissem|diminuisse|diminuir|diminuiriam|reduzissem|reduzisse|reduzir|reduziriam|caissem|caisse|cair|queda|reducao)\b(?:\s+(?:em|de))?\s+(\d+(?:[.,]\d+)?)\s*%/
+  /\b(?:entradas?|recebimentos?)\b(?:(?!\bcompras?\b)[\s\S])*?\b(?:diminuissem|diminuisse|diminuir|diminuiriam|reduzissem|reduzisse|reduzir|reduziriam|caissem|caisse|cair|queda|reducao)\b(?:\s+(?:em|de))?\s+(?:(?:aproximadamente|cerca\s+de|por\s+volta\s+de)\s+)?(\d+(?:[.,]\d+)?)\s*%/
 );
+
 
 
 const doubleReductionPurchaseMatch = normalizedQuestion.match(

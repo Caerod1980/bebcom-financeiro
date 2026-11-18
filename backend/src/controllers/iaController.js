@@ -15642,17 +15642,19 @@ ${formatCurrency(Math.abs(balanceChange))}
 🧠 Minha análise
 
 
-${purchasePercent === 100
-  ? 'A eliminação total das compras melhora matematicamente o saldo financeiro, mas representa um cenário extremo. Sem reposição de mercadorias, a operação pode enfrentar ruptura de estoque e perda de vendas futuras.'
-  : incomePercent === 0 && purchasePercent === 0
-    ? 'As entradas e as compras permanecem inalteradas. Consequentemente, o saldo financeiro projetado é igual ao saldo original.'
-    : balanceChange > 0
-      ? incomePercent === 0
-        ? 'As entradas permanecem inalteradas, enquanto a redução das compras melhora o saldo financeiro.'
-        : 'A economia nas compras supera a queda das entradas, produzindo melhoria no saldo financeiro.'
-      : balanceChange < 0
-        ? 'A queda das entradas supera a economia nas compras, provocando deterioração do saldo financeiro.'
-        : 'A economia nas compras compensa exatamente a redução das entradas, mantendo o saldo financeiro.'}
+${incomePercent === 100
+  ? 'A eliminação total das entradas, mantendo os desembolsos previstos, produz um cenário de insuficiência financeira extrema. Sem recebimentos, a operação dependeria de reservas ou outras fontes de recursos para cumprir seus compromissos.'
+  : purchasePercent === 100
+    ? 'A eliminação total das compras melhora matematicamente o saldo financeiro, mas representa um cenário extremo. Sem reposição de mercadorias, a operação pode enfrentar ruptura de estoque e perda de vendas futuras.'
+    : incomePercent === 0 && purchasePercent === 0
+      ? 'As entradas e as compras permanecem inalteradas. Consequentemente, o saldo financeiro projetado é igual ao saldo original.'
+      : balanceChange > 0
+        ? incomePercent === 0
+          ? 'As entradas permanecem inalteradas, enquanto a redução das compras melhora o saldo financeiro.'
+          : 'A economia nas compras supera a queda das entradas, produzindo melhoria no saldo financeiro.'
+        : balanceChange < 0
+          ? 'A queda das entradas supera a economia nas compras, provocando deterioração do saldo financeiro.'
+          : 'A economia nas compras compensa exatamente a redução das entradas, mantendo o saldo financeiro.'}
 
 
 ${projectedBalance < 0
@@ -15666,11 +15668,13 @@ Esta é uma simulação matemática de entradas e saídas, não uma apuração d
 🎯 Minha recomendação
 
 
-${purchasePercent === 100
-  ? 'Não recomendo interromper integralmente a reposição de mercadorias. Utilize este resultado apenas como simulação matemática. Avalie estoque disponível, giro, produtos essenciais e demanda prevista antes de reduzir compras.'
-  : incomePercent === 0 && purchasePercent === 0
-    ? 'Mantenha o acompanhamento das entradas, compras e demais despesas. Como não houve alterações simuladas, não há melhoria ou deterioração financeira projetada.'
-    : 'Revise o planejamento de compras sem comprometer produtos essenciais. Acompanhe o giro das mercadorias, a disponibilidade de estoque e o comportamento das entradas antes de consolidar reduções de desembolsos.'}
+${incomePercent === 100
+  ? 'Este cenário exige atenção máxima à liquidez. Verifique o caixa e as reservas disponíveis, identifique os compromissos essenciais e seus vencimentos, avalie negociações com fornecedores e prepare medidas para preservar a continuidade operacional.'
+  : purchasePercent === 100
+    ? 'Não recomendo interromper integralmente a reposição de mercadorias. Utilize este resultado apenas como simulação matemática. Avalie estoque disponível, giro, produtos essenciais e demanda prevista antes de reduzir compras.'
+    : incomePercent === 0 && purchasePercent === 0
+      ? 'Mantenha o acompanhamento das entradas, compras e demais despesas. Como não houve alterações simuladas, não há melhoria ou deterioração financeira projetada.'
+      : 'Revise o planejamento de compras sem comprometer produtos essenciais. Acompanhe o giro das mercadorias, a disponibilidade de estoque e o comportamento das entradas antes de consolidar reduções de desembolsos.'}
 `.trim();
 };
 

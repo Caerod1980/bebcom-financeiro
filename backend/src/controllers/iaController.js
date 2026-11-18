@@ -16502,17 +16502,19 @@ if (conversationalContextAnswer) {
   lowerQuestion.includes('principal problema') ||
   lowerQuestion.includes('maior gargalo');
 
-  const isSupplierGrowthQuestion =
-  normalizedQuestion.includes('fornecedor mais cresceu') ||
-  normalizedQuestion.includes('qual fornecedor mais cresceu') ||
-  normalizedQuestion.includes('fornecedor aumentou mais') ||
-  normalizedQuestion.includes('fornecedor que mais aumentou');
+  
+  // ETAPA 6.5 — Comparação evolutiva de fornecedores
+  // Diferencia aumento e redução de compras do ranking por volume.
 
-const isSupplierReductionQuestion =
-  normalizedQuestion.includes('fornecedor reduziu compras') ||
-  normalizedQuestion.includes('qual fornecedor reduziu compras') ||
-  normalizedQuestion.includes('fornecedor que mais reduziu') ||
-  normalizedQuestion.includes('qual fornecedor caiu mais');
+  const isSupplierGrowthQuestion =
+    /\bfornecedor(?:es)?\b/.test(normalizedQuestion) &&
+    /\b(aumentou|aumentaram|aumento|cresceu|cresceram|crescimento|mais aumentou|mais cresceu)\b/.test(normalizedQuestion) &&
+    !/\b(reduziu|reduziram|reducao|diminuiu|diminuiram|queda|caiu|cairam)\b/.test(normalizedQuestion);
+
+  const isSupplierReductionQuestion =
+    /\bfornecedor(?:es)?\b/.test(normalizedQuestion) &&
+    /\b(reduziu|reduziram|reducao|diminuiu|diminuiram|diminuicao|queda|caiu|cairam)\b/.test(normalizedQuestion);
+
 
 const isMarginImprovementQuestion =
   normalizedQuestion.includes('margem esta melhorando') ||

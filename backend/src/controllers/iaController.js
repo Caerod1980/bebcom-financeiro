@@ -17080,7 +17080,7 @@ const isDoubleReductionSimulationQuestion =
   /\b(?:se|simulacao|simular|projecao|projetar|hipotese)\b/.test(normalizedQuestion) &&
   [doubleReductionIncomeMatch?.[1], doubleReductionPurchaseMatch?.[1]].every(value => {
     const number = Number(String(value || '').replace(',', '.'));
-    return number > 0 && number <= 100;
+    return number >= 0 && number <= 100;
   });
 
     

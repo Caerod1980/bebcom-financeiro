@@ -17138,13 +17138,25 @@ const doubleReductionPurchaseMatch = normalizedQuestion.match(
 );
 
 
+
 const isDoubleReductionSimulationQuestion =
   Boolean(doubleReductionIncomeMatch && doubleReductionPurchaseMatch) &&
-  /\b(?:se|simulacao|simular|projecao|projetar|hipotese)\b/.test(normalizedQuestion) &&
-  [doubleReductionIncomeMatch?.[1], doubleReductionPurchaseMatch?.[1]].every(value => {
-    const number = Number(String(value || '').replace(',', '.'));
-    return number >= 0 && number <= 100;
-  });
+  /\b(?:se|simulacao|simular|projecao|projetar|hipotese)\b/.test(normalizedQuestion);
+
+const doubleReductionIncomePercent = doubleReductionIncomeMatch
+  ? Number(doubleReductionIncomeMatch[1].replace(',', '.'))
+  : null;
+
+const doubleReductionPurchasePercent = doubleReductionPurchaseMatch
+  ? Number(doubleReductionPurchaseMatch[1].replace(',', '.'))
+  : null;
+
+const hasInvalidDoubleReductionPercent =
+  isDoubleReductionSimulationQuestion &&
+  [doubleReductionIncomePercent, doubleReductionPurchasePercent].some(
+    value => !Number.isFinite(value) || value < 0 || value > 100
+  );
+
 
     
 const adverseIncomeMatch = normalizedQuestion.match(
@@ -17672,12 +17684,47 @@ const genericPayablesAnswer =
   buildGenericPayablesAnswer(ctx, question);
 
 
+
 if (isDoubleReductionSimulationQuestion) {
-  answer = buildDoubleReductionSimulationAnswer(
-    ctx,
-    Number(doubleReductionIncomeMatch[1].replace(',', '.')),
-    Number(doubleReductionPurchaseMatch[1].replace(',', '.'))
-  );
+  if (hasInvalidDoubleReductionPercent) {
+    answer = `
+⚠️ SIMULAÇÃO FINANCEIRA — PERCENTUAL INVÁLIDO
+
+━━━━━━━━━━━━━━━━━━
+
+📅 Período
+${ctx.periodLabel}
+
+Não é possível realizar esta simulação com os percentuais informados.
+
+Uma redução financeira deve estar entre 0% e 100%.
+
+Redução das entradas:
+${doubleReductionIncomePercent}%
+
+Redução das compras:
+${doubleReductionPurchasePercent}%
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Reduções superiores a 100% produziriam valores projetados negativos para entradas ou compras, tornando a hipótese inconsistente.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Informe percentuais entre 0% e 100% para realizar uma simulação financeira válida.
+`.trim();
+  } else {
+    answer = buildDoubleReductionSimulationAnswer(
+      ctx,
+      doubleReductionIncomePercent,
+      doubleReductionPurchasePercent
+    );
+  }
+
 
 } else if (isAdverseSimulationQuestion) {
   answer = buildAdverseSimulationAnswer(

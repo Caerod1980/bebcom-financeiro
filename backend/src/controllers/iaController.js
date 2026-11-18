@@ -17128,13 +17128,13 @@ if (conversationalContextAnswer) {
     
 
 const doubleReductionIncomeMatch = normalizedQuestion.match(
-  /\b(?:entradas?|recebimentos?)\b(?:(?!\bcompras?\b)[\s\S])*?\b(?:diminuissem|diminuisse|diminuir|diminuiriam|reduzissem|reduzisse|reduzir|reduziriam|caissem|caisse|cair|queda|reducao)\b(?:\s+(?:em|de))?\s+(?:(?:aproximadamente|cerca\s+de|por\s+volta\s+de)\s+)?(\d+(?:[.,]\d+)?)\s*%/
+  /\b(?:entradas?|recebimentos?)\b(?:(?!\bcompras?\b)[\s\S])*?\b(?:diminuissem|diminuisse|diminuir|diminuiriam|reduzissem|reduzisse|reduzir|reduziriam|caissem|caisse|cair|queda|reducao)\b(?:\s+(?:em|de))?\s+(?:(?:aproximadamente|cerca\s+de|por\s+volta\s+de)\s+)?(-?\d+(?:[.,]\d+)?)\s*%/
 );
 
 
 
 const doubleReductionPurchaseMatch = normalizedQuestion.match(
-  /\bcompras(?:\s+de\s+mercadorias)?\b(?:(?!\b(?:entradas?|recebimentos?)\b)[\s\S])*?\b(?:diminuissem|diminuisse|diminuir|diminuiriam|reduzissem|reduzisse|reduzir|reduziriam|caissem|caisse|cair|queda|reducao)\b(?:\s+(?:em|de))?\s+(?:(?:aproximadamente|cerca\s+de|por\s+volta\s+de)\s+)?(\d+(?:[.,]\d+)?)\s*%/
+  /\bcompras(?:\s+de\s+mercadorias)?\b(?:(?!\b(?:entradas?|recebimentos?)\b)[\s\S])*?\b(?:diminuissem|diminuisse|diminuir|diminuiriam|reduzissem|reduzisse|reduzir|reduziriam|caissem|caisse|cair|queda|reducao)\b(?:\s+(?:em|de))?\s+(?:(?:aproximadamente|cerca\s+de|por\s+volta\s+de)\s+)?(-?\d+(?:[.,]\d+)?)\s*%/
 );
 
 
@@ -17709,7 +17709,7 @@ ${doubleReductionPurchasePercent}%
 
 🧠 Minha análise
 
-Reduções superiores a 100% produziriam valores projetados negativos para entradas ou compras, tornando a hipótese inconsistente.
+Percentuais negativos representam uma variação contrária à redução solicitada. Já reduções superiores a 100% produziriam valores projetados negativos. Por isso, esta simulação exige percentuais entre 0% e 100%.
 
 ━━━━━━━━━━━━━━━━━━
 

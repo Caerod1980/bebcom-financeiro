@@ -16667,11 +16667,15 @@ const isBreakEvenSalesQuestion =
   normalizedQuestion.includes('quanto falta para zerar o mes') ||
   normalizedQuestion.includes('quanto falta para zerar');
 
+
+const purchaseCutMatch = normalizedQuestion.match(
+  /\b(?:reduzir|cortar|diminuir|reduzisse|cortasse)\b\s+(?:em\s+)?(\d+(?:[.,]\d+)?)\s*%?\s+(?:as|nas|das|minhas)?\s*compras\b/
+);
+
 const isPurchaseCutSimulationQuestion =
-  normalizedQuestion.includes('cortar 10% das compras') ||
-  normalizedQuestion.includes('cortar 10 das compras') ||
-  normalizedQuestion.includes('reduzir 10% das compras') ||
-  normalizedQuestion.includes('reduzir 10 das compras');
+  Boolean(purchaseCutMatch) &&
+  Number(purchaseCutMatch[1].replace(',', '.')) > 0 &&
+  Number(purchaseCutMatch[1].replace(',', '.')) <= 100;
 
    
     const invalidSupplierTerms = [
@@ -17163,8 +17167,13 @@ if (isMarginChangeSimulationQuestion) {
 } else if (isBreakEvenSalesQuestion) {
   answer = buildBreakEvenSalesAnswer(ctx);
 
+
 } else if (isPurchaseCutSimulationQuestion) {
-  answer = buildPurchaseCutSimulationAnswer(ctx, 10);
+  answer = buildPurchaseCutSimulationAnswer(
+    ctx,
+    Number(purchaseCutMatch[1].replace(',', '.'))
+  );
+
 
 } else if (wantsGrowthDeclineQuestion) {
   answer = buildGrowthDeclineAnswer(

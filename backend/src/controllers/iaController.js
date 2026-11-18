@@ -15565,6 +15565,95 @@ Avalie preços, custos, mix de produtos e giro antes de estabelecer uma nova met
 };
 
 
+const buildAdverseSimulationAnswer = (ctx, incomePercent, purchasePercent) => {
+  const income = Number(ctx.totalIncome || 0);
+  const expenses = Number(ctx.totalExpenses || 0);
+  const purchases = getPurchaseAmount(ctx);
+
+  const incomeReduction = income * incomePercent / 100;
+  const purchaseIncrease = purchases * purchasePercent / 100;
+
+  const projectedIncome = income - incomeReduction;
+  const projectedPurchases = purchases + purchaseIncrease;
+  const projectedExpenses = expenses + purchaseIncrease;
+
+  const currentBalance = income - expenses;
+  const projectedBalance = projectedIncome - projectedExpenses;
+  const deterioration = incomeReduction + purchaseIncrease;
+
+  const pct = value => value.toLocaleString('pt-BR', {
+    maximumFractionDigits: 2
+  });
+
+  return `
+🚨 SIMULAÇÃO FINANCEIRA — CENÁRIO DESFAVORÁVEL
+
+━━━━━━━━━━━━━━━━━━
+
+📅 Período
+${ctx.periodLabel}
+
+📉 QUEDA DAS ENTRADAS
+
+Entradas atuais
+${formatCurrency(income)}
+
+Redução de ${pct(incomePercent)}%
+${formatCurrency(incomeReduction)}
+
+Entradas projetadas
+${formatCurrency(projectedIncome)}
+
+━━━━━━━━━━━━━━━━━━
+
+📈 AUMENTO DAS COMPRAS
+
+Compras atuais
+${formatCurrency(purchases)}
+
+Aumento de ${pct(purchasePercent)}%
+${formatCurrency(purchaseIncrease)}
+
+Compras projetadas
+${formatCurrency(projectedPurchases)}
+
+━━━━━━━━━━━━━━━━━━
+
+💰 IMPACTO FINANCEIRO
+
+Saídas projetadas
+${formatCurrency(projectedExpenses)}
+
+Saldo original
+${formatCurrency(currentBalance)}
+
+Saldo projetado
+${formatCurrency(projectedBalance)}
+
+Deterioração financeira simulada
+${formatCurrency(deterioration)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+A combinação de redução nas entradas e aumento das compras pressiona diretamente o saldo financeiro.
+
+${projectedBalance < 0
+  ? '🚨 ALERTA: O cenário projetado apresenta saldo financeiro negativo e exige atenção ao capital de giro.'
+  : 'O saldo permanece positivo, mas apresenta deterioração em relação ao período original.'}
+
+Esta é uma simulação matemática de entradas e saídas, não uma apuração de lucro ou prejuízo contábil.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Revise o planejamento de compras, priorize produtos de maior giro e acompanhe os compromissos financeiros antes de ampliar desembolsos.
+`.trim();
+};
+
+
 const buildCombinedSimulationAnswer = (ctx, incomePercent, purchasePercent) => {
   const income = Number(ctx.totalIncome || 0);
   const expenses = Number(ctx.totalExpenses || 0);
@@ -16792,6 +16881,23 @@ if (conversationalContextAnswer) {
     /\bfornecedor(?:es)?\b/.test(normalizedQuestion) &&
     /\b(reduziu|reduziram|reducao|diminuiu|diminuiram|diminuicao|queda|caiu|cairam)\b/.test(normalizedQuestion);
 
+    
+const adverseIncomeMatch = normalizedQuestion.match(
+  /\b(?:entradas?|recebimentos?)\b(?:(?!\bcompras?\b)[\s\S])*?\b(?:diminuissem|diminuisse|diminuir|diminuiriam|reduzissem|reduzisse|reduzir|reduziriam|caissem|caisse|cair|queda|reducao)\b(?:\s+(?:em|de))?\s+(\d+(?:[.,]\d+)?)\s*%/
+);
+
+const adversePurchaseMatch = normalizedQuestion.match(
+  /\bcompras(?:\s+de\s+mercadorias)?\b.*?\b(?:aumentassem|aumentasse|aumentar|aumentarem|aumentando|crescessem|crescesse|crescer|aumento)\b(?:\s+(?:em|de))?\s+(\d+(?:[.,]\d+)?)\s*%/
+);
+
+const isAdverseSimulationQuestion =
+  Boolean(adverseIncomeMatch && adversePurchaseMatch) &&
+  /\b(?:se|simulacao|simular|projecao|projetar|hipotese)\b/.test(normalizedQuestion) &&
+  [adverseIncomeMatch[1], adversePurchaseMatch[1]].every(value => {
+    const number = Number(value.replace(',', '.'));
+    return number > 0 && number <= 100;
+  });
+
 
 const combinedIncomeMatch = normalizedQuestion.match(
   /\b(?:entradas?|recebimentos?)\b.*?\b(?:aumentassem|aumentasse|aumentar|aumentarem|aumentando|crescessem|crescesse|crescer|crescimento|aumento)\b(?:\s+(?:em|de))?\s+(\d+(?:[.,]\d+)?)\s*%/
@@ -16810,9 +16916,11 @@ const isCombinedSimulationQuestion =
   });
 
     
+
 const incomeGrowthMatch = normalizedQuestion.match(
-  /\b(?:entradas?|recebimentos?)\b.*?\b(?:aumentassem|aumentasse|aumentar|aumentarem|aumentando|crescessem|crescesse|crescer|crescimento|aumento)\b(?:\s+(?:em|de))?\s+(\d+(?:[.,]\d+)?)\s*%/
+  /\b(?:entradas?|recebimentos?)\b(?:(?!\bcompras?\b)[\s\S])*?\b(?:aumentassem|aumentasse|aumentar|aumentarem|aumentando|crescessem|crescesse|crescer|crescimento|aumento)\b(?:\s+(?:em|de))?\s+(\d+(?:[.,]\d+)?)\s*%/
 );
+
 
 const isIncomeGrowthSimulationQuestion =
   Boolean(incomeGrowthMatch) &&
@@ -17280,7 +17388,16 @@ const genericPayablesAnswer =
   buildGenericPayablesAnswer(ctx, question);
 
 
-if (isCombinedSimulationQuestion) {
+
+if (isAdverseSimulationQuestion) {
+  answer = buildAdverseSimulationAnswer(
+    ctx,
+    Number(adverseIncomeMatch[1].replace(',', '.')),
+    Number(adversePurchaseMatch[1].replace(',', '.'))
+  );
+
+} else if (isCombinedSimulationQuestion) {
+
   answer = buildCombinedSimulationAnswer(
     ctx,
     Number(combinedIncomeMatch[1].replace(',', '.')),

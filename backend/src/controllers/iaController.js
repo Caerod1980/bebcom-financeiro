@@ -15565,6 +15565,88 @@ Avalie preços, custos, mix de produtos e giro antes de estabelecer uma nova met
 };
 
 
+const buildCombinedSimulationAnswer = (ctx, incomePercent, purchasePercent) => {
+  const income = Number(ctx.totalIncome || 0);
+  const expenses = Number(ctx.totalExpenses || 0);
+  const purchases = getPurchaseAmount(ctx);
+
+  const incomeIncrease = income * incomePercent / 100;
+  const purchaseReduction = purchases * purchasePercent / 100;
+
+  const projectedIncome = income + incomeIncrease;
+  const projectedExpenses = expenses - purchaseReduction;
+  const currentBalance = income - expenses;
+  const projectedBalance = projectedIncome - projectedExpenses;
+
+  const pct = value => value.toLocaleString('pt-BR', {
+    maximumFractionDigits: 2
+  });
+
+  return `
+🧮 SIMULAÇÃO FINANCEIRA COMBINADA
+
+━━━━━━━━━━━━━━━━━━
+
+📅 Período
+${ctx.periodLabel}
+
+📈 CRESCIMENTO DAS ENTRADAS
+
+Entradas atuais
+${formatCurrency(income)}
+
+Aumento de ${pct(incomePercent)}%
+${formatCurrency(incomeIncrease)}
+
+Entradas projetadas
+${formatCurrency(projectedIncome)}
+
+━━━━━━━━━━━━━━━━━━
+
+📉 REDUÇÃO DAS COMPRAS
+
+Compras atuais
+${formatCurrency(purchases)}
+
+Redução de ${pct(purchasePercent)}%
+${formatCurrency(purchaseReduction)}
+
+Compras projetadas
+${formatCurrency(purchases - purchaseReduction)}
+
+━━━━━━━━━━━━━━━━━━
+
+💰 IMPACTO FINANCEIRO
+
+Saídas projetadas
+${formatCurrency(projectedExpenses)}
+
+Saldo original
+${formatCurrency(currentBalance)}
+
+Saldo projetado
+${formatCurrency(projectedBalance)}
+
+Melhoria total simulada
+${formatCurrency(incomeIncrease + purchaseReduction)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+O cenário combina aumento de entradas e menor desembolso com compras. Os demais valores permanecem constantes.
+
+Esta é uma simulação de saldo financeiro, não uma previsão de lucro.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Avalie se o crescimento das entradas é viável sem exigir reposições adicionais de estoque. Reduzir compras não deve comprometer produtos essenciais ou vendas futuras.
+`.trim();
+};
+
+
 const buildIncomeGrowthSimulationAnswer = (ctx, percent) => {
   const currentIncome = Number(ctx.totalIncome || 0);
   const currentExpenses = Number(ctx.totalExpenses || 0);
@@ -16710,6 +16792,23 @@ if (conversationalContextAnswer) {
     /\bfornecedor(?:es)?\b/.test(normalizedQuestion) &&
     /\b(reduziu|reduziram|reducao|diminuiu|diminuiram|diminuicao|queda|caiu|cairam)\b/.test(normalizedQuestion);
 
+
+const combinedIncomeMatch = normalizedQuestion.match(
+  /\b(?:entradas?|recebimentos?)\b.*?\b(?:aumentassem|aumentasse|aumentar|aumentarem|aumentando|crescessem|crescesse|crescer|crescimento|aumento)\b(?:\s+(?:em|de))?\s+(\d+(?:[.,]\d+)?)\s*%/
+);
+
+const combinedPurchaseMatch = normalizedQuestion.match(
+  /\bcompras(?:\s+de\s+mercadorias)?\b.*?\b(?:diminuissem|diminuisse|diminuir|reduzissem|reduzisse|reduzir|caissem|caisse)\b(?:\s+(?:em|de))?\s+(\d+(?:[.,]\d+)?)\s*%/
+);
+
+const isCombinedSimulationQuestion =
+  Boolean(combinedIncomeMatch && combinedPurchaseMatch) &&
+  /\bse\b/.test(normalizedQuestion) &&
+  [combinedIncomeMatch[1], combinedPurchaseMatch[1]].every(value => {
+    const number = Number(value.replace(',', '.'));
+    return number > 0 && number <= 100;
+  });
+
     
 const incomeGrowthMatch = normalizedQuestion.match(
   /\b(?:entradas?|recebimentos?)\b.*?\b(?:aumentassem|aumentasse|aumentar|aumentarem|aumentando|crescessem|crescesse|crescer|crescimento|aumento)\b(?:\s+(?:em|de))?\s+(\d+(?:[.,]\d+)?)\s*%/
@@ -17181,9 +17280,15 @@ const genericPayablesAnswer =
   buildGenericPayablesAnswer(ctx, question);
 
 
+if (isCombinedSimulationQuestion) {
+  answer = buildCombinedSimulationAnswer(
+    ctx,
+    Number(combinedIncomeMatch[1].replace(',', '.')),
+    Number(combinedPurchaseMatch[1].replace(',', '.'))
+  );
 
+} else if (isIncomeGrowthSimulationQuestion) {
 
-if (isIncomeGrowthSimulationQuestion) {
   answer = buildIncomeGrowthSimulationAnswer(
     ctx,
     Number(incomeGrowthMatch[1].replace(',', '.'))

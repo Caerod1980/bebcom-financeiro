@@ -16006,7 +16006,11 @@ ${formatCurrency(additionalIncome)}
 
 🧠 Minha análise
 
-Mantidas as saídas constantes, o crescimento de ${formattedPercent}% nas entradas elevaria o saldo financeiro em ${formatCurrency(additionalIncome)}.
+
+${percent >= 100
+  ? `Mantidas as saídas constantes, o crescimento de ${formattedPercent}% nas entradas elevaria matematicamente o saldo financeiro em ${formatCurrency(additionalIncome)}. Entretanto, um crescimento dessa magnitude pode exigir maior disponibilidade de estoque, capacidade de atendimento e capital de giro. Sem verificar essas condições, não é possível considerar o resultado operacionalmente garantido.`
+  : `Mantidas as saídas constantes, o crescimento de ${formattedPercent}% nas entradas elevaria o saldo financeiro em ${formatCurrency(additionalIncome)}.`}
+
 
 Esta é uma simulação matemática. Entradas financeiras não equivalem necessariamente a faturamento, e a melhoria do saldo não representa automaticamente aumento do lucro.
 
@@ -16014,7 +16018,10 @@ Esta é uma simulação matemática. Entradas financeiras não equivalem necessa
 
 🎯 Minha recomendação
 
-Avalie quais ações podem aumentar as entradas sem provocar crescimento desproporcional das compras, despesas e demais desembolsos.
+
+${percent >= 100
+  ? 'Antes de estabelecer uma meta de crescimento dessa magnitude, avalie a origem das entradas adicionais e, caso dependam de vendas, verifique a disponibilidade de estoque, a capacidade operacional e a necessidade de capital de giro. Planeje o crescimento sem comprometer o abastecimento ou assumir que as despesas permanecerão constantes.'
+  : 'Avalie quais ações podem aumentar as entradas sem provocar crescimento desproporcional das compras, despesas e demais desembolsos.'}
 `.trim();
 };
 

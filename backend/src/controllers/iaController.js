@@ -15630,9 +15630,11 @@ ${formatCurrency(currentBalance)}
 Saldo projetado
 ${formatCurrency(projectedBalance)}
 
-${balanceChange >= 0
-  ? 'Melhoria financeira simulada'
-  : 'Deterioração financeira simulada'}
+${Math.abs(balanceChange) < 0.005
+  ? 'Variação financeira simulada'
+  : balanceChange > 0
+    ? 'Melhoria financeira simulada'
+    : 'Deterioração financeira simulada'}
 ${formatCurrency(Math.abs(balanceChange))}
 
 ━━━━━━━━━━━━━━━━━━
@@ -15643,7 +15645,9 @@ ${balanceChange > 0
   ? 'A economia nas compras supera a queda das entradas, produzindo melhoria no saldo financeiro.'
   : balanceChange < 0
     ? 'A queda das entradas supera a economia nas compras, provocando deterioração do saldo financeiro.'
-    : 'A economia nas compras compensa exatamente a redução das entradas, mantendo o saldo financeiro.'}
+    : incomePercent === 0 && purchasePercent === 0
+  ? 'As entradas e as compras permanecem inalteradas. Consequentemente, o saldo financeiro projetado é igual ao saldo original.'
+  : 'A economia nas compras compensa exatamente a redução das entradas, mantendo o saldo financeiro.'}
 
 ${projectedBalance < 0
   ? '🚨 O saldo projetado é negativo e exige atenção ao capital de giro.'
@@ -15655,7 +15659,9 @@ Esta é uma simulação matemática de entradas e saídas, não uma apuração d
 
 🎯 Minha recomendação
 
-Revise o planejamento de compras sem comprometer produtos essenciais. Acompanhe o giro das mercadorias, a disponibilidade de estoque e o comportamento das entradas antes de consolidar reduções de desembolsos.
+${incomePercent === 0 && purchasePercent === 0
+  ? 'Mantenha o acompanhamento das entradas, compras e demais despesas. Como não houve alterações simuladas, não há melhoria ou deterioração financeira projetada.'
+  : 'Revise o planejamento de compras sem comprometer produtos essenciais. Acompanhe o giro das mercadorias, a disponibilidade de estoque e o comportamento das entradas antes de consolidar reduções de desembolsos.'}
 `.trim();
 };
 

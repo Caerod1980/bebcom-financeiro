@@ -15565,6 +15565,100 @@ Avalie preços, custos, mix de produtos e giro antes de estabelecer uma nova met
 };
 
 
+const buildDoubleReductionSimulationAnswer = (ctx, incomePercent, purchasePercent) => {
+  const income = Number(ctx.totalIncome || 0);
+  const expenses = Number(ctx.totalExpenses || 0);
+  const purchases = getPurchaseAmount(ctx);
+
+  const incomeReduction = income * incomePercent / 100;
+  const purchaseReduction = purchases * purchasePercent / 100;
+
+  const projectedIncome = income - incomeReduction;
+  const projectedPurchases = purchases - purchaseReduction;
+  const projectedExpenses = expenses - purchaseReduction;
+
+  const currentBalance = income - expenses;
+  const projectedBalance = projectedIncome - projectedExpenses;
+  const balanceChange = projectedBalance - currentBalance;
+
+  const pct = value => value.toLocaleString('pt-BR', {
+    maximumFractionDigits: 2
+  });
+
+  return `
+🧮 SIMULAÇÃO FINANCEIRA — REDUÇÃO DE ENTRADAS E COMPRAS
+
+━━━━━━━━━━━━━━━━━━
+
+📅 Período
+${ctx.periodLabel}
+
+📉 REDUÇÃO DAS ENTRADAS
+
+Entradas atuais
+${formatCurrency(income)}
+
+Redução de ${pct(incomePercent)}%
+${formatCurrency(incomeReduction)}
+
+Entradas projetadas
+${formatCurrency(projectedIncome)}
+
+━━━━━━━━━━━━━━━━━━
+
+📦 REDUÇÃO DAS COMPRAS
+
+Compras atuais
+${formatCurrency(purchases)}
+
+Redução de ${pct(purchasePercent)}%
+${formatCurrency(purchaseReduction)}
+
+Compras projetadas
+${formatCurrency(projectedPurchases)}
+
+━━━━━━━━━━━━━━━━━━
+
+💰 IMPACTO FINANCEIRO
+
+Saídas projetadas
+${formatCurrency(projectedExpenses)}
+
+Saldo original
+${formatCurrency(currentBalance)}
+
+Saldo projetado
+${formatCurrency(projectedBalance)}
+
+${balanceChange >= 0
+  ? 'Melhoria financeira simulada'
+  : 'Deterioração financeira simulada'}
+${formatCurrency(Math.abs(balanceChange))}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+${balanceChange > 0
+  ? 'A economia nas compras supera a queda das entradas, produzindo melhoria no saldo financeiro.'
+  : balanceChange < 0
+    ? 'A queda das entradas supera a economia nas compras, provocando deterioração do saldo financeiro.'
+    : 'A economia nas compras compensa exatamente a redução das entradas, mantendo o saldo financeiro.'}
+
+${projectedBalance < 0
+  ? '🚨 O saldo projetado é negativo e exige atenção ao capital de giro.'
+  : 'O saldo financeiro projetado permanece positivo ou zerado.'}
+
+Esta é uma simulação matemática de entradas e saídas, não uma apuração de lucro contábil.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Revise o planejamento de compras sem comprometer produtos essenciais. Acompanhe o giro das mercadorias, a disponibilidade de estoque e o comportamento das entradas antes de consolidar reduções de desembolsos.
+`.trim();
+};
+
 const buildAdverseSimulationAnswer = (ctx, incomePercent, purchasePercent) => {
   const income = Number(ctx.totalIncome || 0);
   const expenses = Number(ctx.totalExpenses || 0);
@@ -16973,6 +17067,23 @@ if (conversationalContextAnswer) {
     /\b(reduziu|reduziram|reducao|diminuiu|diminuiram|diminuicao|queda|caiu|cairam)\b/.test(normalizedQuestion);
 
     
+const doubleReductionIncomeMatch = normalizedQuestion.match(
+  /\b(?:entradas?|recebimentos?)\b(?:(?!\bcompras?\b)[\s\S])*?\b(?:diminuissem|diminuisse|diminuir|diminuiriam|reduzissem|reduzisse|reduzir|reduziriam|caissem|caisse|cair|queda|reducao)\b(?:\s+(?:em|de))?\s+(\d+(?:[.,]\d+)?)\s*%/
+);
+
+const doubleReductionPurchaseMatch = normalizedQuestion.match(
+  /\bcompras(?:\s+de\s+mercadorias)?\b(?:(?!\b(?:entradas?|recebimentos?)\b)[\s\S])*?\b(?:diminuissem|diminuisse|diminuir|diminuiriam|reduzissem|reduzisse|reduzir|reduziriam|caissem|caisse|cair|queda|reducao)\b(?:\s+(?:em|de))?\s+(\d+(?:[.,]\d+)?)\s*%/
+);
+
+const isDoubleReductionSimulationQuestion =
+  Boolean(doubleReductionIncomeMatch && doubleReductionPurchaseMatch) &&
+  /\b(?:se|simulacao|simular|projecao|projetar|hipotese)\b/.test(normalizedQuestion) &&
+  [doubleReductionIncomeMatch?.[1], doubleReductionPurchaseMatch?.[1]].every(value => {
+    const number = Number(String(value || '').replace(',', '.'));
+    return number > 0 && number <= 100;
+  });
+
+    
 const adverseIncomeMatch = normalizedQuestion.match(
   /\b(?:entradas?|recebimentos?)\b(?:(?!\bcompras?\b)[\s\S])*?\b(?:diminuissem|diminuisse|diminuir|diminuiriam|reduzissem|reduzisse|reduzir|reduziriam|caissem|caisse|cair|queda|reducao)\b(?:\s+(?:em|de))?\s+(\d+(?:[.,]\d+)?)\s*%/
 );
@@ -17495,7 +17606,14 @@ const genericPayablesAnswer =
   buildGenericPayablesAnswer(ctx, question);
 
 
-if (isAdverseSimulationQuestion) {
+if (isDoubleReductionSimulationQuestion) {
+  answer = buildDoubleReductionSimulationAnswer(
+    ctx,
+    Number(doubleReductionIncomeMatch[1].replace(',', '.')),
+    Number(doubleReductionPurchaseMatch[1].replace(',', '.'))
+  );
+
+} else if (isAdverseSimulationQuestion) {
   answer = buildAdverseSimulationAnswer(
     ctx,
     Number(adverseIncomeMatch[1].replace(',', '.')),

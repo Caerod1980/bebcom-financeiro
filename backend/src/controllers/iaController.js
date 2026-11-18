@@ -17164,9 +17164,11 @@ const mixedIncomeMatch = normalizedQuestion.match(
   /\b(?:entradas?|recebimentos?)\b(?:(?!\bcompras?\b)[\s\S])*?\b(?:aumentassem|aumentasse|aumentar|aumentarem|aumentando|crescessem|crescesse|crescer|crescimento|aumento)\b(?:\s+(?:em|de))?\s+(\d+(?:[.,]\d+)?)\s*%/
 );
 
+
 const mixedPurchaseMatch = normalizedQuestion.match(
-  /\bcompras(?:\s+de\s+mercadorias)?\b(?:(?!\b(?:entradas?|recebimentos?)\b)[\s\S])*?\b(?:aumentassem|aumentasse|aumentar|aumentarem|aumentando|crescessem|crescesse|crescer|crescimento|aumento)\b(?:\s+(?:em|de))?\s+(\d+(?:[.,]\d+)?)\s*%/
+  /\bcompras(?:\s+de\s+mercadorias)?\b(?:(?!\b(?:entradas?|recebimentos?)\b)[\s\S])*?\b(?:aumentassem|aumentasse|aumentar|aumentarem|aumentando|crescessem|crescesse|crescer|crescimento|aumento)\b(?:\s+(?:em|de))?\s+(?:(?:aproximadamente|cerca\s+de|por\s+volta\s+de)\s+)?(\d+(?:[.,]\d+)?)\s*%/
 );
+
 
 const isMixedGrowthSimulationQuestion =
   Boolean(mixedIncomeMatch && mixedPurchaseMatch) &&

@@ -15641,13 +15641,19 @@ ${formatCurrency(Math.abs(balanceChange))}
 
 🧠 Minha análise
 
-${balanceChange > 0
-  ? 'A economia nas compras supera a queda das entradas, produzindo melhoria no saldo financeiro.'
-  : balanceChange < 0
-    ? 'A queda das entradas supera a economia nas compras, provocando deterioração do saldo financeiro.'
-    : incomePercent === 0 && purchasePercent === 0
-  ? 'As entradas e as compras permanecem inalteradas. Consequentemente, o saldo financeiro projetado é igual ao saldo original.'
-  : 'A economia nas compras compensa exatamente a redução das entradas, mantendo o saldo financeiro.'}
+
+${purchasePercent === 100
+  ? 'A eliminação total das compras melhora matematicamente o saldo financeiro, mas representa um cenário extremo. Sem reposição de mercadorias, a operação pode enfrentar ruptura de estoque e perda de vendas futuras.'
+  : incomePercent === 0 && purchasePercent === 0
+    ? 'As entradas e as compras permanecem inalteradas. Consequentemente, o saldo financeiro projetado é igual ao saldo original.'
+    : balanceChange > 0
+      ? incomePercent === 0
+        ? 'As entradas permanecem inalteradas, enquanto a redução das compras melhora o saldo financeiro.'
+        : 'A economia nas compras supera a queda das entradas, produzindo melhoria no saldo financeiro.'
+      : balanceChange < 0
+        ? 'A queda das entradas supera a economia nas compras, provocando deterioração do saldo financeiro.'
+        : 'A economia nas compras compensa exatamente a redução das entradas, mantendo o saldo financeiro.'}
+
 
 ${projectedBalance < 0
   ? '🚨 O saldo projetado é negativo e exige atenção ao capital de giro.'
@@ -15659,9 +15665,12 @@ Esta é uma simulação matemática de entradas e saídas, não uma apuração d
 
 🎯 Minha recomendação
 
-${incomePercent === 0 && purchasePercent === 0
-  ? 'Mantenha o acompanhamento das entradas, compras e demais despesas. Como não houve alterações simuladas, não há melhoria ou deterioração financeira projetada.'
-  : 'Revise o planejamento de compras sem comprometer produtos essenciais. Acompanhe o giro das mercadorias, a disponibilidade de estoque e o comportamento das entradas antes de consolidar reduções de desembolsos.'}
+
+${purchasePercent === 100
+  ? 'Não recomendo interromper integralmente a reposição de mercadorias. Utilize este resultado apenas como simulação matemática. Avalie estoque disponível, giro, produtos essenciais e demanda prevista antes de reduzir compras.'
+  : incomePercent === 0 && purchasePercent === 0
+    ? 'Mantenha o acompanhamento das entradas, compras e demais despesas. Como não houve alterações simuladas, não há melhoria ou deterioração financeira projetada.'
+    : 'Revise o planejamento de compras sem comprometer produtos essenciais. Acompanhe o giro das mercadorias, a disponibilidade de estoque e o comportamento das entradas antes de consolidar reduções de desembolsos.'}
 `.trim();
 };
 

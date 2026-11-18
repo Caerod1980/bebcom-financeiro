@@ -15196,6 +15196,84 @@ const getPurchaseSuppliers = (ctx) => {
   );
 };
 
+
+const buildPurchasesVsIncomeGrowthAnswer = (ctx, previousCtx) => {
+  if (!previousCtx) {
+    return 'Não encontrei dados do período anterior para realizar a comparação.';
+  }
+
+  const getPurchases = (periodCtx) =>
+    (periodCtx.expenseCategories || [])
+      .filter(item => item.category === 'compras_mercadorias')
+      .reduce((total, item) => total + Number(item.amount || 0), 0);
+
+  const previousPurchases = getPurchases(previousCtx);
+  const currentPurchases = getPurchases(ctx);
+
+  const previousIncome = Number(previousCtx.totalIncome || 0);
+  const currentIncome = Number(ctx.totalIncome || 0);
+
+  const purchaseDifference = currentPurchases - previousPurchases;
+  const incomeDifference = currentIncome - previousIncome;
+
+  const purchaseGrowth = previousPurchases > 0
+    ? (purchaseDifference / previousPurchases) * 100
+    : null;
+
+  const incomeGrowth = previousIncome > 0
+    ? (incomeDifference / previousIncome) * 100
+    : null;
+
+  const formatPercent = value =>
+    value === null ? 'Sem base anterior para calcular' : `${value.toFixed(1)}%`;
+
+  const conclusion =
+    purchaseGrowth === null || incomeGrowth === null
+      ? 'Não há base suficiente para comparar as taxas de crescimento.'
+      : purchaseGrowth > incomeGrowth
+        ? 'Sim. As compras cresceram proporcionalmente mais que as entradas financeiras.'
+        : purchaseGrowth < incomeGrowth
+          ? 'Não. As compras cresceram menos, ou recuaram mais, que as entradas financeiras.'
+          : 'As compras e as entradas apresentaram a mesma variação percentual.';
+
+  return `
+📦 COMPRAS VERSUS ENTRADAS — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+🛒 COMPRAS DE MERCADORIAS
+
+Período anterior: ${formatCurrency(previousPurchases)}
+Período atual: ${formatCurrency(currentPurchases)}
+Diferença: ${formatCurrency(purchaseDifference)}
+Variação: ${formatPercent(purchaseGrowth)}
+
+━━━━━━━━━━━━━━━━━━
+
+💰 ENTRADAS FINANCEIRAS
+
+Período anterior: ${formatCurrency(previousIncome)}
+Período atual: ${formatCurrency(currentIncome)}
+Diferença: ${formatCurrency(incomeDifference)}
+Variação: ${formatPercent(incomeGrowth)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+${conclusion}
+
+Esta comparação mede a evolução das compras em relação às entradas. Não representa CMV nem margem de lucro.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Acompanhe o giro do estoque, os prazos de pagamento e a necessidade de reposição antes de ampliar as compras.
+  `.trim();
+};
+
+
 const buildSupplierPurchaseEvolutionAnswer = (
   ctx,
   previousCtx,
@@ -16902,6 +16980,12 @@ if (temporalAnalyticsAnswer) {
   normalizedQuestion.includes('quem consome meu caixa') ||
   normalizedQuestion.includes('quem drena meu caixa');
 
+  
+const isPurchasesVsIncomeGrowthQuestion =
+  /\b(compra|compras|comprando|mercadoria|mercadorias)\b/.test(normalizedQuestion) &&
+  /\b(entrada|entradas|recebimento|recebimentos)\b/.test(normalizedQuestion) &&
+  /\b(crescimento|cresceu|cresceram|aumento|aumentou|aumentaram|variacao|proporcao)\b/.test(normalizedQuestion);
+
 
   // ETAPA 6.4 — Priorizar crescimento de categorias de despesas.
   // Evita que perguntas sobre despesas sejam tratadas como crescimento de entradas.
@@ -16957,9 +17041,17 @@ if (earlySupplierPayableName) {
 const genericPayablesAnswer =
   buildGenericPayablesAnswer(ctx, question);
 
-if (managementReportRankingAnswer) {
+
+if (isPurchasesVsIncomeGrowthQuestion) {
+  answer = buildPurchasesVsIncomeGrowthAnswer(
+    ctx,
+    equivalentPreviousCtx
+  );
+
+} else if (managementReportRankingAnswer) {
   answer = managementReportRankingAnswer;
 } else if (wantsExpenseGrowth) {
+
   answer = buildExpenseGrowthAnswer(
     ctx,
     previousCtx

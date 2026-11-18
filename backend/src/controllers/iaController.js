@@ -15642,8 +15642,11 @@ ${formatCurrency(Math.abs(balanceChange))}
 🧠 Minha análise
 
 
-${incomePercent === 100
-  ? 'A eliminação total das entradas, mantendo os desembolsos previstos, produz um cenário de insuficiência financeira extrema. Sem recebimentos, a operação dependeria de reservas ou outras fontes de recursos para cumprir seus compromissos.'
+
+${incomePercent === 100 && purchasePercent === 100
+  ? `Mesmo eliminando integralmente as entradas e as compras de mercadorias, permanecem ${formatCurrency(projectedExpenses)} em outras saídas previstas. O saldo financeiro continua negativo, e a interrupção das compras também pode comprometer o abastecimento e as vendas futuras.`
+  : incomePercent === 100
+    ? 'A eliminação total das entradas, mantendo os desembolsos previstos, produz um cenário de insuficiência financeira extrema. Sem recebimentos, a operação dependeria de reservas ou outras fontes de recursos para cumprir seus compromissos.'
   : purchasePercent === 100
     ? 'A eliminação total das compras melhora matematicamente o saldo financeiro, mas representa um cenário extremo. Sem reposição de mercadorias, a operação pode enfrentar ruptura de estoque e perda de vendas futuras.'
     : incomePercent === 0 && purchasePercent === 0
@@ -15668,8 +15671,11 @@ Esta é uma simulação matemática de entradas e saídas, não uma apuração d
 🎯 Minha recomendação
 
 
-${incomePercent === 100
-  ? 'Este cenário exige atenção máxima à liquidez. Verifique o caixa e as reservas disponíveis, identifique os compromissos essenciais e seus vencimentos, avalie negociações com fornecedores e prepare medidas para preservar a continuidade operacional.'
+
+${incomePercent === 100 && purchasePercent === 100
+  ? 'Mesmo sem novas compras, outras despesas continuam previstas. Avalie a liquidez e as reservas disponíveis, priorize compromissos essenciais e negocie vencimentos quando necessário. A suspensão integral da reposição não deve ser adotada como solução permanente, pois pode provocar falta de produtos e comprometer a continuidade da operação.'
+  : incomePercent === 100
+    ? 'Este cenário exige atenção máxima à liquidez. Verifique o caixa e as reservas disponíveis, identifique os compromissos essenciais e seus vencimentos, avalie negociações com fornecedores e prepare medidas para preservar a continuidade operacional.'
   : purchasePercent === 100
     ? 'Não recomendo interromper integralmente a reposição de mercadorias. Utilize este resultado apenas como simulação matemática. Avalie estoque disponível, giro, produtos essenciais e demanda prevista antes de reduzir compras.'
     : incomePercent === 0 && purchasePercent === 0

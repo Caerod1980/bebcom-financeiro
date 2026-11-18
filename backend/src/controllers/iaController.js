@@ -15838,7 +15838,13 @@ ${formatCurrency(currentBalance)}
 Saldo projetado
 ${formatCurrency(projectedBalance)}
 
-${balanceChange >= 0 ? 'Melhoria financeira simulada' : 'Deterioração financeira simulada'}
+
+${Math.abs(balanceChange) < 0.005
+  ? 'Variação financeira simulada'
+  : balanceChange > 0
+    ? 'Melhoria financeira simulada'
+    : 'Deterioração financeira simulada'}
+
 ${formatCurrency(Math.abs(balanceChange))}
 
 ━━━━━━━━━━━━━━━━━━
@@ -15846,11 +15852,17 @@ ${formatCurrency(Math.abs(balanceChange))}
 🧠 Minha análise
 
 
-${incomePercent === 0 && purchasePercent > 0
-  ? 'As entradas financeiras permanecem inalteradas, enquanto as compras de mercadorias aumentam. Esse desequilíbrio deteriora o saldo financeiro e pode comprometer o capital de giro, especialmente se o estoque adicional não apresentar giro suficiente.'
-  : balanceChange >= 0
-    ? 'O crescimento das entradas supera o aumento das compras, produzindo melhoria no saldo financeiro.'
-    : 'O aumento das compras supera o ganho com as entradas, provocando deterioração do saldo financeiro.'}
+
+${incomePercent === 0 && purchasePercent === 0
+  ? 'As entradas financeiras e as compras de mercadorias permanecem inalteradas. Portanto, não há melhoria nem deterioração do saldo financeiro neste cenário.'
+  : incomePercent === 0 && purchasePercent > 0
+    ? 'As entradas financeiras permanecem inalteradas, enquanto as compras de mercadorias aumentam. Esse desequilíbrio deteriora o saldo financeiro e pode comprometer o capital de giro, especialmente se o estoque adicional não apresentar giro suficiente.'
+    : Math.abs(balanceChange) < 0.005
+      ? 'Os aumentos das entradas e das compras se compensam financeiramente. O saldo projetado permanece igual ao saldo original.'
+      : balanceChange > 0
+        ? 'O crescimento das entradas supera o aumento das compras, produzindo melhoria no saldo financeiro.'
+        : 'O aumento das compras supera o ganho com as entradas, provocando deterioração do saldo financeiro.'}
+
 
 ${projectedBalance < 0
   ? '🚨 O saldo projetado é negativo e exige atenção ao capital de giro.'
@@ -15862,7 +15874,12 @@ Esta é uma simulação matemática de entradas e saídas, não uma apuração d
 
 🎯 Minha recomendação
 
-Acompanhe o giro das mercadorias e avalie se o aumento das compras é necessário para sustentar o crescimento das entradas. Evite comprometer o capital de giro com reposições acima da demanda.
+
+${incomePercent === 0 && purchasePercent === 0
+  ? 'Como não houve alteração nos valores simulados, mantenha o acompanhamento das entradas, saídas, giro de estoque e capital de giro. Utilize o saldo original como referência para avaliar futuros cenários.'
+  : incomePercent === 0
+    ? 'Como as entradas permanecem inalteradas, evite ampliar compras sem comprovação de demanda. Avalie o estoque disponível, o giro das mercadorias e o impacto sobre o capital de giro antes de assumir novos desembolsos.'
+    : 'Acompanhe o giro das mercadorias e avalie se o aumento das compras é necessário para sustentar o crescimento das entradas. Evite comprometer o capital de giro com reposições acima da demanda.'}
 `.trim();
 };
 

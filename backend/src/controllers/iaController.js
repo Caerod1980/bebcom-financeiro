@@ -15565,6 +15565,72 @@ Avalie preços, custos, mix de produtos e giro antes de estabelecer uma nova met
 };
 
 
+const buildIncomeGrowthSimulationAnswer = (ctx, percent) => {
+  const currentIncome = Number(ctx.totalIncome || 0);
+  const currentExpenses = Number(ctx.totalExpenses || 0);
+  const currentBalance = currentIncome - currentExpenses;
+
+  const additionalIncome = currentIncome * percent / 100;
+  const projectedIncome = currentIncome + additionalIncome;
+  const projectedBalance = projectedIncome - currentExpenses;
+
+  const formattedPercent = percent.toLocaleString('pt-BR', {
+    maximumFractionDigits: 2
+  });
+
+  return `
+📈 SIMULAÇÃO — CRESCIMENTO DAS ENTRADAS
+
+━━━━━━━━━━━━━━━━━━
+
+📅 Período
+${ctx.periodLabel}
+
+💰 Entradas atuais
+${formatCurrency(currentIncome)}
+
+📈 Crescimento simulado
+${formattedPercent}%
+
+💵 Aumento projetado
+${formatCurrency(additionalIncome)}
+
+💰 Entradas projetadas
+${formatCurrency(projectedIncome)}
+
+📉 Saídas mantidas
+${formatCurrency(currentExpenses)}
+
+━━━━━━━━━━━━━━━━━━
+
+📊 IMPACTO NO SALDO FINANCEIRO
+
+Saldo atual
+${formatCurrency(currentBalance)}
+
+Saldo projetado
+${formatCurrency(projectedBalance)}
+
+Melhoria simulada
+${formatCurrency(additionalIncome)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+Mantidas as saídas constantes, o crescimento de ${formattedPercent}% nas entradas elevaria o saldo financeiro em ${formatCurrency(additionalIncome)}.
+
+Esta é uma simulação matemática. Entradas financeiras não equivalem necessariamente a faturamento, e a melhoria do saldo não representa automaticamente aumento do lucro.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Avalie quais ações podem aumentar as entradas sem provocar crescimento desproporcional das compras, despesas e demais desembolsos.
+`.trim();
+};
+
+
 const buildPurchaseCutSimulationAnswer = (ctx, percent = 10) => {
   const purchases = getPurchaseAmount(ctx);
   const saving = purchases * (percent / 100);
@@ -16644,6 +16710,16 @@ if (conversationalContextAnswer) {
     /\bfornecedor(?:es)?\b/.test(normalizedQuestion) &&
     /\b(reduziu|reduziram|reducao|diminuiu|diminuiram|diminuicao|queda|caiu|cairam)\b/.test(normalizedQuestion);
 
+    
+const incomeGrowthMatch = normalizedQuestion.match(
+  /\b(?:entradas?|recebimentos?)\b.*?\b(?:aumentassem|aumentasse|aumentar|aumentarem|aumentando|crescessem|crescesse|crescer|crescimento|aumento)\b(?:\s+(?:em|de))?\s+(\d+(?:[.,]\d+)?)\s*%/
+);
+
+const isIncomeGrowthSimulationQuestion =
+  Boolean(incomeGrowthMatch) &&
+  /\b(?:se|simulacao|simular|projecao|projetar|hipotese)\b/.test(normalizedQuestion) &&
+  Number(incomeGrowthMatch[1].replace(',', '.')) > 0 &&
+  Number(incomeGrowthMatch[1].replace(',', '.')) <= 100;
   
 const marginChangeMatch = normalizedQuestion.match(
   /\bmargem(?: de lucro)?\b.*?\b(?:de|dos)\s+(\d+(?:[.,]\d+)?)\s*%\s+(?:para|a|ate)\s+(\d+(?:[.,]\d+)?)\s*%/
@@ -17106,7 +17182,14 @@ const genericPayablesAnswer =
 
 
 
-if (isMarginChangeSimulationQuestion) {
+
+if (isIncomeGrowthSimulationQuestion) {
+  answer = buildIncomeGrowthSimulationAnswer(
+    ctx,
+    Number(incomeGrowthMatch[1].replace(',', '.'))
+  );
+
+} else if (isMarginChangeSimulationQuestion) {
   answer = buildMarginChangeSimulationAnswer(
     ctx,
     Number(marginChangeMatch[1].replace(',', '.')),

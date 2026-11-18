@@ -15845,9 +15845,12 @@ ${formatCurrency(Math.abs(balanceChange))}
 
 🧠 Minha análise
 
-${balanceChange >= 0
-  ? 'O crescimento das entradas supera o aumento das compras, produzindo melhoria no saldo financeiro.'
-  : 'O aumento das compras supera o ganho com as entradas, provocando deterioração do saldo financeiro.'}
+
+${incomePercent === 0 && purchasePercent > 0
+  ? 'As entradas financeiras permanecem inalteradas, enquanto as compras de mercadorias aumentam. Esse desequilíbrio deteriora o saldo financeiro e pode comprometer o capital de giro, especialmente se o estoque adicional não apresentar giro suficiente.'
+  : balanceChange >= 0
+    ? 'O crescimento das entradas supera o aumento das compras, produzindo melhoria no saldo financeiro.'
+    : 'O aumento das compras supera o ganho com as entradas, provocando deterioração do saldo financeiro.'}
 
 ${projectedBalance < 0
   ? '🚨 O saldo projetado é negativo e exige atenção ao capital de giro.'
@@ -17153,7 +17156,7 @@ const isMixedGrowthSimulationQuestion =
   /\b(?:se|simulacao|simular|projecao|projetar|hipotese)\b/.test(normalizedQuestion) &&
   [mixedIncomeMatch[1], mixedPurchaseMatch[1]].every(value => {
     const number = Number(value.replace(',', '.'));
-    return number > 0 && number <= 100;
+    return number >= 0 && number <= 100;
   });
 
 const combinedIncomeMatch = normalizedQuestion.match(

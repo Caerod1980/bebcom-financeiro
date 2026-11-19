@@ -8836,6 +8836,25 @@ ${
 };
 
 const buildInventoryAnswer = (ctx) => {
+    if (!ctx.inventory) {
+    return `
+📦 ANÁLISE DO ESTOQUE FINANCEIRO — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+⚠️ Dados de estoque não disponíveis para este período.
+
+Não encontrei um relatório de estoque financeiro cadastrado para o mês consultado.
+
+Isso não significa que o estoque da loja esteja zerado.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Confira o preenchimento do estoque inicial, das compras e do Saldo Estoque no controle mensal antes de avaliar a posição financeira das mercadorias.
+`.trim();
+  }
   const initialStock =
     getInventoryInitialStock(ctx);
 

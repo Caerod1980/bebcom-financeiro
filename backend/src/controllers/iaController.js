@@ -17885,7 +17885,10 @@ if (limitDay) {
 
 answer = buildDecisionSimulationAnswer(simulationCtx);
 
-} else if (genericPayablesAnswer) {
+} else if (
+  genericPayablesAnswer &&
+  !isOpenSupplierRankingQuestion
+) {
   answer = genericPayablesAnswer;
 } else if (intuitiveMemoryAnswer) {
   answer = intuitiveMemoryAnswer;

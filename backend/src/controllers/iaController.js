@@ -15642,8 +15642,6 @@ ${formatCurrency(Math.abs(balanceChange))}
 
 🧠 Minha análise
 
-
-
 ${incomePercent === 100 && purchasePercent === 100
   ? `Mesmo eliminando integralmente as entradas e as compras de mercadorias, permanecem ${formatCurrency(projectedExpenses)} em outras saídas previstas. O saldo financeiro continua negativo, e a interrupção das compras também pode comprometer o abastecimento e as vendas futuras.`
   : incomePercent === 100
@@ -15662,7 +15660,6 @@ ${incomePercent === 100 && purchasePercent === 100
           ? 'A queda das entradas supera a economia nas compras, provocando deterioração do saldo financeiro.'
           : 'A economia nas compras compensa exatamente a redução das entradas, mantendo o saldo financeiro.'}
 
-
 ${projectedBalance < 0
   ? '🚨 O saldo projetado é negativo e exige atenção ao capital de giro.'
   : 'O saldo financeiro projetado permanece positivo ou zerado.'}
@@ -15672,8 +15669,6 @@ Esta é uma simulação matemática de entradas e saídas, não uma apuração d
 ━━━━━━━━━━━━━━━━━━
 
 🎯 Minha recomendação
-
-
 
 ${incomePercent === 100 && purchasePercent === 100
   ? 'Mesmo sem novas compras, outras despesas continuam previstas. Avalie a liquidez e as reservas disponíveis, priorize compromissos essenciais e negocie vencimentos quando necessário. A suspensão integral da reposição não deve ser adotada como solução permanente, pois pode provocar falta de produtos e comprometer a continuidade da operação.'

@@ -1804,7 +1804,23 @@ ${compareIndicator('📈 LUCRO BRUTO', bruto, brutoAnterior)}
 
 ━━━━━━━━━━━━━━━━━━
 
+
 ${compareIndicator('💵 LUCRO LÍQUIDO', liquido, liquidoAnterior)}
+
+━━━━━━━━━━━━━━━━━━
+
+🔎 O QUE EXPLICA A VARIAÇÃO DO LUCRO?
+
+• Efeito da receita líquida: ${formatCurrency(receita - receitaAnterior)}
+• Efeito do CMV: ${formatCurrency(Number(previous.cmv || 0) - Number(current.cmv || 0))}
+• Efeito das despesas operacionais: ${formatCurrency(Number(previous.despesasOperacionais || 0) - Number(current.despesasOperacionais || 0))}
+• Efeito das despesas financeiras: ${formatCurrency(Number(previous.despesasFinanceiras || 0) - Number(current.despesasFinanceiras || 0))}
+• Efeito de outras receitas: ${formatCurrency(Number(current.outrasReceitas || 0) - Number(previous.outrasReceitas || 0))}
+• Efeito de outras despesas: ${formatCurrency(Number(previous.outrasDespesas || 0) - Number(current.outrasDespesas || 0))}
+
+• Variação total do lucro líquido: ${formatCurrency(liquido - liquidoAnterior)}
+
+Valores positivos favorecem o resultado; valores negativos reduzem o resultado. Os efeitos representam contribuições contábeis, não necessariamente as causas operacionais das mudanças.
 
 ━━━━━━━━━━━━━━━━━━
 

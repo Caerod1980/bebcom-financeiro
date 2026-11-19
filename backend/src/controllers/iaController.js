@@ -1855,12 +1855,67 @@ if (liquidoAnterior > 0 && liquido < 0) {
       'Os componentes analisados não apresentaram variações financeiras relevantes. ';
   }
 
-  if (maiorPressao) {
-    interpretacaoDRE +=
-      `A prioridade de investigação é ${maiorPressao.orientacao}.`;
+  
+  // ETAPA 9.5 — Correção 12.3
+  // Prioridade gerencial conforme a evolução do lucro
+
+  const variacaoLucro = liquido - liquidoAnterior;
+
+  if (variacaoLucro < -0.005) {
+    // Deterioração do resultado: lucro menor ou prejuízo maior
+    if (maiorPressao) {
+      interpretacaoDRE +=
+        `O resultado líquido apresentou deterioração. ` +
+        `A prioridade gerencial é investigar ${maiorPressao.orientacao}, ` +
+        `pois esse componente representou a maior pressão negativa identificada.`;
+    } else {
+      interpretacaoDRE +=
+        'O resultado líquido piorou. Recomendo conferir a composição ' +
+        'da DRE e investigar os fatores responsáveis pela deterioração.';
+    }
+
+  } else if (variacaoLucro > 0.005) {
+    // Recuperação ou crescimento do resultado
+    if (liquidoAnterior < 0 && liquido > 0) {
+      interpretacaoDRE +=
+        `A Bebcom conseguiu reverter o prejuízo e alcançar lucro. ` +
+        (maiorCompensacao
+          ? `A prioridade é preservar os fatores que favoreceram ${maiorCompensacao.nome}. `
+          : 'A prioridade é preservar os fatores que favoreceram a recuperação. ') +
+        (maiorPressao
+          ? `Ao mesmo tempo, recomendo investigar ${maiorPressao.orientacao}, ` +
+            `para proteger a rentabilidade alcançada.`
+          : 'Continue monitorando custos, despesas e margens para sustentar o resultado.');
+
+    } else if (liquido < 0) {
+      interpretacaoDRE +=
+        `O prejuízo diminuiu, mas a operação ainda não alcançou lucro. ` +
+        (maiorCompensacao
+          ? `Priorize a continuidade da melhoria associada a ${maiorCompensacao.nome}. `
+          : 'Priorize a continuidade da recuperação financeira. ') +
+        (maiorPressao
+          ? `Investigue também ${maiorPressao.orientacao}, ` +
+            `para evitar que esse fator comprometa a recuperação.`
+          : 'Mantenha o acompanhamento das margens e despesas.');
+
+    } else {
+      interpretacaoDRE +=
+        `O resultado líquido apresentou evolução positiva. ` +
+        (maiorCompensacao
+          ? `A prioridade é sustentar a contribuição positiva de ${maiorCompensacao.nome}. `
+          : 'A prioridade é sustentar os fatores que favoreceram o resultado. ') +
+        (maiorPressao
+          ? `Monitore também ${maiorPressao.orientacao}, ` +
+            `para evitar perda de rentabilidade.`
+          : 'Continue acompanhando custos, despesas e margens.');
+    }
+
   } else {
+    // Resultado líquido estável
     interpretacaoDRE +=
-      'Recomendo acompanhar a continuidade dessa evolução nos próximos períodos.';
+      'O lucro líquido permaneceu praticamente estável. ' +
+      'Recomendo acompanhar a composição das receitas, custos e despesas ' +
+      'para preservar o equilíbrio financeiro.';
   }
 
   return `

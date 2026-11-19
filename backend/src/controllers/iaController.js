@@ -1697,6 +1697,11 @@ const incomeByDay =
 const expensesByDay =
   groupEntriesByDay(entries, 'expense');
 
+  const cashFlowProjection =
+  month && year
+    ? await buildCashFlowProjection(month, year)
+    : [];
+
   return {
   month,
   year,
@@ -1715,6 +1720,7 @@ const expensesByDay =
   balance,
   pendingPayable,
   pendingReceivable,
+  cashFlowProjection,
   managementReport,
   inventory,
   accounts,

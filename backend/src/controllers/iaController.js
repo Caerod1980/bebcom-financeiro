@@ -1644,13 +1644,22 @@ const buildDREComparisonAnswer = (ctx, previousCtx) => {
         (anterior > 0 && atual < 0)
       );
 
+    
+    // ETAPA 9.5 — Correção 12.5
+    // Variação percentual com interpretação do prejuízo
     const textoVariacao = mudouSinalLucro
       ? anterior < 0
         ? `Reversão de prejuízo para lucro — melhora de ${formatCurrency(diferenca)}`
         : `Reversão de lucro para prejuízo — deterioração de ${formatCurrency(Math.abs(diferenca))}`
-      : variacao === null
-        ? 'Sem base comparável'
-        : `${variacao > 0 ? '+' : ''}${variacao.toFixed(2)}%`;
+      : label.includes('LUCRO LÍQUIDO') && anterior < 0 && atual < 0
+        ? diferenca > 0
+          ? `Redução do prejuízo em ${Math.abs(variacao).toFixed(2)}%`
+          : diferenca < 0
+            ? `Aumento do prejuízo em ${Math.abs(variacao).toFixed(2)}%`
+            : 'Prejuízo estável'
+        : variacao === null
+          ? 'Sem base comparável'
+          : `${variacao > 0 ? '+' : ''}${variacao.toFixed(2)}%`;
 
 
     const tendencia =
@@ -1887,16 +1896,22 @@ if (liquidoAnterior > 0 && liquido < 0) {
             `para proteger a rentabilidade alcançada.`
           : 'Continue monitorando custos, despesas e margens para sustentar o resultado.');
 
+    
     } else if (liquido < 0) {
+      // ETAPA 9.5 — Correção 12.5
+      // Prioridade objetiva para redução de prejuízo
       interpretacaoDRE +=
         `O prejuízo diminuiu, mas a operação ainda não alcançou lucro. ` +
         (maiorCompensacao
-          ? `Priorize a continuidade da melhoria associada a ${maiorCompensacao.nome}. `
+          ? `Priorize a manutenção da contribuição positiva de ${maiorCompensacao.nome}, ` +
+            `que favoreceu o resultado em ${formatCurrency(maiorCompensacao.efeito)}. `
           : 'Priorize a continuidade da recuperação financeira. ') +
         (maiorPressao
           ? `Investigue também ${maiorPressao.orientacao}, ` +
+            `responsável por um impacto negativo de ${formatCurrency(Math.abs(maiorPressao.efeito))}, ` +
             `para evitar que esse fator comprometa a recuperação.`
           : 'Mantenha o acompanhamento das margens e despesas.');
+
 
     } else {
       interpretacaoDRE +=

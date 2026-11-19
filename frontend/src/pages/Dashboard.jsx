@@ -202,7 +202,7 @@ const Dashboard = () => {
           value={formatCurrency(current.lucroBruto)}
           icon={DollarSign}
           color="amber"
-          percentage={current.percentuais?.margemBruta}
+          percentage={dashboardData.comparison?.grossProfitVariation}
         />
        <Card
           title="Despesas"

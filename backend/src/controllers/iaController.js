@@ -15582,8 +15582,9 @@ const buildDoubleReductionSimulationAnswer = (ctx, incomePercent, purchasePercen
   const balanceChange = projectedBalance - currentBalance;
 
   const pct = value => value.toLocaleString('pt-BR', {
-    maximumFractionDigits: 2
-  });
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 3
+}); 
 
   return `
 🧮 SIMULAÇÃO FINANCEIRA — REDUÇÃO DE ENTRADAS E COMPRAS

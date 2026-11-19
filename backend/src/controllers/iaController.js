@@ -1662,9 +1662,22 @@ ${label}
   const liquidoAnterior = Number(previous.lucroLiquido || 0);
 
   
+
 let diagnostico;
 
-if (liquidoAnterior < 0 && liquido < 0 && liquido > liquidoAnterior) {
+if (liquidoAnterior < 0 && liquido > 0) {
+  const recuperacao = liquido - liquidoAnterior;
+
+  diagnostico =
+    `A Bebcom conseguiu reverter seu prejuízo e alcançar lucro líquido positivo. ` +
+    `O resultado passou de ${formatCurrency(liquidoAnterior)} para ${formatCurrency(liquido)}, ` +
+    `representando uma recuperação de ${formatCurrency(recuperacao)}. ` +
+    `A margem líquida também passou de negativa para positiva. ` +
+    `Essa virada representa uma recuperação efetiva da rentabilidade, ` +
+    `que deve ser sustentada pelo controle dos custos e despesas.`;
+
+} else if (liquidoAnterior < 0 && liquido < 0 && liquido > liquidoAnterior) {
+
   const reducaoPrejuizo =
     ((liquido - liquidoAnterior) / Math.abs(liquidoAnterior)) * 100;
 

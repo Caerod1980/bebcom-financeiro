@@ -4,7 +4,10 @@ const MonthlyClosing = require('../models/MonthlyClosing');
 // ⭐ HELPER PARA CALCULAR VARIAÇÃO (evita divisão por zero)
 const calculateVariation = (current, previous) => {
   if (!previous || previous === 0) return '0.00';
-  return (((current - previous) / previous) * 100).toFixed(2);
+
+  return (
+    ((current - previous) / Math.abs(previous)) * 100
+  ).toFixed(2);
 };
 
 // ⭐ HELPER PARA VALIDAR MÊS/ANO

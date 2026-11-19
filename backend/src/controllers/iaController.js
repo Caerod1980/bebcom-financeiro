@@ -1355,7 +1355,8 @@ const getComparisonPeriods = (question) => {
   const second = uniqueDetected[1];
   const relationExpression =
   lower.includes('em relação a') ||
-  lower.includes('em relacao a');
+  lower.includes('em relacao a') ||
+  /\bcomparad[oa]s?\s+(?:a|ao|com)\b/.test(lower);
 
 const versusExpression =
   lower.includes(' vs ') ||

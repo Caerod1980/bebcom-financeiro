@@ -75,65 +75,48 @@ const IABebcom = () => {
 
   return (
     <div className="p-3 sm:p-4 md:p-6">
-      <div className="flex flex-col lg:flex-row justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+     
+      {/* MELHORIA VISUAL 1.2 — Cabeçalho compacto */}
+      <div className="mb-5">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="p-3 bg-amber-100 rounded-2xl">
             <Bot className="w-7 h-7 text-amber-600" />
-            IA Bebcom
-          </h1>
+          </div>
 
-          <p className="text-sm text-gray-600 mt-1">
-            Consultora gerencial para análise financeira, operacional e estratégica
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-2xl p-5 shadow-sm border">
-          <div className="flex items-center gap-3">
-            <div className="bg-amber-100 text-amber-600 p-3 rounded-xl">
-              <Brain className="w-6 h-6" />
-            </div>
-
-            <div>
-              <p className="text-sm text-gray-500">Modo</p>
-              <h3 className="font-bold text-gray-900">
-                Consultoria Gerencial
-              </h3>
-            </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              IA Bebcom
+            </h1>
+            <p className="text-sm text-gray-600">
+              Sua consultora de inteligência gerencial
+            </p>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-5 shadow-sm border">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-100 text-blue-600 p-3 rounded-xl">
-              <BarChart3 className="w-6 h-6" />
-            </div>
-
-            <div>
-              <p className="text-sm text-gray-500">Dados</p>
-              <h3 className="font-bold text-gray-900">
-                Leitura Segura
-              </h3>
-            </div>
+        <div className="flex flex-wrap gap-2 mt-4">
+          <div className="flex items-center gap-2 px-3 py-2 bg-white border rounded-xl shadow-sm">
+            <Brain className="w-4 h-4 text-amber-600" />
+            <span className="text-xs font-semibold text-gray-700">
+              Consultoria Gerencial
+            </span>
           </div>
-        </div>
 
-        <div className="bg-white rounded-2xl p-5 shadow-sm border">
-          <div className="flex items-center gap-3">
-            <div className="bg-green-100 text-green-600 p-3 rounded-xl">
-              <Wallet className="w-6 h-6" />
-            </div>
+          <div className="flex items-center gap-2 px-3 py-2 bg-white border rounded-xl shadow-sm">
+            <BarChart3 className="w-4 h-4 text-blue-600" />
+            <span className="text-xs font-semibold text-gray-700">
+              Leitura Segura
+            </span>
+          </div>
 
-            <div>
-              <p className="text-sm text-gray-500">Objetivo</p>
-              <h3 className="font-bold text-gray-900">
-                Decisão Estratégica
-              </h3>
-            </div>
+          <div className="flex items-center gap-2 px-3 py-2 bg-white border rounded-xl shadow-sm">
+            <Wallet className="w-4 h-4 text-green-600" />
+            <span className="text-xs font-semibold text-gray-700">
+              Decisão Estratégica
+            </span>
           </div>
         </div>
       </div>
+
 
       <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
         <div className="p-5 border-b">

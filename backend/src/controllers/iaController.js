@@ -1636,6 +1636,23 @@ const buildDREComparisonAnswer = (ctx, previousCtx) => {
       ? null
       : (diferenca / Math.abs(anterior)) * 100;
 
+    
+    const mudouSinalLucro =
+      label.includes('LUCRO LÍQUIDO') &&
+      (
+        (anterior < 0 && atual > 0) ||
+        (anterior > 0 && atual < 0)
+      );
+
+    const textoVariacao = mudouSinalLucro
+      ? anterior < 0
+        ? `Reversão de prejuízo para lucro — melhora de ${formatCurrency(diferenca)}`
+        : `Reversão de lucro para prejuízo — deterioração de ${formatCurrency(Math.abs(diferenca))}`
+      : variacao === null
+        ? 'Sem base comparável'
+        : `${variacao > 0 ? '+' : ''}${variacao.toFixed(2)}%`;
+
+
     const tendencia =
       diferenca > 0 ? 'Aumento' :
       diferenca < 0 ? 'Redução' :
@@ -1645,9 +1662,7 @@ const buildDREComparisonAnswer = (ctx, previousCtx) => {
 ${label}
 • Período anterior: ${formatCurrency(anterior)}
 • Período atual: ${formatCurrency(atual)}
-• Variação: ${variacao === null
-  ? 'Sem base comparável'
-  : `${variacao > 0 ? '+' : ''}${variacao.toFixed(2)}%`}
+• Variação: ${textoVariacao}
 • Tendência: ${tendencia}
 `.trim();
   };

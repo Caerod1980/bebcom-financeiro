@@ -2337,9 +2337,8 @@ const buildUpcomingDueAnswer = (ctx, days = 7) => {
     0
   );
 
-  const list = accounts
-    .slice(0, 20)
-    .map((item, index) => {
+ const list = accounts
+  .map((item, index) => {
       const date = new Date(item.dueDate).toLocaleDateString('pt-BR');
       const name = item.person || item.description || 'Conta';
 

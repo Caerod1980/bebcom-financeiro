@@ -1737,6 +1737,14 @@ const expensesByDay =
 const extractSupplierPayableName = (question) => {
   const lower = normalizeText(question);
 
+  if (
+  lower.includes('qual fornecedor concentra') ||
+  lower.includes('fornecedor concentra o maior') ||
+  lower.includes('maior valor em contas a pagar')
+) {
+  return null;
+}
+
 const patterns = [
   /^total de contas a pagar\s+(?:de|da|do)?\s*(.+?)\??$/i,
   /^total contas a pagar\s+(?:de|da|do)?\s*(.+?)\??$/i,
@@ -17341,7 +17349,10 @@ const isPayablesDueDateQuestion =
     lowerQuestion.includes('fornecedor mais pesa') ||
     lowerQuestion.includes('quem mais pesa') ||
     lowerQuestion.includes('top fornecedores') ||
-    lowerQuestion.includes('maior fornecedor')
+    lowerQuestion.includes('maior fornecedor') ||
+    lowerQuestion.includes('qual fornecedor concentra') ||
+    lowerQuestion.includes('fornecedor concentra o maior') ||
+    lowerQuestion.includes('maior valor em contas a pagar')
   ) &&
   (
     lowerQuestion.includes('pagar') ||

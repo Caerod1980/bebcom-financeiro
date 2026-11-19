@@ -8,6 +8,7 @@ import {
   Brain,
   BarChart3,
   Wallet,
+  Copy,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -86,6 +87,19 @@ const IABebcom = () => {
     setQuestion(text);
   };
 
+  
+  // MELHORIA 1.3-B — Copiar respostas da IA
+  const handleCopyMessage = async (content) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      toast.success('Resposta copiada!');
+    } catch (error) {
+      console.error(error);
+      toast.error('Não foi possível copiar a resposta.');
+    }
+  };
+
+
   return (
     <div className="p-3 sm:p-4 md:p-6">
      
@@ -156,12 +170,29 @@ const IABebcom = () => {
                 message.role === 'user' ? 'justify-end' : 'justify-start'
               }`}
             >
+             
               <div className={`max-w-3xl rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-line ${
-                message.role === 'user' ? 'bg-amber-600 text-white' : 'bg-white text-gray-800 border shadow-sm'
-              }`}
-              >
+                message.role === 'user'
+                  ? 'bg-amber-600 text-white'
+                  : 'bg-white text-gray-800 border shadow-sm'
+              }`}>
                 {message.content}
+
+                {message.role === 'assistant' && (
+                  <div className="flex justify-end mt-3 pt-2 border-t border-gray-100">
+                    <button
+                      type="button"
+                      onClick={() => handleCopyMessage(message.content)}
+                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-amber-600 transition"
+                      title="Copiar resposta"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      Copiar
+                    </button>
+                  </div>
+                )}
               </div>
+ 
             </div>
           ))}
 

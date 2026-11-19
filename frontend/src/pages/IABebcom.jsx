@@ -9,6 +9,7 @@ import {
   BarChart3,
   Wallet,
   Copy,
+  Plus,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -27,6 +28,9 @@ const IABebcom = () => {
   
   // MELHORIA 1.3-A — Rolagem automática da conversa
   const messagesContainerRef = useRef(null);
+
+  // MELHORIA 1.3-C — Identifica a conversa atual
+  const conversationIdRef = useRef(0);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -52,6 +56,8 @@ const IABebcom = () => {
 
   const currentQuestion = question;
 
+  const requestConversationId = conversationIdRef.current; 
+
   const userMessage = {
     role: 'user',
     content: currentQuestion,
@@ -64,6 +70,11 @@ const IABebcom = () => {
   try {
     const response = await iaService.ask(currentQuestion);
 
+    // Ignora respostas de conversas anteriores
+    if (requestConversationId !== conversationIdRef.current) {
+      return;
+    }
+
     const data = response.data;
 
     const aiMessage = {
@@ -72,14 +83,20 @@ const IABebcom = () => {
     };
 
     setMessages((prev) => [...prev, aiMessage]);
-  } catch (error) {
+   } catch (error) {
+    if (requestConversationId !== conversationIdRef.current) {
+      return;
+    }
+
     console.error(error);
 
     toast.error(
       error.message || 'Erro ao consultar a IA Bebcom.'
     );
-  } finally {
-    setLoading(false);
+    } finally {
+    if (requestConversationId === conversationIdRef.current) {
+      setLoading(false);
+    }
   }
 }; 
 
@@ -97,6 +114,25 @@ const IABebcom = () => {
       console.error(error);
       toast.error('Não foi possível copiar a resposta.');
     }
+  };
+
+  
+  // MELHORIA 1.3-C — Iniciar nova conversa
+  const handleNewConversation = () => {
+    conversationIdRef.current += 1;
+
+    setMessages([
+      {
+        role: 'assistant',
+        content:
+          'Olá, Rodrigo. Eu sou a IA Bebcom, sua consultora gerencial. Posso ajudar a interpretar dados financeiros, fluxo de caixa, ticket médio, desempenho, despesas e estratégias da operação.',
+      },
+    ]);
+
+    setQuestion('');
+    setLoading(false);
+
+    toast.success('Nova conversa iniciada!');
   };
 
 
@@ -146,11 +182,25 @@ const IABebcom = () => {
 
 
       <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+        
         <div className="p-5 border-b">
-          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-amber-500" />
-            Conversa com a IA
-          </h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-amber-500" />
+              Conversa com a IA
+            </h2>
+
+            <button
+              type="button"
+              onClick={handleNewConversation}
+              className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl transition"
+              title="Iniciar nova conversa"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nova conversa</span>
+            </button>
+          </div>
+
 
           <p className="text-sm text-gray-600 mt-1">
             Pergunte sobre finanças, fluxo, ticket médio, operação, marketing e gestão.

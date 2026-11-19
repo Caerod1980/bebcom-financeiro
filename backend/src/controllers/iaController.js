@@ -1627,6 +1627,16 @@ const buildDREComparisonAnswer = (ctx, previousCtx) => {
     return 'Não foi possível obter os dados da DRE para comparar os períodos.';
   }
 
+  
+  // ETAPA 9.5 — Correção 12.6
+  // Formatação percentual brasileira
+  const formatPercent = (value) =>
+    Number(value).toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+
+
   const compareIndicator = (label, currentValue, previousValue) => {
     const atual = Number(currentValue || 0);
     const anterior = Number(previousValue || 0);
@@ -1662,10 +1672,36 @@ const buildDREComparisonAnswer = (ctx, previousCtx) => {
           : `${variacao > 0 ? '+' : ''}${variacao.toFixed(2)}%`;
 
 
-    const tendencia =
-      diferenca > 0 ? 'Aumento' :
-      diferenca < 0 ? 'Redução' :
-      'Estável';
+    
+    // ETAPA 9.5 — Correção 12.6
+    // Tendência contextualizada do resultado líquido
+    let tendencia;
+
+    if (label.includes('LUCRO LÍQUIDO')) {
+      if (anterior < 0 && atual < 0) {
+        tendencia =
+          diferenca > 0
+            ? 'Recuperação parcial do resultado'
+            : diferenca < 0
+              ? 'Agravamento do prejuízo'
+              : 'Prejuízo estável';
+      } else if (anterior < 0 && atual >= 0) {
+        tendencia = 'Reversão do prejuízo';
+      } else if (anterior >= 0 && atual < 0) {
+        tendencia = 'Reversão para prejuízo';
+      } else {
+        tendencia =
+          diferenca > 0 ? 'Aumento do lucro' :
+          diferenca < 0 ? 'Redução do lucro' :
+          'Estável';
+      }
+    } else {
+      tendencia =
+        diferenca > 0 ? 'Aumento' :
+        diferenca < 0 ? 'Redução' :
+        'Estável';
+    }
+
 
     return `
 ${label}
@@ -1721,7 +1757,7 @@ if (liquidoAnterior > 0 && liquido < 0) {
     ((liquido - liquidoAnterior) / Math.abs(liquidoAnterior)) * 100;
 
   diagnostico =
-    `A Bebcom apresentou recuperação financeira, reduzindo seu prejuízo líquido em ${formatCurrency(liquido - liquidoAnterior)} (${reducaoPrejuizo.toFixed(2)}%). ` +
+    `A Bebcom apresentou recuperação financeira, reduzindo seu prejuízo líquido em ${formatCurrency(liquido - liquidoAnterior)} (${formatPercent(reducaoPrejuizo)}%). ` +
     `Entretanto, a empresa continua operando com resultado líquido negativo. ` +
     `A redução do prejuízo não significa que a operação tenha alcançado lucro. ` +
     `A receita líquida ${receita < receitaAnterior ? 'diminuiu' : receita > receitaAnterior ? 'aumentou' : 'permaneceu estável'} e o lucro bruto ${bruto < brutoAnterior ? 'diminuiu' : bruto > brutoAnterior ? 'aumentou' : 'permaneceu estável'}, exigindo acompanhamento das margens e despesas.`;
@@ -1902,10 +1938,15 @@ if (liquidoAnterior > 0 && liquido < 0) {
       // Prioridade objetiva para redução de prejuízo
       interpretacaoDRE +=
         `O prejuízo diminuiu, mas a operação ainda não alcançou lucro. ` +
+        
         (maiorCompensacao
-          ? `Priorize a manutenção da contribuição positiva de ${maiorCompensacao.nome}, ` +
-            `que favoreceu o resultado em ${formatCurrency(maiorCompensacao.efeito)}. `
+          ? maiorCompensacao.nome === 'outras despesas'
+            ? `Priorize a manutenção da redução de outras despesas, ` +
+              `que contribuiu com ${formatCurrency(maiorCompensacao.efeito)} para a recuperação do resultado. `
+            : `Priorize a manutenção da contribuição positiva de ${maiorCompensacao.nome}, ` +
+              `que favoreceu o resultado em ${formatCurrency(maiorCompensacao.efeito)}. `
           : 'Priorize a continuidade da recuperação financeira. ') +
+
         (maiorPressao
           ? `Investigue também ${maiorPressao.orientacao}, ` +
             `responsável por um impacto negativo de ${formatCurrency(Math.abs(maiorPressao.efeito))}, ` +
@@ -1978,8 +2019,9 @@ ${interpretacaoDRE}
 
 📊 MARGEM LÍQUIDA
 
-• Anterior: ${margemAnterior === null ? 'Indisponível' : `${margemAnterior.toFixed(2)}%`}
-• Atual: ${margemAtual === null ? 'Indisponível' : `${margemAtual.toFixed(2)}%`}
+
+• Anterior: ${margemAnterior === null ? 'Indisponível' : `${formatPercent(margemAnterior)}%`}
+• Atual: ${margemAtual === null ? 'Indisponível' : `${formatPercent(margemAtual)}%`}
 
 ━━━━━━━━━━━━━━━━━━
 

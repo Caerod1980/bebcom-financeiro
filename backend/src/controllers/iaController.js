@@ -1720,6 +1720,50 @@ if (liquidoAnterior > 0 && liquido < 0) {
       'Os indicadores apresentaram estabilidade ou movimentos distintos. É necessário observar a evolução das margens.';
   }
 
+  
+  // ETAPA 9 — Recomendação gerencial conforme a evolução da DRE
+  let recomendacao;
+
+  if (liquidoAnterior > 0 && liquido < 0) {
+    recomendacao =
+      'Priorize a investigação da reversão de lucro para prejuízo. ' +
+      'Compare custos das mercadorias vendidas, despesas operacionais e margens dos dois períodos. ' +
+      'Identifique os fatores responsáveis pela deterioração antes de ampliar gastos ou assumir novos compromissos.';
+
+  } else if (liquidoAnterior < 0 && liquido > 0) {
+    recomendacao =
+      'A recuperação da lucratividade é positiva. ' +
+      'Identifique quais mudanças em receitas, custos e despesas contribuíram para essa virada. ' +
+      'Preserve as melhorias e acompanhe os próximos meses para verificar se o lucro é sustentável.';
+
+  } else if (liquido < 0 && liquidoAnterior < 0) {
+    recomendacao =
+      liquido > liquidoAnterior
+        ? 'O prejuízo diminuiu, mas a operação ainda precisa recuperar a lucratividade. Revise despesas, custos e margens para consolidar a recuperação.'
+        : 'O prejuízo permanece e não apresentou recuperação. Priorize a revisão dos custos, despesas e margens para identificar oportunidades de correção.';
+
+  } else if (receita > receitaAnterior && liquido < liquidoAnterior) {
+    recomendacao =
+      'A receita aumentou, mas a rentabilidade piorou. ' +
+      'Investigue a redução da margem bruta e o comportamento das despesas. ' +
+      'Vender mais não está se convertendo proporcionalmente em lucro.';
+
+  } else if (receita < receitaAnterior && liquido < liquidoAnterior) {
+    recomendacao =
+      'A queda da receita foi acompanhada pela redução do lucro. ' +
+      'Avalie o movimento de vendas, o mix de produtos e as despesas operacionais, ' +
+      'buscando recuperar o resultado sem comprometer as margens.';
+
+  } else if (liquido > liquidoAnterior) {
+    recomendacao =
+      'O resultado líquido melhorou. Identifique os fatores que contribuíram para essa evolução ' +
+      'e acompanhe custos, despesas e margens para preservar a rentabilidade.';
+
+  } else {
+    recomendacao =
+      'Acompanhe a evolução das margens, custos e despesas para identificar oportunidades de melhoria e preservar a estabilidade financeira.';
+  }
+
   const margemAtual = receita !== 0
     ? (liquido / receita) * 100
     : null;
@@ -1764,7 +1808,7 @@ ${diagnostico}
 
 🎯 MINHA RECOMENDAÇÃO
 
-Investigue as variações de custos e despesas que explicam a evolução dos lucros. O crescimento das vendas deve ser acompanhado pela preservação das margens.
+${recomendacao}
 `.trim();
 };
 

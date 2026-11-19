@@ -1783,9 +1783,85 @@ if (liquidoAnterior > 0 && liquido < 0) {
     ? (liquido / receita) * 100
     : null;
 
+  
   const margemAnterior = receitaAnterior !== 0
     ? (liquidoAnterior / receitaAnterior) * 100
     : null;
+
+  // ETAPA 9.5 — Correção 12.2
+  // Interpretação dos efeitos financeiros da DRE
+
+  const efeitosDRE = [
+    {
+      nome: 'receita líquida',
+      efeito: receita - receitaAnterior,
+      orientacao: 'a evolução das vendas e da receita líquida'
+    },
+    {
+      nome: 'CMV',
+      efeito: Number(previous.cmv || 0) - Number(current.cmv || 0),
+      orientacao: 'o custo das mercadorias vendidas, os preços de compra e as margens'
+    },
+    {
+      nome: 'despesas operacionais',
+      efeito: Number(previous.despesasOperacionais || 0) -
+        Number(current.despesasOperacionais || 0),
+      orientacao: 'as categorias de despesas operacionais que mais cresceram'
+    },
+    {
+      nome: 'despesas financeiras',
+      efeito: Number(previous.despesasFinanceiras || 0) -
+        Number(current.despesasFinanceiras || 0),
+      orientacao: 'juros, tarifas e demais despesas financeiras'
+    },
+    {
+      nome: 'outras receitas',
+      efeito: Number(current.outrasReceitas || 0) -
+        Number(previous.outrasReceitas || 0),
+      orientacao: 'a evolução das outras receitas'
+    },
+    {
+      nome: 'outras despesas',
+      efeito: Number(previous.outrasDespesas || 0) -
+        Number(current.outrasDespesas || 0),
+      orientacao: 'a evolução das outras despesas'
+    }
+  ];
+
+  const maiorPressao = efeitosDRE
+    .filter(item => item.efeito < -0.005)
+    .sort((a, b) => a.efeito - b.efeito)[0];
+
+  const maiorCompensacao = efeitosDRE
+    .filter(item => item.efeito > 0.005)
+    .sort((a, b) => b.efeito - a.efeito)[0];
+
+  let interpretacaoDRE = '';
+
+  if (maiorPressao) {
+    interpretacaoDRE +=
+      `O principal impacto negativo sobre o lucro veio de ${maiorPressao.nome}, ` +
+      `com efeito de ${formatCurrency(maiorPressao.efeito)}. `;
+  }
+
+  if (maiorCompensacao) {
+    interpretacaoDRE +=
+      `O maior impacto positivo veio de ${maiorCompensacao.nome}, ` +
+      `com contribuição de ${formatCurrency(maiorCompensacao.efeito)}. `;
+  }
+
+  if (!maiorPressao && !maiorCompensacao) {
+    interpretacaoDRE =
+      'Os componentes analisados não apresentaram variações financeiras relevantes. ';
+  }
+
+  if (maiorPressao) {
+    interpretacaoDRE +=
+      `A prioridade de investigação é ${maiorPressao.orientacao}.`;
+  } else {
+    interpretacaoDRE +=
+      'Recomendo acompanhar a continuidade dessa evolução nos próximos períodos.';
+  }
 
   return `
 📊 ANÁLISE COMPARATIVA DA DRE
@@ -1821,6 +1897,12 @@ ${compareIndicator('💵 LUCRO LÍQUIDO', liquido, liquidoAnterior)}
 • Variação total do lucro líquido: ${formatCurrency(liquido - liquidoAnterior)}
 
 Valores positivos favorecem o resultado; valores negativos reduzem o resultado. Os efeitos representam contribuições contábeis, não necessariamente as causas operacionais das mudanças.
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 INTERPRETAÇÃO DOS COMPONENTES
+
+${interpretacaoDRE}
 
 ━━━━━━━━━━━━━━━━━━
 

@@ -147,7 +147,7 @@ const IABebcom = () => {
           </p>
         </div>
 
-        <div className="p-5 space-y-4 min-h-[420px] bg-gray-50">
+        <div className="p-5 space-y-4 min-h-[180px] max-h-[520px] overflow-y-auto bg-gray-50">
           {messages.map((message, index) => (
             <div
               key={`${message.role}-${index}`}

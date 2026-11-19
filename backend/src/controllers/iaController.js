@@ -8887,18 +8887,13 @@ ${formatCurrency(ctx.inventory?.purchases || 0)}
 Saldo Estoque:
 ${formatCurrency(inventoryBalance)}
 
-Posição estimada do estoque:
-${formatCurrency(inventoryPosition)}
-
 ━━━━━━━━━━━━━━━━━━
 
-📊 Variação do estoque
+📊 Indicadores do estoque
 
-${
-  growthAmount >= 0
-    ? `O estoque cresceu ${formatCurrency(growthAmount)} em relação ao início do mês.`
-    : `O estoque reduziu ${formatCurrency(Math.abs(growthAmount))} em relação ao início do mês.`
-}
+O Saldo Estoque apresentado corresponde ao valor calculado pelo módulo Estoque Financeiro.
+
+Esse indicador não deve ser somado automaticamente ao estoque inicial nem interpretado isoladamente como crescimento físico ou financeiro do estoque.
 
 ━━━━━━━━━━━━━━━━━━
 
@@ -8914,15 +8909,19 @@ ${formatCurrency(referenceDifference)}
 
 🧠 Minha leitura
 
-O Saldo Estoque é o indicador principal para acompanhar o giro do mês.
+O estoque inicial representa a posição registrada no início do período.
 
-A posição estimada mostra se o estoque cresceu ou diminuiu em relação ao estoque inicial.
+As compras mostram os recursos aplicados em mercadorias.
+
+O Saldo Estoque é calculado pelo módulo financeiro, utilizando sua metodologia própria.
+
+Esses indicadores devem ser analisados em conjunto, sem considerar automaticamente o Saldo Estoque como aumento do estoque inicial.
 
 ━━━━━━━━━━━━━━━━━━
 
 🎯 Minha recomendação
 
-Use o Saldo Estoque para avaliar o giro e a posição estimada para entender se o estoque está aumentando ou reduzindo ao longo do mês.
+Acompanhe compras, receita, consumo interno e perdas, comparando os indicadores financeiros com as contagens físicas de mercadorias.
 `.trim();
 };
 

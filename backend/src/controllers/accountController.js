@@ -670,6 +670,7 @@ const getRealizedCashFlow = async (req, res) => {
 
 module.exports = {
   createAccount,
+  buildCashFlowProjection,
   getCashFlowProjection,
   getRealizedCashFlow,
   getAccounts,

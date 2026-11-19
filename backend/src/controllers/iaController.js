@@ -1661,9 +1661,21 @@ ${label}
   const liquido = Number(current.lucroLiquido || 0);
   const liquidoAnterior = Number(previous.lucroLiquido || 0);
 
-  let diagnostico;
+  
+let diagnostico;
 
-  if (receita > receitaAnterior && liquido < liquidoAnterior) {
+if (liquidoAnterior < 0 && liquido < 0 && liquido > liquidoAnterior) {
+  const reducaoPrejuizo =
+    ((liquido - liquidoAnterior) / Math.abs(liquidoAnterior)) * 100;
+
+  diagnostico =
+    `A Bebcom apresentou recuperação financeira, reduzindo seu prejuízo líquido em ${formatCurrency(liquido - liquidoAnterior)} (${reducaoPrejuizo.toFixed(2)}%). ` +
+    `Entretanto, a empresa continua operando com resultado líquido negativo. ` +
+    `A redução do prejuízo não significa que a operação tenha alcançado lucro. ` +
+    `A receita líquida ${receita < receitaAnterior ? 'diminuiu' : receita > receitaAnterior ? 'aumentou' : 'permaneceu estável'} e o lucro bruto ${bruto < brutoAnterior ? 'diminuiu' : bruto > brutoAnterior ? 'aumentou' : 'permaneceu estável'}, exigindo acompanhamento das margens e despesas.`;
+
+} else if (receita > receitaAnterior && liquido < liquidoAnterior) {
+
     diagnostico =
       'A receita líquida aumentou, mas o lucro líquido diminuiu. A Bebcom vendeu mais, porém apresentou piora na rentabilidade.';
   } else if (receita < receitaAnterior && liquido > liquidoAnterior) {

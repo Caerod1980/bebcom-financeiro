@@ -1,5 +1,6 @@
 const Entry = require('../models/Entry');
 const Account = require('../models/Account');
+const dreService = require('../services/dreService');
 const { buildCashFlowProjection } = require('./accountController');
 const ManagementReport = require('../models/ManagementReport');
 const InventoryBalance = require('../models/InventoryBalance');
@@ -1615,6 +1616,117 @@ const formatRanking = (items, limit = 10) =>
         `${index + 1}. ${item.name} — ${formatCurrency(item.amount)} — ${item.count} lançamento(s)`
     )
     .join('\n');
+
+
+const buildDREComparisonAnswer = (ctx, previousCtx) => {
+  const current = ctx.dre;
+  const previous = previousCtx?.dre;
+
+  if (!current || !previous) {
+    return 'Não foi possível obter os dados da DRE para comparar os períodos.';
+  }
+
+  const compareIndicator = (label, currentValue, previousValue) => {
+    const atual = Number(currentValue || 0);
+    const anterior = Number(previousValue || 0);
+    const diferenca = atual - anterior;
+
+    const variacao = anterior === 0
+      ? null
+      : (diferenca / Math.abs(anterior)) * 100;
+
+    const tendencia =
+      diferenca > 0 ? 'Aumento' :
+      diferenca < 0 ? 'Redução' :
+      'Estável';
+
+    return `
+${label}
+• Período anterior: ${formatCurrency(anterior)}
+• Período atual: ${formatCurrency(atual)}
+• Variação: ${variacao === null
+  ? 'Sem base comparável'
+  : `${variacao > 0 ? '+' : ''}${variacao.toFixed(2)}%`}
+• Tendência: ${tendencia}
+`.trim();
+  };
+
+  const receita = Number(current.receitaLiquida || 0);
+  const receitaAnterior = Number(previous.receitaLiquida || 0);
+
+  const bruto = Number(current.lucroBruto || 0);
+  const brutoAnterior = Number(previous.lucroBruto || 0);
+
+  const liquido = Number(current.lucroLiquido || 0);
+  const liquidoAnterior = Number(previous.lucroLiquido || 0);
+
+  let diagnostico;
+
+  if (receita > receitaAnterior && liquido < liquidoAnterior) {
+    diagnostico =
+      'A receita líquida aumentou, mas o lucro líquido diminuiu. A Bebcom vendeu mais, porém apresentou piora na rentabilidade.';
+  } else if (receita < receitaAnterior && liquido > liquidoAnterior) {
+    diagnostico =
+      'A receita líquida diminuiu, mas o lucro líquido melhorou. A operação apresentou evolução no resultado apesar da redução da receita.';
+  } else if (receita > receitaAnterior && liquido > liquidoAnterior) {
+    diagnostico =
+      'A receita líquida e o lucro líquido aumentaram. Houve evolução simultânea das vendas e do resultado financeiro.';
+  } else if (receita < receitaAnterior && liquido < liquidoAnterior) {
+    diagnostico =
+      'A receita líquida e o lucro líquido diminuíram. O desempenho financeiro apresentou deterioração.';
+  } else {
+    diagnostico =
+      'Os indicadores apresentaram estabilidade ou movimentos distintos. É necessário observar a evolução das margens.';
+  }
+
+  const margemAtual = receita !== 0
+    ? (liquido / receita) * 100
+    : null;
+
+  const margemAnterior = receitaAnterior !== 0
+    ? (liquidoAnterior / receitaAnterior) * 100
+    : null;
+
+  return `
+📊 ANÁLISE COMPARATIVA DA DRE
+
+━━━━━━━━━━━━━━━━━━
+
+${previousCtx.periodLabel} → ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+${compareIndicator('💰 RECEITA LÍQUIDA', receita, receitaAnterior)}
+
+━━━━━━━━━━━━━━━━━━
+
+${compareIndicator('📈 LUCRO BRUTO', bruto, brutoAnterior)}
+
+━━━━━━━━━━━━━━━━━━
+
+${compareIndicator('💵 LUCRO LÍQUIDO', liquido, liquidoAnterior)}
+
+━━━━━━━━━━━━━━━━━━
+
+📊 MARGEM LÍQUIDA
+
+• Anterior: ${margemAnterior === null ? 'Indisponível' : `${margemAnterior.toFixed(2)}%`}
+• Atual: ${margemAtual === null ? 'Indisponível' : `${margemAtual.toFixed(2)}%`}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 MINHA ANÁLISE
+
+${diagnostico}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 MINHA RECOMENDAÇÃO
+
+Investigue as variações de custos e despesas que explicam a evolução dos lucros. O crescimento das vendas deve ser acompanhado pela preservação das margens.
+`.trim();
+};
+
 
 const buildContext = async ({ month, year, start, end, customLabel }) => {
   const entries = await Entry.find({
@@ -16499,9 +16611,19 @@ const askIABebcom = async (req, res) => {
     };
   }
 
-  period = currentPeriod;
+   period = currentPeriod;
   ctx = await buildContext(currentPeriod);
   previousCtx = await buildContext(comparePeriod);
+
+  ctx.dre = await dreService.calculateDRE(
+    currentPeriod.month,
+    currentPeriod.year
+  );
+
+  previousCtx.dre = await dreService.calculateDRE(
+    comparePeriod.month,
+    comparePeriod.year
+  );
 
 } else if (relativePeriod) {
   period = {
@@ -17840,7 +17962,21 @@ const genericPayablesAnswer =
 
 
 
-if (isDoubleReductionSimulationQuestion) {
+if (
+  comparisonPeriods &&
+  ctx.dre &&
+  previousCtx?.dre &&
+  (
+    normalizeText(question).includes('receita liquida') ||
+    normalizeText(question).includes('lucro bruto') ||
+    normalizeText(question).includes('lucro liquido') ||
+    normalizeText(question).includes('comparacao da dre') ||
+    normalizeText(question).includes('desempenho financeiro')
+  )
+) {
+  answer = buildDREComparisonAnswer(ctx, previousCtx);
+
+} else if (isDoubleReductionSimulationQuestion) {
   if (hasInvalidDoubleReductionPercent) {
     answer = `
 ⚠️ SIMULAÇÃO FINANCEIRA — PERCENTUAL INVÁLIDO

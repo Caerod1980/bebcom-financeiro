@@ -15650,8 +15650,10 @@ ${incomePercent === 100 && purchasePercent === 100
     ? 'A eliminação total das entradas, mantendo os desembolsos previstos, produz um cenário de insuficiência financeira extrema. Sem recebimentos, a operação dependeria de reservas ou outras fontes de recursos para cumprir seus compromissos.'
   : purchasePercent === 100
     ? 'A eliminação total das compras melhora matematicamente o saldo financeiro, mas representa um cenário extremo. Sem reposição de mercadorias, a operação pode enfrentar ruptura de estoque e perda de vendas futuras.'
-    : incomePercent === 0 && purchasePercent === 0
+       : incomePercent === 0 && purchasePercent === 0
       ? 'As entradas e as compras permanecem inalteradas. Consequentemente, o saldo financeiro projetado é igual ao saldo original.'
+      : Math.abs(balanceChange) < 0.005
+        ? 'As reduções das entradas e das compras praticamente se compensam. A variação financeira arredondada é de R$ 0,00, mantendo o saldo projetado estável.'
       : balanceChange > 0
         ? incomePercent === 0
           ? 'As entradas permanecem inalteradas, enquanto a redução das compras melhora o saldo financeiro.'

@@ -16971,17 +16971,21 @@ previousCtx = await buildContext(previousPeriod);
     // ETAPA 9 — Prioridade para comparações oficiais da DRE
     const dreComparisonQuestion = normalizeText(question);
 
+    
+    // ETAPA 9 — Correção 12.4
+    // Prioridade para comparações explícitas da DRE
     const wantsDREComparison =
       comparisonPeriods &&
       ctx.dre &&
       previousCtx?.dre &&
       (
+        dreComparisonQuestion.includes('dre') ||
         dreComparisonQuestion.includes('receita liquida') ||
         dreComparisonQuestion.includes('lucro bruto') ||
         dreComparisonQuestion.includes('lucro liquido') ||
-        dreComparisonQuestion.includes('comparacao da dre') ||
         dreComparisonQuestion.includes('desempenho financeiro')
       );
+
 
     if (wantsDREComparison) {
       return res.json({
@@ -18241,13 +18245,15 @@ if (
   comparisonPeriods &&
   ctx.dre &&
   previousCtx?.dre &&
+  
   (
+    normalizeText(question).includes('dre') ||
     normalizeText(question).includes('receita liquida') ||
     normalizeText(question).includes('lucro bruto') ||
     normalizeText(question).includes('lucro liquido') ||
-    normalizeText(question).includes('comparacao da dre') ||
     normalizeText(question).includes('desempenho financeiro')
   )
+
 ) {
   answer = buildDREComparisonAnswer(ctx, previousCtx);
 

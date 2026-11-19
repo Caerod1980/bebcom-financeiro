@@ -1663,16 +1663,15 @@ const buildDREComparisonAnswer = (ctx, previousCtx) => {
         : `Reversão de lucro para prejuízo — deterioração de ${formatCurrency(Math.abs(diferenca))}`
       : label.includes('LUCRO LÍQUIDO') && anterior < 0 && atual < 0
         ? diferenca > 0
-          ? `Redução do prejuízo em ${Math.abs(variacao).toFixed(2)}%`
+          ? `Redução do prejuízo em ${formatPercent(Math.abs(variacao))}%` 
           : diferenca < 0
-            ? `Aumento do prejuízo em ${Math.abs(variacao).toFixed(2)}%`
+            ? `Aumento do prejuízo em ${formatPercent(Math.abs(variacao))}%`
             : 'Prejuízo estável'
         : variacao === null
           ? 'Sem base comparável'
-          : `${variacao > 0 ? '+' : ''}${variacao.toFixed(2)}%`;
+          : `${variacao > 0 ? '+' : ''}${formatPercent(variacao)}%`;
 
-
-    
+   
     // ETAPA 9.5 — Correção 12.6
     // Tendência contextualizada do resultado líquido
     let tendencia;
@@ -1701,7 +1700,6 @@ const buildDREComparisonAnswer = (ctx, previousCtx) => {
         diferenca < 0 ? 'Redução' :
         'Estável';
     }
-
 
     return `
 ${label}

@@ -16720,6 +16720,64 @@ if (dailyRevenueRankingAnswer) {
   });
 }
 
+const asksPurchasesRevenueRelation =
+  normalizedQuestion.includes('faturamento') &&
+  (
+    normalizedQuestion.includes('compras de mercadorias') ||
+    normalizedQuestion.includes('compra de mercadorias')
+  ) &&
+  (
+    normalizedQuestion.includes('relacao') ||
+    normalizedQuestion.includes('proporcao') ||
+    normalizedQuestion.includes('percentual') ||
+    normalizedQuestion.includes('representam')
+  );
+
+if (asksPurchasesRevenueRelation) {
+  const purchases = ctx.expenseCategories?.find(
+    item => item.category === 'compras_mercadorias'
+  )?.amount || 0;
+
+  const revenue = Number(ctx.totalIncome || 0);
+
+  const percentage = revenue > 0
+    ? (purchases / revenue) * 100
+    : null;
+
+  return res.json({
+    answer: `
+📊 COMPRAS X FATURAMENTO — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+💰 Faturamento
+${formatCurrency(revenue)}
+
+📦 Compras de mercadorias
+${formatCurrency(purchases)}
+
+📈 Compras sobre faturamento
+${percentage === null ? 'Não calculável sem faturamento' : `${percentage.toFixed(1)}%`}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+${percentage === null
+  ? 'Não há faturamento registrado suficiente para calcular essa relação.'
+  : `As compras representam ${percentage.toFixed(1)}% do faturamento registrado no período. Esse percentual indica o peso das aquisições de mercadorias em relação às entradas comerciais.`}
+
+Essa relação não representa o CMV nem a margem de lucro, pois compras e mercadorias efetivamente vendidas são conceitos diferentes.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Acompanhe essa proporção juntamente com o saldo de caixa, as contas a pagar e o giro do estoque, evitando comprometer recursos em compras acima da necessidade operacional.
+`.trim()
+  });
+}
+
 const managementReportComparisonAnswer =
   await buildManagementReportComparisonAnswer(
     question,

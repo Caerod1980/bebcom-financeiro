@@ -1,5 +1,5 @@
 import { iaService } from '../services/api';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Bot,
   Send,
@@ -14,6 +14,17 @@ import toast from 'react-hot-toast';
 const IABebcom = () => {
   const [question, setQuestion] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // MELHORIA 1.3-A — Rolagem automática da conversa
+  const messagesContainerRef = useRef(null);
+
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
+  }, [messages, loading]);
 
   const [messages, setMessages] = useState([
     {
@@ -130,7 +141,12 @@ const IABebcom = () => {
           </p>
         </div>
 
-        <div className="p-5 space-y-4 min-h-[180px] max-h-[520px] overflow-y-auto bg-gray-50">
+        
+        <div
+          ref={messagesContainerRef}
+          className="p-5 space-y-4 min-h-[180px] max-h-[520px] overflow-y-auto bg-gray-50"
+        >
+
           {messages.map((message, index) => (
             <div
               key={`${message.role}-${index}`}

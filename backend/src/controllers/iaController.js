@@ -2151,8 +2151,7 @@ const buildGenericPayablesAnswer = (ctx, question) => {
   );
 
   const list = accounts
-    .slice(0, 20)
-    .map((item, index) => {
+  .map((item, index) => {
       const date = item.dueDate
         ? new Date(item.dueDate).toLocaleDateString('pt-BR')
         : 'sem vencimento';

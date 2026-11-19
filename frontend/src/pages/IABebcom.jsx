@@ -15,6 +15,15 @@ const IABebcom = () => {
   const [question, setQuestion] = useState('');
   const [loading, setLoading] = useState(false);
   
+  const [messages, setMessages] = useState([
+    {
+      role: 'assistant',
+      content:
+        'Olá, Rodrigo. Eu sou a IA Bebcom, sua consultora gerencial. Posso ajudar a interpretar dados financeiros, fluxo de caixa, ticket médio, desempenho, despesas e estratégias da operação.',
+    },
+  ]);
+
+  
   // MELHORIA 1.3-A — Rolagem automática da conversa
   const messagesContainerRef = useRef(null);
 
@@ -26,13 +35,6 @@ const IABebcom = () => {
     }
   }, [messages, loading]);
 
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      content:
-        'Olá, Rodrigo. Eu sou a IA Bebcom, sua consultora gerencial. Posso ajudar a interpretar dados financeiros, fluxo de caixa, ticket médio, desempenho, despesas e estratégias da operação.',
-    },
-  ]);
 
   const suggestions = [
     'Como está meu fluxo de caixa?',

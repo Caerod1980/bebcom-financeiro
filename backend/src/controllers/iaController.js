@@ -1663,9 +1663,24 @@ ${label}
 
   
 
+
 let diagnostico;
 
-if (liquidoAnterior < 0 && liquido > 0) {
+if (liquidoAnterior > 0 && liquido < 0) {
+  const deterioracao = liquidoAnterior - liquido;
+
+  diagnostico =
+    `🚨 ALERTA DE DETERIORAÇÃO FINANCEIRA\n\n` +
+    `A Bebcom deixou de apresentar lucro e passou a registrar prejuízo líquido. ` +
+    `O resultado caiu de ${formatCurrency(liquidoAnterior)} para ${formatCurrency(liquido)}, ` +
+    `representando uma deterioração de ${formatCurrency(deterioracao)}. ` +
+    `A margem líquida passou de positiva para negativa, indicando uma reversão da rentabilidade. ` +
+    `A receita líquida ${receita < receitaAnterior ? 'diminuiu' : receita > receitaAnterior ? 'aumentou' : 'permaneceu estável'} ` +
+    `e o lucro bruto ${bruto < brutoAnterior ? 'diminuiu' : bruto > brutoAnterior ? 'aumentou' : 'permaneceu estável'}. ` +
+    `Recomendo investigar imediatamente os custos, despesas e fatores que provocaram essa mudança de resultado.`;
+
+} else if (liquidoAnterior < 0 && liquido > 0) {
+
   const recuperacao = liquido - liquidoAnterior;
 
   diagnostico =

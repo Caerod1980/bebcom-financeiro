@@ -16715,6 +16715,28 @@ ctx = await buildContext(currentPeriod);
 previousCtx = await buildContext(previousPeriod);
     }
 
+    
+    // ETAPA 9 — Prioridade para comparações oficiais da DRE
+    const dreComparisonQuestion = normalizeText(question);
+
+    const wantsDREComparison =
+      comparisonPeriods &&
+      ctx.dre &&
+      previousCtx?.dre &&
+      (
+        dreComparisonQuestion.includes('receita liquida') ||
+        dreComparisonQuestion.includes('lucro bruto') ||
+        dreComparisonQuestion.includes('lucro liquido') ||
+        dreComparisonQuestion.includes('comparacao da dre') ||
+        dreComparisonQuestion.includes('desempenho financeiro')
+      );
+
+    if (wantsDREComparison) {
+      return res.json({
+        answer: buildDREComparisonAnswer(ctx, previousCtx),
+      });
+    }
+
     // Prioridade para consultas objetivas, antes das rotinas consultivas.
     const objectiveQuestion = normalizeText(question);
     const objectiveTotal = /(?:quanto|total|gastei|gasto|despesas?)/.test(objectiveQuestion);

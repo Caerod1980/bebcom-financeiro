@@ -142,6 +142,7 @@ const getDashboard = async (req, res) => {
     
     // ⭐ CALCULAR VARIAÇÕES COM SEGURANÇA (sem divisão por zero)
     const revenueVariation = calculateVariation(dre.receitaLiquida, prevDre.receitaLiquida);
+    const grossProfitVariation = calculateVariation(dre.lucroBruto, prevDre.lucroBruto);
     const profitVariation = calculateVariation(dre.lucroLiquido, prevDre.lucroLiquido);
     
     // ⭐ CALCULAR TICKET MÉDIO (se houver dados)
@@ -155,11 +156,12 @@ const getDashboard = async (req, res) => {
       topExpenses,
       averageTicket,
       comparison: {
-        revenueVariation,
-        profitVariation,
-        revenueVariationAbsolute: dre.receitaLiquida - prevDre.receitaLiquida,
-        profitVariationAbsolute: dre.lucroLiquido - prevDre.lucroLiquido,
-      }
+      revenueVariation,
+      grossProfitVariation,
+      profitVariation,
+      revenueVariationAbsolute: dre.receitaLiquida - prevDre.receitaLiquida,
+      profitVariationAbsolute: dre.lucroLiquido - prevDre.lucroLiquido,
+}
     });
   } catch (error) {
     console.error('Erro ao carregar dashboard:', error);

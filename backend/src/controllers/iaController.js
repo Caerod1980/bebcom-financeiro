@@ -2498,84 +2498,140 @@ Confira se o caixa comporta esses pagamentos e priorize vencimentos de hoje, ven
 `.trim();
 };
 
+
 const buildCashForecastAnswer = (ctx) => {
+  const projection = ctx.cashFlowProjection || [];
+
+  if (!projection.length) {
+    return 'Não há projeção de fluxo de caixa disponível para esta análise.';
+  }
+
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  const next7Days = new Date();
-  next7Days.setDate(today.getDate() + 7);
-
-  const payables = (ctx.accounts || []).filter(
+  const overdueAccounts = (ctx.accounts || []).filter(
     (account) =>
       account.type === 'payable' &&
       ['pending', 'overdue'].includes(account.status) &&
-      new Date(account.dueDate) <= next7Days
+      new Date(account.dueDate) < today
   );
 
-  const receivables = (ctx.accounts || []).filter(
-    (account) =>
-      account.type === 'receivable' &&
-      ['pending', 'overdue'].includes(account.status) &&
-      new Date(account.dueDate) <= next7Days
-  );
-
-  const totalPayables = payables.reduce(
-    (acc, item) =>
-      acc + Math.abs(Number(item.amount || 0)),
+  const overdueTotal = overdueAccounts.reduce(
+    (sum, account) =>
+      sum + Math.abs(Number(account.amount || 0)),
     0
   );
 
-  const totalReceivables = receivables.reduce(
-    (acc, item) =>
-      acc + Math.abs(Number(item.amount || 0)),
-    0
+  const totalOpenPayables = (ctx.accounts || [])
+    .filter(
+      (account) =>
+        account.type === 'payable' &&
+        ['pending', 'overdue'].includes(account.status)
+    )
+    .reduce(
+      (sum, account) =>
+        sum + Math.abs(Number(account.amount || 0)),
+      0
+    );
+
+  let accumulated = 0;
+
+  const periods = projection.map((period) => {
+    const income = Number(period.receivable || 0);
+    const payable = Number(period.payable || 0);
+    const balance = income - payable;
+
+    accumulated += balance;
+
+    return {
+      label: period.label,
+      income,
+      payable,
+      balance,
+      accumulated
+    };
+  });
+
+  const todayProjection = periods.find(
+    (period) => period.label === 'Hoje'
   );
 
-  const projectedCash =
-    Number(ctx.balance || 0) +
-    totalReceivables -
-    totalPayables;
+  const sevenDays = periods.find(
+    (period) => period.label === '7 Dias'
+  );
 
-  let status = 'Equilibrado';
+  const accumulatedSevenDays =
+    (todayProjection?.balance || 0) +
+    (sevenDays?.balance || 0);
 
-  if (projectedCash < 0) {
-    status = 'Atenção';
-  }
+  const adjustedSevenDays =
+    accumulatedSevenDays - overdueTotal;
 
- return `
-📈 PREVISÃO DE CAIXA — PRÓXIMOS 7 DIAS
+  const periodDetails = periods
+    .map(
+      (period) => `
+📅 ${period.label}
+Entradas previstas: ${formatCurrency(period.income)}
+Saídas previstas: ${formatCurrency(period.payable)}
+Resultado do intervalo: ${formatCurrency(period.balance)}
+Resultado acumulado: ${formatCurrency(period.accumulated)}
+`
+    )
+    .join('\n');
 
-━━━━━━━━━━━━━━━━━━
+  const situation =
+    adjustedSevenDays < 0
+      ? 'A projeção indica pressão financeira nos próximos sete dias, considerando também os compromissos vencidos.'
+      : 'A projeção operacional indica potencial de cobertura dos compromissos nos próximos sete dias, desde que as entradas estimadas se realizem.';
 
-📊 Resultado realizado do período
-${formatCurrency(ctx.balance)}
-
-💵 Contas a receber
-${formatCurrency(totalReceivables)}
-
-💸 Contas a pagar
-${formatCurrency(totalPayables)}
-
-━━━━━━━━━━━━━━━━━━
-
-📌 Saldo projetado
-${formatCurrency(projectedCash)}
-
-⚠️ Situação
-${status}
+  return `
+🏦 ANÁLISE DE CAPACIDADE DE PAGAMENTO — ${ctx.periodLabel}
 
 ━━━━━━━━━━━━━━━━━━
 
-💡 Minha leitura
+💸 Total de contas em aberto
+${formatCurrency(totalOpenPayables)}
 
-${
-  projectedCash >= 0
-    ? 'O resultado projetado cobre os compromissos previstos para os próximos dias.'
-    : 'Os compromissos previstos superam a disponibilidade projetada. É recomendável acompanhar entradas, renegociações e prioridades de pagamento.'
-}
+🚨 Contas vencidas
+${formatCurrency(overdueTotal)}
 
-👉 Próxima ação sugerida
+━━━━━━━━━━━━━━━━━━
 
-Compare os vencimentos dos próximos dias com as entradas previstas e evite assumir novos compromissos antes de estabilizar o caixa.
+📊 FLUXO DE CAIXA PREVISTO
+
+${periodDetails}
+
+━━━━━━━━━━━━━━━━━━
+
+📌 PROJEÇÃO ACUMULADA — ATÉ 7 DIAS
+
+Resultado dos intervalos:
+${formatCurrency(accumulatedSevenDays)}
+
+Após considerar contas vencidas anteriores a hoje:
+${formatCurrency(adjustedSevenDays)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 MINHA ANÁLISE
+
+${situation}
+
+Os valores de entrada incluem estimativas de faturamento baseadas na média diária de vendas.
+
+O resultado acumulado representa uma projeção de entradas menos compromissos previstos, não o saldo disponível em caixa ou bancos.
+
+Sem conhecer a disponibilidade financeira inicial, não é possível confirmar que todas as contas possam ser quitadas imediatamente.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 MINHA RECOMENDAÇÃO
+
+Priorizar contas vencidas e compromissos imediatos.
+
+Acompanhar diariamente a realização das entradas previstas e comparar os vencimentos com os recursos efetivamente disponíveis.
+
+Evitar assumir novos compromissos com base apenas em faturamento estimado.
 `.trim();
 };
 
@@ -17458,13 +17514,22 @@ const isPayablesDueDateQuestion =
   lowerQuestion.includes('vencimentos proximos') ||
   lowerQuestion.includes('prioridade de pagamento');
 
+  
 const isCashForecastQuestion =
   lowerQuestion.includes('consigo pagar') ||
   lowerQuestion.includes('caixa cobre') ||
   lowerQuestion.includes('vou faltar dinheiro') ||
   lowerQuestion.includes('previsão de caixa') ||
   lowerQuestion.includes('previsao de caixa') ||
-  lowerQuestion.includes('saldo projetado');
+  lowerQuestion.includes('saldo projetado') ||
+  lowerQuestion.includes('condições financeiras de pagar') ||
+  lowerQuestion.includes('condicoes financeiras de pagar') ||
+  lowerQuestion.includes('capacidade de pagamento') ||
+  lowerQuestion.includes('consegue pagar todas as contas') ||
+  lowerQuestion.includes('conseguimos pagar todas as contas') ||
+  lowerQuestion.includes('tem dinheiro para pagar todas as contas') ||
+  lowerQuestion.includes('temos dinheiro para pagar todas as contas');
+
 
     const isDecisionSimulationQuestion =
   lowerQuestion.includes('quanto sobra') ||
@@ -17968,9 +18033,11 @@ if (limitDay) {
 
 answer = buildDecisionSimulationAnswer(simulationCtx);
 
+
 } else if (
   genericPayablesAnswer &&
-  !isOpenSupplierRankingQuestion
+  !isOpenSupplierRankingQuestion &&
+  !isCashForecastQuestion
 ) {
   answer = genericPayablesAnswer;
 } else if (intuitiveMemoryAnswer) {

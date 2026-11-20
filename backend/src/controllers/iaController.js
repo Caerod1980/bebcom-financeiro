@@ -18549,6 +18549,26 @@ if (earlySupplierPayableName) {
   });
 }
 
+// CORREÇÃO 6.1 — Reconhecimento de compromissos financeiros
+const normalizedPayablesQuestion = normalizeText(question);
+
+const isFinancialCommitmentsQuestion =
+  normalizedPayablesQuestion.includes('compromissos financeiros') &&
+  (
+    normalizedPayablesQuestion.includes('pendentes') ||
+    normalizedPayablesQuestion.includes('em aberto') ||
+    normalizedPayablesQuestion.includes('a pagar')
+  );
+
+if (isFinancialCommitmentsQuestion) {
+  return res.json({
+    answer: buildGenericPayablesAnswer(
+      ctx,
+      'Quais são as contas a pagar pendentes?'
+    ),
+  });
+}
+
 const genericPayablesAnswer =
   buildGenericPayablesAnswer(ctx, question);
 

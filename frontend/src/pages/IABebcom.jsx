@@ -180,7 +180,7 @@ const IABebcom = () => {
         part,
         <span
           key={`currency-${index}`}
-          className="font-semibold text-emerald-700"
+          className="font-semibold text-gray-900"
         >
           {matches[index][0]}
         </span>,

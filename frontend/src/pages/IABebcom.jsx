@@ -159,6 +159,38 @@ const IABebcom = () => {
   };
 
   
+  // MELHORIA 1.5-A — Formatação visual segura das respostas
+  const renderMessageContent = (content) => {
+    if (typeof content !== 'string') {
+      return content;
+    }
+
+    return content.split('\n').map((line, index) => {
+      const trimmedLine = line.trim();
+
+      const isTitle =
+        trimmedLine.length >= 5 &&
+        trimmedLine.length <= 80 &&
+        /[A-ZÁÉÍÓÚÂÊÔÃÕÇ]/.test(trimmedLine) &&
+        trimmedLine === trimmedLine.toLocaleUpperCase('pt-BR') &&
+        !/\d/.test(trimmedLine) &&
+        !/[.!?]$/.test(trimmedLine);
+
+      return (
+        <React.Fragment key={index}>
+          {index > 0 && '\n'}
+          {isTitle ? (
+            <span className="font-bold text-gray-900">
+              {line}
+            </span>
+          ) : (
+            line
+          )}
+        </React.Fragment>
+      );
+    });
+  };
+  
   // MELHORIA 1.3-B — Copiar respostas da IA
   const handleCopyMessage = async (content) => {
     try {
@@ -281,7 +313,9 @@ const IABebcom = () => {
                   ? 'bg-amber-600 text-white'
                   : 'bg-white text-gray-800 border shadow-sm'
               }`}>
-                {message.content}
+               {message.role === 'assistant'
+                  ? renderMessageContent(message.content)
+                  : message.content}
 
                 {message.role === 'assistant' && (
                   <div className="flex justify-end mt-3 pt-2 border-t border-gray-100">

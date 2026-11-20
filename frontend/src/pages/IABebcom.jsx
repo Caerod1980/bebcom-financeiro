@@ -10,6 +10,10 @@ import {
   Wallet,
   Copy,
   Plus,
+  Lightbulb,
+  TrendingUp,
+  AlertTriangle,
+  SlidersHorizontal,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -46,13 +50,34 @@ const IABebcom = () => {
 
 
   
-  // MELHORIA 1.4-A — Sugestões de análise gerencial
+  
+  // MELHORIA 1.4-B — Sugestões organizadas por assunto
   const suggestions = [
-    'Como está meu fluxo de caixa?',
-    'O que posso fazer para melhorar o ticket médio?',
-    'Quais pontos merecem atenção na operação?',
-    'Como posso reduzir despesas sem prejudicar a loja?',
-    'Analise a DRE do último mês fechado.',
+    {
+      label: 'Fluxo de caixa',
+      question: 'Como está meu fluxo de caixa?',
+      icon: Wallet,
+    },
+    {
+      label: 'Ticket médio',
+      question: 'O que posso fazer para melhorar o ticket médio?',
+      icon: TrendingUp,
+    },
+    {
+      label: 'Riscos operacionais',
+      question: 'Quais pontos merecem atenção na operação?',
+      icon: AlertTriangle,
+    },
+    {
+      label: 'Controle de despesas',
+      question: 'Como posso reduzir despesas sem prejudicar a loja?',
+      icon: SlidersHorizontal,
+    },
+    {
+      label: 'Análise da DRE',
+      question: 'Analise a DRE do último mês fechado.',
+      icon: BarChart3,
+    },
   ];
 
  
@@ -281,18 +306,36 @@ const IABebcom = () => {
           )}
         </div>
 
+        
         <div className="p-5 border-t bg-white">
-          <div className="flex flex-wrap gap-2 mb-4">
-            {suggestions.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => handleSuggestion(item)}
-                className="px-3 py-2 text-xs rounded-full bg-gray-100 hover:bg-amber-100 text-gray-700 hover:text-amber-700 transition"
-              >
-                {item}
-              </button>
-            ))}
+
+          {/* MELHORIA 1.4-B — Sugestões visuais */}
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Lightbulb className="w-4 h-4 text-amber-500" />
+              <span className="text-sm font-semibold text-gray-700">
+                Sugestões para começar
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {suggestions.map((item) => {
+                const Icon = item.icon;
+
+                return (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => handleSuggestion(item.question)}
+                    title={item.question}
+                    className="flex items-center gap-2 px-3 py-3 text-left text-xs font-medium rounded-xl border border-gray-200 bg-gray-50 text-gray-700 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 transition"
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0 text-amber-600" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">

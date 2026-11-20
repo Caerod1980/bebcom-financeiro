@@ -188,15 +188,27 @@ const Dashboard = () => {
         </div>
       </div>
       
-      {/* Cards - Grid Responsivo */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
-        <Card
-          title="Receita Líquida"
-          value={formatCurrency(current.receitaLiquida)}
-          icon={TrendingUp}
-          color="green"
-          percentage={dashboardData.comparison?.revenueVariation}
-        />
+   {/* Cards - Grid Responsivo */}
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-6 mb-6 md:mb-8">
+  {/* Novo card — Receita Bruta */}
+  <Card
+    title="Receita Bruta"
+    value={
+      current.receitaBruta != null
+        ? formatCurrency(current.receitaBruta)
+        : "Não disponível"
+    }
+    icon={ShoppingBag}
+    color="blue"
+  />
+
+  <Card
+    title="Receita Líquida"
+    value={formatCurrency(current.receitaLiquida)}
+    icon={TrendingUp}
+    color="green"
+    percentage={dashboardData.comparison?.revenueVariation}
+  />
         <Card
           title="Lucro Bruto"
           value={formatCurrency(current.lucroBruto)}

@@ -45,11 +45,14 @@ const IABebcom = () => {
   }, [messages, loading]);
 
 
+  
+  // MELHORIA 1.4-A — Sugestões de análise gerencial
   const suggestions = [
     'Como está meu fluxo de caixa?',
     'O que posso fazer para melhorar o ticket médio?',
     'Quais pontos merecem atenção na operação?',
     'Como posso reduzir despesas sem prejudicar a loja?',
+    'Analise a DRE do último mês fechado.',
   ];
 
  

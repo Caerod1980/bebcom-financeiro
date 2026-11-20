@@ -3507,10 +3507,29 @@ Compare períodos equivalentes para verificar se as ações estão aumentando o 
 const buildExpenseAnswer = (ctx) => {
   const categories = ctx.expenseCategories || [];
 
-  const topExpenses = categories
+    const categoryLabels = {
+    compras_mercadorias: 'Compras de mercadorias',
+    funcionarios: 'Funcionários',
+    outras_despesas: 'Outras despesas',
+    emprestimos: 'Empréstimos',
+    energia: 'Energia elétrica',
+    impostos: 'Impostos',
+    aluguel: 'Aluguel',
+    manutencao: 'Manutenção',
+    internet: 'Internet',
+    contador: 'Contabilidade'
+  };
+
+  const getCategoryLabel = (category) =>
+    categoryLabels[category] ||
+    String(category || 'Não classificado')
+      .replace(/_/g, ' ')
+      .replace(/^./, (letter) => letter.toUpperCase());
+
+    const topExpenses = categories
     .slice(0, 5)
     .map((item, index) =>
-      `${index + 1}. ${item.category}: ${formatCurrency(item.amount)}`
+      `${index + 1}. ${getCategoryLabel(item.category)}: ${formatCurrency(item.amount)}`
     )
     .join('\n');
 
@@ -3543,7 +3562,7 @@ const buildExpenseAnswer = (ctx) => {
       const action = actions[item.category] ||
         'Examinar os lançamentos e identificar oportunidades de economia sem prejudicar a operação.';
 
-      return `${index + 1}. ${item.category}
+      return `${index + 1}. ${getCategoryLabel(item.category)}
 ${action}`;
     })
     .join('\n\n');
@@ -3552,7 +3571,7 @@ ${action}`;
 
 ━━━━━━━━━━━━━━━━━━
 
-💰 Total de saídas classificadas como despesas
+💰 Total de saídas financeiras realizadas
 ${formatCurrency(ctx.totalExpenses)}
 
 ━━━━━━━━━━━━━━━━━━
@@ -3579,7 +3598,15 @@ Os maiores grupos merecem investigação primeiro, mas valor elevado não signif
 
 ✅ MINHA RECOMENDAÇÃO
 
-Comece examinando os lançamentos das três maiores categorias. Identifique quais gastos podem ser renegociados, reduzidos ou reorganizados sem comprometer estoque essencial, atendimento e qualidade da operação.`;
+Comece examinando os lançamentos das três maiores categorias, respeitando a natureza de cada movimentação.
+
+• Compras de mercadorias: avalie giro, necessidade de reposição, preços e prazos dos fornecedores. Reduzir compras pode aliviar o caixa, mas não representa automaticamente redução das despesas operacionais.
+
+• Despesas operacionais: procure desperdícios, contratos que podem ser renegociados e oportunidades de eficiência, preservando atendimento, equipe essencial e qualidade da operação.
+
+• Empréstimos: examine juros, amortizações e vencimentos. Renegociar parcelas pode melhorar o fluxo de caixa, mas é necessário verificar se haverá aumento do custo total da dívida.
+
+Priorize medidas que melhorem a eficiência financeira sem comprometer a continuidade da operação.`;
 };
 
 const getSharePercent = (value, total) => {

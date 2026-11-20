@@ -200,6 +200,7 @@ const Dashboard = () => {
     }
     icon={ShoppingBag}
     color="blue"
+    percentage={dashboardData.comparison?.grossRevenueVariation}
   />
 
   <Card
@@ -221,6 +222,8 @@ const Dashboard = () => {
           value={formatCurrency(current.totalDespesas || 0)}
           icon={CreditCard}
           color="red"
+          percentage={dashboardData.comparison?.expensesVariation}
+          inversePercentage={true}
         />
         <Card
           title="Lucro Líquido"

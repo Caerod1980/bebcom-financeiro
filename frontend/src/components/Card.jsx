@@ -2,11 +2,11 @@ import React from 'react';
 
 const Card = ({ title, value, icon: Icon, color, percentage }) => {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-100">
-      <div className="flex justify-between items-start">
-        <div className="flex-1">
+    <div className="bg-white rounded-xl shadow-sm p-4 md:p-5 border border-gray-100 min-w-0">
+    <div className="flex flex-col gap-3">
+    <div className="min-w-0">
           <p className="text-xs md:text-sm text-gray-500 mb-1">{title}</p>
-          <p className="text-lg md:text-2xl font-bold text-gray-900 break-words">
+          <p className="text-lg md:text-xl xl:text-2xl font-bold text-gray-900 break-words">
             {value}
           </p>
           {percentage !== undefined && percentage !== null && (
@@ -15,8 +15,8 @@ const Card = ({ title, value, icon: Icon, color, percentage }) => {
             </p>
           )}
         </div>
-        <div className={`p-2 md:p-3 rounded-lg bg-${color}-100 flex-shrink-0 ml-2`}>
-          <Icon className={`w-4 h-4 md:w-6 md:h-6 text-${color}-600`} />
+        <div className={`self-end p-2 rounded-lg bg-${color}-100`}>
+        <Icon className={`w-5 h-5 text-${color}-600`} />
         </div>
       </div>
     </div>

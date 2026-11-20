@@ -3426,6 +3426,37 @@ const buildTicketImprovementAnswer = (question, ctx) => {
     return null;
   }
 
+    const averageTicket = Number(
+    ctx.managementReport?.averageTicket || 0
+  );
+
+  const formatGrowthScenario = (percent) =>
+    formatCurrency(averageTicket * (1 + percent / 100));
+
+  if (averageTicket <= 0) {
+    return `
+🎯 COMO MELHORAR O TICKET MÉDIO — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+📌 Ticket médio
+
+Não há um valor positivo disponível para o período consultado.
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha leitura
+
+Sem um ticket médio válido, não é possível calcular cenários de crescimento confiáveis.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Minha recomendação
+
+Confira os registros de vendas e comandas do período. Depois, acompanhe o ticket médio e avalie oportunidades de vendas complementares, preservando a margem dos produtos.
+`.trim();
+  }
+
   return `
 🎯 COMO MELHORAR O TICKET MÉDIO — ${ctx.periodLabel}
 
@@ -3438,7 +3469,19 @@ ${formatCurrency(ctx.managementReport?.averageTicket || 0)}
 
 🧠 Minha leitura
 
-O caminho não é apenas vender mais, mas fazer cada cliente levar mais itens por compra.
+O ticket médio registrado é de ${formatCurrency(averageTicket)} por venda. Sem comparação com períodos anteriores ou uma meta definida, não é possível classificá-lo isoladamente como alto ou baixo.
+
+Uma oportunidade é aumentar o valor médio das compras por meio de produtos complementares e combos, acompanhando também a margem das vendas.
+
+━━━━━━━━━━━━━━━━━━
+
+📈 Cenários de crescimento
+
+• Aumento de 5%: ${formatGrowthScenario(5)}
+• Aumento de 10%: ${formatGrowthScenario(10)}
+• Aumento de 15%: ${formatGrowthScenario(15)}
+
+Esses valores são simulações matemáticas sobre o ticket atual, não previsões de vendas ou de faturamento.
 
 ━━━━━━━━━━━━━━━━━━
 
@@ -3454,7 +3497,9 @@ O caminho não é apenas vender mais, mas fazer cada cliente levar mais itens po
 
 🎯 Minha recomendação
 
-Comece por combos fáceis de entender e produtos que já têm giro. Isso aumenta o ticket sem depender apenas de novos clientes.
+Comece testando combos fáceis de entender e produtos que já possuem giro. Acompanhe o ticket médio, a quantidade de vendas e a margem dos produtos envolvidos.
+
+Compare períodos equivalentes para verificar se as ações estão aumentando o valor médio das compras sem comprometer a rentabilidade. Evite descontos que elevem o ticket, mas reduzam excessivamente a margem.
 `.trim();
 };
 

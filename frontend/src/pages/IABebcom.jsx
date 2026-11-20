@@ -158,6 +158,36 @@ const IABebcom = () => {
     questionInputRef.current?.focus();
   };
 
+
+  // MELHORIA 1.5-E — Destaque visual de valores monetários
+  const renderFinancialValues = (text) => {
+    if (typeof text !== 'string') {
+      return text;
+    }
+
+    // Reconhece valores em reais no padrão brasileiro
+    const currencyPattern =
+      /R\$\s*-?(?:(?:\d{1,3}(?:\.\d{3})+)|\d+),\d{2}/g;
+
+    return text.split(currencyPattern).flatMap((part, index, parts) => {
+      const matches = [...text.matchAll(currencyPattern)];
+
+      if (index === parts.length - 1) {
+        return [part];
+      }
+
+      return [
+        part,
+        <span
+          key={`currency-${index}`}
+          className="font-semibold text-emerald-700"
+        >
+          {matches[index][0]}
+        </span>,
+      ];
+    });
+  };
+
   
   // MELHORIA 1.5-A — Formatação visual segura das respostas
   const renderMessageContent = (content) => {
@@ -223,12 +253,13 @@ const IABebcom = () => {
             <span className="font-bold text-amber-700">
               {line}
             </span>
+       
           ) : isTitle ? (
             <span className="font-bold text-gray-900">
               {line}
             </span>
           ) : (
-            line
+            renderFinancialValues(line)
           )}
 
         </React.Fragment>

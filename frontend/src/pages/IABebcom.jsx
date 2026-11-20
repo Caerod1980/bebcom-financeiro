@@ -165,8 +165,26 @@ const IABebcom = () => {
       return content;
     }
 
-    return content.split('\n').map((line, index) => {
+    
+    // MELHORIA 1.5-D — Reduzir espaços excessivos na exibição
+    const lines = content.split('\n');
+
+    return lines.map((line, index) => {
       const trimmedLine = line.trim();
+
+      // Identifica linhas vazias próximas aos separadores
+      const previousLine = lines[index - 1]?.trim() || '';
+      const nextLine = lines[index + 1]?.trim() || '';
+
+      const separatorPattern = /^[━─—-]{5,}$/;
+
+      const isBlankNearSeparator =
+        trimmedLine === '' &&
+        (
+          separatorPattern.test(previousLine) ||
+          separatorPattern.test(nextLine)
+        );
+
 
        // MELHORIA 1.5-C — Identificar separadores de seções
       const isSeparator = /^[━─—-]{5,}$/.test(trimmedLine);
@@ -184,9 +202,17 @@ const IABebcom = () => {
         !/\d/.test(trimmedLine) &&
         !/[.!?]$/.test(trimmedLine);
 
+      
+      // Oculta apenas a linha vazia imediatamente próxima
+      // a um separador, preservando o texto original.
+      if (isBlankNearSeparator) {
+        return null;
+      }
+
       return (
         <React.Fragment key={index}>
           {index > 0 && '\n'}
+
          
           {isSeparator ? (
             <span

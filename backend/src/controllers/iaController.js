@@ -16927,6 +16927,144 @@ const askIABebcom = async (req, res) => {
       });
     }
 
+      // CORREÇÃO 5.1 — DRE do último mês calendário encerrado
+    const dreQuestion = normalizeText(question);
+
+    const wantsLastClosedMonthDRE =
+      /\bdre\b/.test(dreQuestion) &&
+      (
+        dreQuestion.includes('ultimo mes fechado') ||
+        dreQuestion.includes('ultimo mes encerrado') ||
+        dreQuestion.includes('mes passado') ||
+        dreQuestion.includes('mes anterior')
+      ) &&
+      !(
+        dreQuestion.includes('comparar') ||
+        dreQuestion.includes('comparacao') ||
+        dreQuestion.includes('comparado')
+      );
+
+    if (wantsLastClosedMonthDRE) {
+      const today = new Date();
+
+      const lastMonthDate = new Date(
+        today.getFullYear(),
+        today.getMonth() - 1,
+        1
+      );
+
+      const month = lastMonthDate.getMonth() + 1;
+      const year = lastMonthDate.getFullYear();
+      const periodLabel = getMonthLabel(month, year);
+
+      const dre = await dreService.calculateDRE(month, year);
+
+      if (!dre.hasEntries) {
+        return res.json({
+          answer: `📊 DRE — ${periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Não encontrei lançamentos para calcular a DRE desse período.
+
+Não é possível apresentar um resultado financeiro confiável sem os registros necessários.
+
+🎯 Minha recomendação
+
+Confira os lançamentos e suas classificações na DRE antes de avaliar a rentabilidade do período.`
+        });
+      }
+
+      const money = (value) =>
+        formatCurrency(Number(value || 0));
+
+      const margin = Number(dre.percentuais?.margemLiquida || 0)
+        .toLocaleString('pt-BR', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+
+      const result = Number(dre.lucroLiquido || 0);
+
+      const interpretation =
+        result > 0
+          ? `A DRE calculada apresenta resultado líquido positivo de ${money(result)}. Isso indica que as receitas classificadas superaram os custos e despesas reconhecidos no demonstrativo.`
+          : result < 0
+            ? `A DRE calculada apresenta resultado líquido negativo de ${money(result)}. É necessário investigar custos, despesas e a composição das receitas antes de definir medidas corretivas.`
+            : 'A DRE calculada apresenta resultado líquido igual a zero. É importante verificar a composição das receitas, custos e despesas.';
+
+      const answer = `
+📊 ANÁLISE DA DRE — ${periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+💰 RECEITAS
+
+Receita bruta: ${money(dre.receitaBruta)}
+Deduções: ${money(dre.deducoes)}
+Receita líquida: ${money(dre.receitaLiquida)}
+
+━━━━━━━━━━━━━━━━━━
+
+📦 CUSTO DAS MERCADORIAS VENDIDAS
+
+CMV: ${money(dre.cmv)}
+
+Lucro bruto: ${money(dre.lucroBruto)}
+
+━━━━━━━━━━━━━━━━━━
+
+🏪 RESULTADO OPERACIONAL
+
+Despesas operacionais: ${money(dre.despesasOperacionais)}
+
+Resultado operacional: ${money(dre.resultadoOperacional)}
+
+━━━━━━━━━━━━━━━━━━
+
+🏦 RESULTADO FINANCEIRO E OUTROS ITENS
+
+Despesas financeiras: ${money(dre.despesasFinanceiras)}
+Outras receitas: ${money(dre.outrasReceitas)}
+Outras despesas: ${money(dre.outrasDespesas)}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 RESULTADO LÍQUIDO
+
+${money(dre.lucroLiquido)}
+
+Margem líquida calculada: ${
+  Number(dre.receitaLiquida || 0) > 0
+    ? `${margin}%`
+    : 'Não calculável sem receita líquida positiva'
+}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 MINHA ANÁLISE
+
+${interpretation}
+
+Os resultados dependem da classificação correta dos lançamentos nos grupos da DRE. Um valor ausente ou incorretamente classificado pode alterar o resultado apresentado.
+
+A DRE não deve ser confundida com o fluxo de caixa: entradas e saídas financeiras não representam necessariamente receitas, custos e despesas do mesmo período.
+
+━━━━━━━━━━━━━━━━━━
+
+✅ MINHA RECOMENDAÇÃO
+
+1. Conferir a classificação das receitas e deduções.
+2. Validar o CMV e sua correspondência com as mercadorias efetivamente vendidas.
+3. Revisar as despesas operacionais e financeiras.
+4. Acompanhar a margem líquida em períodos equivalentes.
+
+Esta é uma DRE calculada a partir dos lançamentos disponíveis. A consulta não confirma que o mês foi oficialmente fechado no sistema.
+`.trim();
+
+      return res.json({ answer });
+    }
+
    const specificDatePeriod = getSpecificDatePeriod(question);
    const relativePeriod = getRelativePeriod(question);
    const comparisonPeriods = getComparisonPeriods(question);

@@ -16,6 +16,10 @@ import toast from 'react-hot-toast';
 const IABebcom = () => {
   const [question, setQuestion] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // MELHORIA 1.3-D — Controle do campo de digitação
+  const questionInputRef = useRef(null);
+  const sendingRef = useRef(false);
   
   const [messages, setMessages] = useState([
     {
@@ -48,13 +52,22 @@ const IABebcom = () => {
     'Como posso reduzir despesas sem prejudicar a loja?',
   ];
 
- const handleAsk = async () => {
+ 
+  const handleAsk = async () => {
+  // MELHORIA 1.3-D — Impedir envios simultâneos
+  if (sendingRef.current) {
+    return;
+  }
+
   if (!question.trim()) {
     toast.error('Digite uma pergunta para a IA Bebcom.');
     return;
   }
 
+  sendingRef.current = true;
+
   const currentQuestion = question;
+
 
   const requestConversationId = conversationIdRef.current; 
 
@@ -93,11 +106,17 @@ const IABebcom = () => {
     toast.error(
       error.message || 'Erro ao consultar a IA Bebcom.'
     );
-    } finally {
+   
+  } finally {
     if (requestConversationId === conversationIdRef.current) {
+      sendingRef.current = false;
       setLoading(false);
+
+      // Devolve o foco ao campo após a resposta
+      questionInputRef.current?.focus();
     }
   }
+
 }; 
 
   const handleSuggestion = (text) => {
@@ -120,6 +139,7 @@ const IABebcom = () => {
   // MELHORIA 1.3-C — Iniciar nova conversa
   const handleNewConversation = () => {
     conversationIdRef.current += 1;
+        sendingRef.current = false;
 
     setMessages([
       {
@@ -271,13 +291,31 @@ const IABebcom = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
+            
+            {/* MELHORIA 1.3-D — Digitação inteligente */}
             <textarea
+              ref={questionInputRef}
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
+              onKeyDown={(e) => {
+                if (
+                  e.key === 'Enter' &&
+                  !e.shiftKey &&
+                  !e.nativeEvent.isComposing
+                ) {
+                  e.preventDefault();
+
+                  if (!loading && !sendingRef.current) {
+                    handleAsk();
+                  }
+                }
+              }}
               className="input-field flex-1"
-              rows="2"
+              rows={2}
               placeholder="Digite sua pergunta para a IA Bebcom..."
+              aria-label="Pergunta para a IA Bebcom"
             />
+
 
             <button
               type="button"

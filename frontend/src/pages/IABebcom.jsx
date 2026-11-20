@@ -119,8 +119,10 @@ const IABebcom = () => {
 
 }; 
 
-  const handleSuggestion = (text) => {
+   // MELHORIA 1.3-E — Foco nas perguntas sugeridas
+    const handleSuggestion = (text) => {
     setQuestion(text);
+    questionInputRef.current?.focus();
   };
 
   
@@ -138,8 +140,8 @@ const IABebcom = () => {
   
   // MELHORIA 1.3-C — Iniciar nova conversa
   const handleNewConversation = () => {
-    conversationIdRef.current += 1;
-        sendingRef.current = false;
+  conversationIdRef.current += 1;
+  sendingRef.current = false;
 
     setMessages([
       {

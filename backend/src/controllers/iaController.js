@@ -3106,13 +3106,23 @@ Não trate todas as contas da mesma forma. Priorize vencidos, próximos vencimen
 };
 
 const buildFlowAnswer = (ctx) => {
-  const topExpenses = ctx.expenseCategories
-    .slice(0, 3)
-    .map(
-      (item, index) =>
-        `${index + 1}. ${item.category}: ${formatCurrency(item.amount)}`
-    )
-    .join('\n');
+  const categoryLabels = {
+  compras_mercadorias: 'Compras de mercadorias',
+  funcionarios: 'Funcionários',
+  outras_despesas: 'Outras despesas',
+};
+
+const topExpenses = (ctx.expenseCategories || [])
+  .slice(0, 3)
+  .map((item, index) => {
+    const label = categoryLabels[item.category] ||
+      String(item.category || 'Não classificado')
+        .replace(/_/g, ' ')
+        .replace(/^./, (letter) => letter.toUpperCase());
+
+    return `${index + 1}. ${label}: ${formatCurrency(item.amount)}`;
+  })
+  .join('\n');
 
   const deepQuestions =
   buildDeepDiveQuestions(ctx);
@@ -3120,10 +3130,9 @@ const buildFlowAnswer = (ctx) => {
  return `
 📊 FLUXO DE CAIXA — ${ctx.periodLabel}
 
-${buildConsultiveIntroduction(
-  ctx,
-  'o fluxo de caixa'
-)}
+Rodrigo,
+
+vou analisar as entradas e saídas registradas no período, os compromissos pendentes e os principais pontos que merecem atenção na gestão do caixa.
 
 ━━━━━━━━━━━━━━━━━━
 
@@ -3153,13 +3162,52 @@ ${formatCurrency(ctx.pendingReceivable)}
 ${topExpenses || 'Ainda não há despesas suficientes classificadas.'}
 
 ${buildConsultiveClosing({
-  situation:
-    ctx.balance >= 0
-      ? 'As entradas estão sustentando as saídas registradas e o período apresenta resultado positivo.'
-      : 'As saídas estão pressionando o caixa e o período apresenta resultado negativo.',
+    situation: (() => {
+    const income = Number(ctx.totalIncome || 0);
+    const expenses = Number(ctx.totalExpenses || 0);
+    const balance = Number(ctx.balance || 0);
+    const payable = Number(ctx.pendingPayable || 0);
+
+    const resultPercent = income > 0
+      ? ((balance / income) * 100).toLocaleString('pt-BR', {
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1,
+        })
+      : null;
+
+    const purchases = (ctx.expenseCategories || []).find(
+      (item) => item.category === 'compras_mercadorias'
+    );
+
+    const purchasePercent = expenses > 0 && purchases
+      ? ((Number(purchases.amount || 0) / expenses) * 100)
+          .toLocaleString('pt-BR', {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1,
+          })
+      : null;
+
+    const resultText = balance >= 0
+      ? `As entradas superaram as saídas em ${formatCurrency(balance)}.`
+      : `As saídas superaram as entradas em ${formatCurrency(Math.abs(balance))}.`;
+
+    return [
+      resultText,
+      resultPercent !== null
+        ? `O resultado representa ${resultPercent}% das entradas do período.`
+        : null,
+      purchasePercent !== null
+        ? `As compras de mercadorias representam ${purchasePercent}% das saídas realizadas. Esse percentual não representa margem de lucro nem custo das mercadorias vendidas.`
+        : null,
+      payable > 0
+        ? `Existem ${formatCurrency(payable)} em contas a pagar pendentes. É necessário avaliar seus vencimentos em conjunto com o caixa disponível e os recebimentos previstos.`
+        : null,
+      'O resultado do período não representa necessariamente o saldo bancário disponível.',
+    ].filter(Boolean).join('\n\n');
+  })(),
 
   recommendation:
-    'Acompanhe o fluxo previsto junto com o realizado. Priorize fornecedores críticos, vencimentos próximos e preserve caixa para a operação essencial.',
+    'Acompanhe o fluxo previsto junto com o realizado. Confira os vencimentos próximos, avalie o giro das mercadorias compradas e preserve recursos para as despesas essenciais. Considere o saldo efetivamente disponível antes de assumir novos compromissos.',
 })}
 
 ━━━━━━━━━━━━━━━━━━

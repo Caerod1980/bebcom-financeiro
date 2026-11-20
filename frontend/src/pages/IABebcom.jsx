@@ -14,6 +14,7 @@ import {
   TrendingUp,
   AlertTriangle,
   SlidersHorizontal,
+  CalendarClock,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -78,8 +79,12 @@ const IABebcom = () => {
       question: 'Analise a DRE do último mês fechado.',
       icon: BarChart3,
     },
+    {
+      label: 'Contas a pagar',
+      question: 'Quais são os compromissos financeiros pendentes?',
+      icon: CalendarClock,
+    },
   ];
-
  
   const handleAsk = async () => {
   // MELHORIA 1.3-D — Impedir envios simultâneos

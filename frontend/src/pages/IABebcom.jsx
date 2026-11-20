@@ -168,6 +168,9 @@ const IABebcom = () => {
     return content.split('\n').map((line, index) => {
       const trimmedLine = line.trim();
 
+       // MELHORIA 1.5-C — Identificar separadores de seções
+      const isSeparator = /^[━─—-]{5,}$/.test(trimmedLine);
+
       // MELHORIA 1.5-B — Reconhecer títulos principais
       const isMainTitle =
         /^(?:🚨\s*)?RADAR DE RISCO OPERACIONAL\b/i.test(trimmedLine) ||
@@ -185,7 +188,12 @@ const IABebcom = () => {
         <React.Fragment key={index}>
           {index > 0 && '\n'}
          
-          {isMainTitle ? (
+          {isSeparator ? (
+            <span
+              className="block border-t border-gray-200 my-1"
+              aria-hidden="true"
+            />
+          ) : isMainTitle ? (
             <span className="font-bold text-amber-700">
               {line}
             </span>

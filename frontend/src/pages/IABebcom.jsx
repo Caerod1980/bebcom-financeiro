@@ -168,6 +168,11 @@ const IABebcom = () => {
     return content.split('\n').map((line, index) => {
       const trimmedLine = line.trim();
 
+      // MELHORIA 1.5-B — Reconhecer títulos principais
+      const isMainTitle =
+        /^(?:🚨\s*)?RADAR DE RISCO OPERACIONAL\b/i.test(trimmedLine) ||
+        /^ANÁLISE (?:DA |DE )?DRE\b/i.test(trimmedLine);
+
       const isTitle =
         trimmedLine.length >= 5 &&
         trimmedLine.length <= 80 &&
@@ -179,13 +184,19 @@ const IABebcom = () => {
       return (
         <React.Fragment key={index}>
           {index > 0 && '\n'}
-          {isTitle ? (
+         
+          {isMainTitle ? (
+            <span className="font-bold text-amber-700">
+              {line}
+            </span>
+          ) : isTitle ? (
             <span className="font-bold text-gray-900">
               {line}
             </span>
           ) : (
             line
           )}
+
         </React.Fragment>
       );
     });

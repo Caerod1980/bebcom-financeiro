@@ -144,6 +144,17 @@ const getDashboard = async (req, res) => {
     const revenueVariation = calculateVariation(dre.receitaLiquida, prevDre.receitaLiquida);
     const grossProfitVariation = calculateVariation(dre.lucroBruto, prevDre.lucroBruto);
     const profitVariation = calculateVariation(dre.lucroLiquido, prevDre.lucroLiquido);
+
+// CORREÇÃO 7.4 — Novas comparações do dashboard
+const grossRevenueVariation =
+  Number(prevDre.receitaBruta) > 0
+    ? calculateVariation(dre.receitaBruta, prevDre.receitaBruta)
+    : null;
+
+const expensesVariation =
+  Number(prevDre.totalDespesas) > 0
+    ? calculateVariation(dre.totalDespesas, prevDre.totalDespesas)
+    : null;
     
     // ⭐ CALCULAR TICKET MÉDIO (se houver dados)
     // Nota: você precisa adicionar campo 'transactions' nos lançamentos para isso
@@ -156,12 +167,14 @@ const getDashboard = async (req, res) => {
       topExpenses,
       averageTicket,
       comparison: {
-      revenueVariation,
-      grossProfitVariation,
-      profitVariation,
-      revenueVariationAbsolute: dre.receitaLiquida - prevDre.receitaLiquida,
-      profitVariationAbsolute: dre.lucroLiquido - prevDre.lucroLiquido,
-}
+        revenueVariation,
+        grossProfitVariation,
+        profitVariation,
+        grossRevenueVariation,
+        expensesVariation,
+        revenueVariationAbsolute: dre.receitaLiquida - prevDre.receitaLiquida,
+        profitVariationAbsolute: dre.lucroLiquido - prevDre.lucroLiquido,
+   }
     });
   } catch (error) {
     console.error('Erro ao carregar dashboard:', error);

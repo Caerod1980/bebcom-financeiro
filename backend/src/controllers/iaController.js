@@ -4356,6 +4356,18 @@ const formatTickets = (value) => {
 const buildManagementReportComparisonAnswer = async (question, ctx) => {
   const lower = normalizeText(question);
 
+  
+  // ETAPA 8.2 — Não direcionar planejamento
+  // de pagamentos para evolução comercial.
+  const isFinancialPaymentQuestion =
+    /\b(pagar|pagamento|pagamentos|contas a pagar|vencimento|vencimentos)\b/.test(lower) &&
+    /\b(previsto|prevista|previsao|projecao|conseguirei|consigo|conseguimos|cobrir|cobertura)\b/.test(lower);
+
+  if (isFinancialPaymentQuestion) {
+    return null;
+  }
+
+
   const asksDayRanking =
   lower.includes('pior dia') ||
   lower.includes('melhor dia') ||
@@ -18448,7 +18460,11 @@ const isPayablesDueDateQuestion =
   lowerQuestion.includes('prioridade de pagamento');
 
   
-const isCashForecastQuestion =
+  const isCashForecastQuestion =
+  lowerQuestion.includes('conseguirei pagar') ||
+  lowerQuestion.includes('conseguiremos pagar') ||
+  lowerQuestion.includes('vou conseguir pagar') ||
+  lowerQuestion.includes('vamos conseguir pagar') ||
   lowerQuestion.includes('consigo pagar') ||
   lowerQuestion.includes('caixa cobre') ||
   lowerQuestion.includes('vou faltar dinheiro') ||

@@ -17529,8 +17529,16 @@ let previousPeriod = {
   end: new Date(previousYear, previousMonth, 0, 23, 59, 59, 999),
 };
 
-const limitDay =
-  getPartialComparisonLimitDay(question, period);
+
+const isWeeklyRankingQuestion =
+  /melhor semana|pior semana|pior de semana|piro de semana|semana do ano|semana vendeu mais|semana vendeu menos|semana teve menor faturamento|semana teve maior faturamento/.test(
+    normalizeText(question)
+  );
+
+const limitDay = isWeeklyRankingQuestion
+  ? null
+  : getPartialComparisonLimitDay(question, period);
+
 
 if (limitDay) {
   const currentEndDay = Math.min(

@@ -3154,12 +3154,15 @@ const buildCashForecastAnswer = (ctx) => {
 
     dailyAccumulated += income - payable;
 
+    
     dailySchedule.push({
       date: date.toLocaleDateString('pt-BR'),
       income,
       payable,
       accumulated: dailyAccumulated,
-      hasPressure: dailyAccumulated < 0
+      hasPressure: dailyAccumulated < 0,
+      hasDailyPressure: payable > income,
+      dailyDeficit: Math.max(0, payable - income)
     });
   }
 
@@ -3168,10 +3171,14 @@ const buildCashForecastAnswer = (ctx) => {
 📅 ${item.date}
 Entradas estimadas: ${formatCurrency(item.income)}
 Compromissos: ${formatCurrency(item.payable)}
+
 Resultado acumulado: ${formatCurrency(item.accumulated)}
+${item.hasDailyPressure
+  ? `⚠️ Pressão financeira diária: ${formatCurrency(item.dailyDeficit)} — compromissos superiores às entradas estimadas do dia.`
+  : '✅ Entradas estimadas suficientes para os compromissos do dia.'}
 ${item.hasPressure
-  ? '⚠️ Necessidade potencial de cobertura'
-  : '✅ Resultado incremental não negativo'}
+  ? '🚨 Resultado incremental acumulado negativo — necessidade potencial de cobertura.'
+  : '✅ Resultado incremental acumulado não negativo.'}
 `.trim())
     .join('\n\n');
 

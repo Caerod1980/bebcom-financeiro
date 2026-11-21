@@ -3188,9 +3188,27 @@ ${item.hasPressure
 
   const firstPressureDay = pressureDays[0];
 
-  const dailyRiskSummary = firstPressureDay
-    ? `A primeira necessidade potencial de cobertura aparece em ${firstPressureDay.date}. Existem ${pressureDays.length} dia(s) com resultado incremental acumulado negativo.`
+ 
+  const dailyPressureDays = dailySchedule.filter(
+    (item) => item.hasDailyPressure
+  );
+
+  const dailyPressureSummary = dailyPressureDays.length
+    ? dailyPressureDays
+        .map(
+          (item) =>
+            `⚠️ ${item.date}: pressão financeira diária de ${formatCurrency(item.dailyDeficit)}.`
+        )
+        .join('\n')
+    : 'Não foram identificados dias com compromissos superiores às entradas estimadas.';
+
+  const accumulatedPressureSummary = firstPressureDay
+    ? `A primeira necessidade potencial de cobertura acumulada aparece em ${firstPressureDay.date}. Existem ${pressureDays.length} dia(s) com resultado incremental acumulado negativo.`
     : 'Não foram identificados resultados incrementais acumulados negativos no horizonte analisado.';
+
+  const dailyRiskSummary =
+    `${dailyPressureSummary}\n\n${accumulatedPressureSummary}`;
+
 
   const periodDetails = periods
 

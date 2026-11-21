@@ -15276,10 +15276,14 @@ const weeks = ctx.month
       ctx.entries,
       'income',
       ctx.start,
+      
       ctx.end
     );
+
+    if (!weeks.length) {
       return `
 Não encontrei vendas suficientes para analisar semanas em ${ctx.periodLabel}.
+
 `.trim();
     }
 

@@ -17035,11 +17035,23 @@ const buildObjectiveSalesRankingAnswer = async (question) => {
 Fonte: Relatorio Gerencial.`;
   }
 
+ 
+  // Ranking de fins de semana:
+  // inclui até dois dias anteriores ao início do mês.
+  const entrySearchStart = new Date(start);
+
+  if (weekend && month) {
+    entrySearchStart.setDate(
+      entrySearchStart.getDate() - 2
+    );
+  }
+
   const entries = await Entry.find({
     deleted: { $ne: true },
     type: 'income',
-    date: { $gte: start, $lte: boundedEnd }
+    date: { $gte: entrySearchStart, $lte: boundedEnd }
   });
+
 
   const daily = new Map();
 
@@ -17074,7 +17086,10 @@ Fonte: Relatorio Gerencial.`;
       const sunday = new Date(friday);
       sunday.setDate(friday.getDate() + 2);
 
-      if (friday < start || sunday > boundedEnd) continue;
+      
+      // O fim de semana pertence ao mês do domingo.
+      if (sunday < start || sunday > boundedEnd) continue;
+
 
       const key = friday.toLocaleDateString('pt-BR');
 

@@ -18393,11 +18393,26 @@ if (wantsNext5Days) {
   });
 }
 
-if (wantsNext7Days) {
+
+const isSevenDayPaymentForecast =
+  /\b(conseguirei pagar|conseguiremos pagar|consigo pagar|conseguimos pagar|vou conseguir pagar|vamos conseguir pagar|capacidade de pagamento)\b/.test(
+    normalizeText(question)
+  ) ||
+  (
+    /\b(pagar|pagamento|pagamentos|contas a pagar)\b/.test(
+      normalizeText(question)
+    ) &&
+    /\b(previsao|previsto|prevista|projecao|cobertura)\b/.test(
+      normalizeText(question)
+    )
+  );
+
+if (wantsNext7Days && !isSevenDayPaymentForecast) {
   return res.json({
     answer: buildUpcomingDueAnswer(ctx, 7),
   });
 }
+
     
 const isSupplierPayableQuestion =
   !!supplierPayableName &&

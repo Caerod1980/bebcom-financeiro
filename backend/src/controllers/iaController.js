@@ -4401,9 +4401,28 @@ const buildManagementReportComparisonAnswer = async (question, ctx) => {
   lower.includes('dia de menor') ||
   lower.includes('dia de maior');
 
+
 if (asksDayRanking) {
   return null;
 }
+
+// Perguntas sobre ranking semanal devem seguir
+// para a análise temporal específica.
+const asksWeekRanking =
+  lower.includes('melhor semana') ||
+  lower.includes('pior semana') ||
+  lower.includes('pior de semana') ||
+  lower.includes('piro de semana') ||
+  lower.includes('semana do ano') ||
+  lower.includes('semana vendeu mais') ||
+  lower.includes('semana vendeu menos') ||
+  lower.includes('semana teve menor faturamento') ||
+  lower.includes('semana teve maior faturamento');
+
+if (asksWeekRanking) {
+  return null;
+}
+
 
   const mentionsManagementReport =
     lower.includes('relatorio gerencial') ||

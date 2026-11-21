@@ -2871,6 +2871,54 @@ A agenda financeira não possui compromissos em aberto neste momento.
     0
   );
 
+  // ETAPA 8.1 — Concentração dos vencimentos
+const dueGroups = [
+  { label: 'Vencidas', filter: (item) => item.days < 0 },
+  { label: 'Vencem hoje', filter: (item) => item.days === 0 },
+  { label: 'Próximos 1 a 3 dias', filter: (item) => item.days >= 1 && item.days <= 3 },
+  { label: 'Próximos 4 a 7 dias', filter: (item) => item.days >= 4 && item.days <= 7 },
+  { label: 'Próximos 8 a 15 dias', filter: (item) => item.days >= 8 && item.days <= 15 },
+  { label: 'Após 15 dias', filter: (item) => item.days > 15 }
+];
+
+const totalOpen = accounts.reduce(
+  (sum, item) => sum + item.amount,
+  0
+);
+
+const concentrationLines = dueGroups.map((group) => {
+  const selected = accounts.filter(group.filter);
+
+  const amount = selected.reduce(
+    (sum, item) => sum + item.amount,
+    0
+  );
+
+  const share = totalOpen > 0
+    ? (amount / totalOpen) * 100
+    : 0;
+
+  return `${group.label}: ${formatCurrency(amount)} — ${selected.length} conta(s) — ${share.toFixed(1)}%`;
+}).join('\n');
+
+const next7Days = accounts.filter(
+  (item) => item.days <= 7
+);
+
+const totalNext7Days = next7Days.reduce(
+  (sum, item) => sum + item.amount,
+  0
+);
+
+const next7DaysShare = totalOpen > 0
+  ? (totalNext7Days / totalOpen) * 100
+  : 0;
+
+const pressureLevel =
+  next7DaysShare >= 70 ? 'ALTA CONCENTRAÇÃO' :
+  next7DaysShare >= 40 ? 'CONCENTRAÇÃO MODERADA' :
+  'CONCENTRAÇÃO DISTRIBUÍDA';
+
   const list = critical
     .slice(0, 10)
     .map((item, index) => {
@@ -2899,6 +2947,28 @@ ${critical.length}
 
 💰 Valor crítico
 ${formatCurrency(totalCritical)}
+
+━━━━━━━━━━━━━━━━━━
+
+📊 CONCENTRAÇÃO DOS VENCIMENTOS
+
+Total em aberto: ${formatCurrency(totalOpen)}
+
+${concentrationLines}
+
+━━━━━━━━━━━━━━━━━━
+
+🚨 PRESSÃO FINANCEIRA NOS PRÓXIMOS 7 DIAS
+
+Compromissos vencidos ou com vencimento em até 7 dias:
+${formatCurrency(totalNext7Days)}
+
+Participação no total em aberto:
+${next7DaysShare.toFixed(1)}%
+
+Classificação: ${pressureLevel}
+
+Esta classificação considera a concentração temporal dos compromissos, não a disponibilidade efetiva de caixa.
 
 ━━━━━━━━━━━━━━━━━━
 

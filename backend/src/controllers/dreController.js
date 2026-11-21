@@ -125,8 +125,35 @@ const getDashboard = async (req, res) => {
       return res.status(400).json({ error: validation.error });
     }
     
-    const dre = await dreService.calculateDRE(validation.month, validation.year);
-    
+        const dre = await dreService.calculateDRE(validation.month, validation.year);
+
+    // EVOLUÇÃO DA RECEITA — Faturamento bruto semanal real
+    const daysInMonth = new Date(
+      validation.year,
+      validation.month,
+      0
+    ).getDate();
+
+    const weeklyRevenue = Array.from(
+      { length: Math.ceil(daysInMonth / 7) },
+      (_, index) => ({
+        week: `Sem ${index + 1}`,
+        total: 0
+      })
+    );
+
+    (dre.details?.receitaBrutaItems || []).forEach((entry) => {
+      const entryDate = new Date(entry.date);
+
+      const day = entryDate.getDate();
+      const weekIndex = Math.floor((day - 1) / 7);
+
+      if (weeklyRevenue[weekIndex]) {
+        weeklyRevenue[weekIndex].total +=
+          Math.abs(Number(entry.amount || 0));
+      }
+    });
+
     // Get previous month for comparison
     let prevMonth = validation.month - 1;
     let prevYear = validation.year;
@@ -161,12 +188,13 @@ const expensesVariation =
     // Por enquanto, retorna 0
     const averageTicket = 0; // futuro: dre.receitaLiquida / totalTransactions
     
-    res.json({
-      current: dre,
-      previous: prevDre,
-      topExpenses,
-      averageTicket,
-      comparison: {
+        res.json({
+        current: dre,
+        previous: prevDre,
+        topExpenses,
+        weeklyRevenue,
+        averageTicket,
+        comparison: {
         revenueVariation,
         grossProfitVariation,
         profitVariation,

@@ -1,3 +1,4 @@
+// BEBCOM FINANCEIRO - Teste de republicacao Azure - 21/11/2026
 const Entry = require('../models/Entry');
 const Account = require('../models/Account');
 const dreService = require('../services/dreService');

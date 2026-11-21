@@ -14435,13 +14435,20 @@ const getAdvancedHistoricalPeriod = (question) => {
     };
   }
 
-  // Exemplo: "do ano", "de 2026", "em 2026"
+  
+  // Período anual somente quando nenhum mês específico
+  // foi identificado na pergunta.
+  // Exemplo: "melhor semana de 2026"
   if (
-    lower.includes('do ano') ||
-    lower.includes('no ano') ||
-    lower.includes(`de ${year}`) ||
-    lower.includes(`em ${year}`)
+    monthsFound.length === 0 &&
+    (
+      lower.includes('do ano') ||
+      lower.includes('no ano') ||
+      lower.includes(`de ${year}`) ||
+      lower.includes(`em ${year}`)
+    )
   ) {
+
     return {
       month: null,
       year,

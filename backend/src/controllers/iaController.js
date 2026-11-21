@@ -3054,10 +3054,139 @@ const buildCashForecastAnswer = (ctx) => {
     (todayProjection?.balance || 0) +
     (sevenDays?.balance || 0);
 
+  
   const adjustedSevenDays =
     accumulatedSevenDays - overdueTotal;
 
+  // ETAPA 8.2 — Planejamento diário de pagamentos
+  // Projeção incremental, sem saldo inicial de caixa.
+
+  const rawToday = projection.find(
+    (period) => period.label === 'Hoje'
+  );
+
+  const rawSevenDays = projection.find(
+    (period) => period.label === '7 Dias'
+  );
+
+  const dailyOperationalIncome =
+    Number(rawSevenDays?.operationalForecast || 0) / 7;
+
+  const todayOperationalIncome =
+    Number(rawToday?.operationalForecast || 0);
+
+  const openAccounts = (ctx.accounts || []).filter(
+    (account) =>
+      ['pending', 'overdue'].includes(account.status) &&
+      ['payable', 'receivable'].includes(account.type) &&
+      account.dueDate &&
+      Number(account.amount || 0) > 0
+  );
+
+  const getDayOffset = (dateValue) => {
+    const date = new Date(dateValue);
+
+    if (Number.isNaN(date.getTime())) return null;
+
+    const currentDay = Date.UTC(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate()
+    );
+
+    const dueDay = Date.UTC(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate()
+    );
+
+    return Math.round(
+      (dueDay - currentDay) / 86400000
+    );
+  };
+
+  let dailyAccumulated = 0;
+  const dailySchedule = [];
+
+  for (let day = 0; day <= 7; day++) {
+    const date = new Date(today);
+    date.setDate(date.getDate() + day);
+
+    const dailyAccounts = openAccounts.filter((account) => {
+      const offset = getDayOffset(account.dueDate);
+
+      if (offset === null) return false;
+
+      // Vencidas entram no primeiro dia da análise.
+      return day === 0
+        ? offset <= 0
+        : offset === day;
+    });
+
+    const payable = dailyAccounts
+      .filter((account) => account.type === 'payable')
+      .reduce(
+        (sum, account) =>
+          sum + Math.abs(Number(account.amount || 0)),
+        0
+      );
+
+    const receivableAccounts = dailyAccounts
+      .filter((account) => account.type === 'receivable')
+      .reduce(
+        (sum, account) =>
+          sum + Math.abs(Number(account.amount || 0)),
+        0
+      );
+
+    // Recebíveis vencidos não são tratados como
+    // entradas garantidas no primeiro dia.
+    const receivableForecast =
+      day === 0 ? 0 : receivableAccounts;
+
+    const operationalIncome =
+      day === 0
+        ? todayOperationalIncome
+        : dailyOperationalIncome;
+
+    const income =
+      operationalIncome + receivableForecast;
+
+    dailyAccumulated += income - payable;
+
+    dailySchedule.push({
+      date: date.toLocaleDateString('pt-BR'),
+      income,
+      payable,
+      accumulated: dailyAccumulated,
+      hasPressure: dailyAccumulated < 0
+    });
+  }
+
+  const dailyScheduleText = dailySchedule
+    .map((item) => `
+📅 ${item.date}
+Entradas estimadas: ${formatCurrency(item.income)}
+Compromissos: ${formatCurrency(item.payable)}
+Resultado acumulado: ${formatCurrency(item.accumulated)}
+${item.hasPressure
+  ? '⚠️ Necessidade potencial de cobertura'
+  : '✅ Resultado incremental não negativo'}
+`.trim())
+    .join('\n\n');
+
+  const pressureDays = dailySchedule.filter(
+    (item) => item.hasPressure
+  );
+
+  const firstPressureDay = pressureDays[0];
+
+  const dailyRiskSummary = firstPressureDay
+    ? `A primeira necessidade potencial de cobertura aparece em ${firstPressureDay.date}. Existem ${pressureDays.length} dia(s) com resultado incremental acumulado negativo.`
+    : 'Não foram identificados resultados incrementais acumulados negativos no horizonte analisado.';
+
   const periodDetails = periods
+
     .map(
       (period) => `
 📅 ${period.label}
@@ -3098,12 +3227,32 @@ ${periodDetails}
 Resultado dos intervalos:
 ${formatCurrency(accumulatedSevenDays)}
 
+
 Após considerar contas vencidas anteriores a hoje:
 ${formatCurrency(adjustedSevenDays)}
 
 ━━━━━━━━━━━━━━━━━━
 
+📆 PLANEJAMENTO DIÁRIO — HOJE + 7 DIAS
+
+${dailyScheduleText}
+
+━━━━━━━━━━━━━━━━━━
+
+🚨 ANÁLISE DOS DIAS DE PRESSÃO
+
+${dailyRiskSummary}
+
+A análise considera a média diária de entradas e os vencimentos cadastrados.
+
+O resultado acumulado começa em zero e não representa o saldo disponível em caixa ou bancos.
+
+Contas a receber já vencidas não são consideradas recebimento garantido.
+
+━━━━━━━━━━━━━━━━━━
+
 🧠 MINHA ANÁLISE
+
 
 ${situation}
 

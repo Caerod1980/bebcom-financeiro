@@ -15093,7 +15093,9 @@ Essa leitura considera apenas dias com entradas registradas. Dias sem lançament
 `.trim();
 };
 
-const buildTemporalAnalyticsAnswer = (question, ctx) => {
+
+const buildTemporalAnalyticsAnswer = async (question, ctx) => {
+
   const lower = normalizeText(question);
 
   const wantsBest =
@@ -18762,11 +18764,13 @@ if (historicalTrendAnswer) {
   });
 }
     
+
 const temporalAnalyticsAnswer =
-  buildTemporalAnalyticsAnswer(
+  await buildTemporalAnalyticsAnswer(
     question,
     temporalCtx
   );
+
 
 if (temporalAnalyticsAnswer) {
   return res.json({

@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Card = ({ title, value, icon: Icon, color, percentage }) => {
+const Card = ({ title, value, icon: Icon, color, percentage, inversePercentage = false }) => {
   return (
     <div className="bg-white rounded-xl shadow-sm p-3 md:p-4 border border-gray-100 min-w-0 h-full">
       <div className="flex flex-col h-full">
@@ -25,7 +25,9 @@ const Card = ({ title, value, icon: Icon, color, percentage }) => {
         <div className="mt-auto pt-3 min-h-[44px]">
           {percentage !== undefined && percentage !== null && (
             <p className={`text-xs leading-4 ${
-              parseFloat(percentage) >= 0
+              (inversePercentage
+                ? parseFloat(percentage) <= 0
+                : parseFloat(percentage) >= 0)
                 ? 'text-green-600'
                 : 'text-red-600'
             }`}>

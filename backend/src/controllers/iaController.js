@@ -15188,37 +15188,85 @@ if (
 ) {
 
   
+
 const weeks = ctx.month
-  ? (() => {
+  ? await (async () => {
+      const year = Number(ctx.year);
+      const month = Number(ctx.month);
+
+      // Primeira e última quinta-feira do mês
+      const firstDay = new Date(year, month - 1, 1);
+      const firstThursday = new Date(firstDay);
+      firstThursday.setDate(
+        1 + ((4 - firstDay.getDay() + 7) % 7)
+      );
+
+      const lastDay = new Date(year, month, 0);
+      const lastThursday = new Date(lastDay);
+      lastThursday.setDate(
+        lastDay.getDate() -
+        ((lastDay.getDay() - 4 + 7) % 7)
+      );
+
+      // Semanas completas: segunda a domingo
+      const periodStart = new Date(firstThursday);
+      periodStart.setDate(
+        firstThursday.getDate() - 3
+      );
+      periodStart.setHours(0, 0, 0, 0);
+
+      const periodEnd = new Date(lastThursday);
+      periodEnd.setDate(
+        lastThursday.getDate() + 3
+      );
+      periodEnd.setHours(23, 59, 59, 999);
+
+      const entries = await Entry.find({
+        deleted: { $ne: true },
+        type: 'income',
+        date: {
+          $gte: periodStart,
+          $lte: periodEnd,
+        },
+      });
+
       const grouped = {};
 
-      ctx.entries
-        .filter((entry) => entry.type === 'income')
-        .forEach((entry) => {
-          const date = new Date(entry.date);
-          const day = date.getDate();
-          const weekIndex = Math.floor((day - 1) / 7);
-          const startDay = weekIndex * 7 + 1;
-          const endDay = Math.min(
-            startDay + 6,
-            new Date(ctx.year, ctx.month, 0).getDate()
-          );
+      entries.forEach((entry) => {
+        const date = new Date(entry.date);
+        const day = date.getDay();
 
-          const key = `Sem ${weekIndex + 1}`;
+        const mondayOffset =
+          day === 0 ? -6 : 1 - day;
 
-          if (!grouped[key]) {
-            grouped[key] = {
-              label: `${String(startDay).padStart(2, '0')}/${String(ctx.month).padStart(2, '0')}/${ctx.year} a ${String(endDay).padStart(2, '0')}/${String(ctx.month).padStart(2, '0')}/${ctx.year}`,
-              amount: 0,
-              count: 0,
-            };
-          }
+        const weekStart = new Date(date);
+        weekStart.setDate(
+          date.getDate() + mondayOffset
+        );
+        weekStart.setHours(0, 0, 0, 0);
 
-          grouped[key].amount += Math.abs(
-            Number(entry.amount || 0)
-          );
-          grouped[key].count += 1;
-        });
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(
+          weekStart.getDate() + 6
+        );
+
+        const key = weekStart.toISOString();
+
+        if (!grouped[key]) {
+          grouped[key] = {
+            label:
+              `${weekStart.toLocaleDateString('pt-BR')} a ` +
+              `${weekEnd.toLocaleDateString('pt-BR')}`,
+            amount: 0,
+            count: 0,
+          };
+        }
+
+        grouped[key].amount += Math.abs(
+          Number(entry.amount || 0)
+        );
+        grouped[key].count += 1;
+      });
 
       return Object.values(grouped).sort(
         (a, b) => b.amount - a.amount
@@ -15230,8 +15278,6 @@ const weeks = ctx.month
       ctx.start,
       ctx.end
     );
-
-    if (!weeks.length) {
       return `
 Não encontrei vendas suficientes para analisar semanas em ${ctx.periodLabel}.
 `.trim();

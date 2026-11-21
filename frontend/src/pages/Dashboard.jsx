@@ -93,24 +93,23 @@ const Dashboard = () => {
 
   const { current, topExpenses } = dashboardData;
 
-  // Line chart data - Revenue trend (simulated for now)
+  
+  // EVOLUÇÃO DA RECEITA — Faturamento bruto semanal real
+  const weeklyRevenue = dashboardData.weeklyRevenue || [];
+
   const lineChartData = {
-    labels: ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'],
+    labels: weeklyRevenue.map(item => item.week),
     datasets: [
       {
-        label: 'Receita',
-        data: [
-          current.receitaLiquida * 0.2, 
-          current.receitaLiquida * 0.3, 
-          current.receitaLiquida * 0.25, 
-          current.receitaLiquida * 0.25
-        ],
+        label: 'Receita Bruta',
+        data: weeklyRevenue.map(item => item.total),
         borderColor: 'rgb(245, 158, 11)',
         backgroundColor: 'rgba(245, 158, 11, 0.1)',
         tension: 0.4,
       },
     ],
   };
+
 
   // Doughnut chart data - Expense distribution
   const doughnutData = {

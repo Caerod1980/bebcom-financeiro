@@ -154,6 +154,30 @@ const getDashboard = async (req, res) => {
       }
     });
 
+    // DASHBOARD — FATURAMENTO BRUTO DIÁRIO
+const dailyRevenue = Array.from(
+  { length: daysInMonth },
+  (_, index) => ({
+    day: index + 1,
+    total: 0
+  })
+);
+
+(dre.details?.receitaBrutaItems || []).forEach((entry) => {
+  const entryDate = new Date(entry.date);
+  const day = entryDate.getDate();
+
+  if (
+    !Number.isNaN(entryDate.getTime()) &&
+    entryDate.getMonth() + 1 === validation.month &&
+    entryDate.getFullYear() === validation.year &&
+    dailyRevenue[day - 1]
+  ) {
+    dailyRevenue[day - 1].total +=
+      Math.abs(Number(entry.amount || 0));
+  }
+});
+
     // Get previous month for comparison
     let prevMonth = validation.month - 1;
     let prevYear = validation.year;
@@ -193,6 +217,7 @@ const expensesVariation =
         previous: prevDre,
         topExpenses,
         weeklyRevenue,
+        dailyRevenue,
         averageTicket,
         comparison: {
         revenueVariation,

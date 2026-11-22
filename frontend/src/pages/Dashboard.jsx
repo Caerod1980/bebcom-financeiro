@@ -231,25 +231,10 @@ const Dashboard = () => {
                 },
 
                 ticks: {
-                    autoSkip: false,
+                    autoSkip: true,
+                    maxTicksLimit: 16,
                     maxRotation: 0,
-                    minRotation: 0,
-
-                    callback: function (value) {
-                        const label = this.getLabelForValue(value);
-                        const day = Number(label);
-                        const lastDay = new Date(
-                            selectedYear,
-                            selectedMonth,
-                            0
-                        ).getDate();
-
-                        if (day === 1 || day === lastDay || day % 2 !== 0) {
-                            return label;
-                        }
-
-                        return '';
-                    }
+                    includeBounds: true
                 }
             },
 

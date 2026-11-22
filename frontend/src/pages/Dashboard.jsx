@@ -233,7 +233,8 @@ const Dashboard = () => {
                 ticks: {
                     autoSkip: true,
                     maxTicksLimit: 16,
-                    maxRotation: 0
+                    maxRotation: 0,
+                    includeBounds: true
                 }
             },
 

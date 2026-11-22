@@ -956,6 +956,84 @@ const monthNames = [
   { number: 12, names: ['dezembro', 'dez'] },
 ];
 
+// CALENDÁRIO COMERCIAL BEBCOM
+// Semanas de segunda-feira a domingo.
+// A semana pertence ao mês que contém sua quinta-feira.
+const getCommercialWeek = (value) => {
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return null;
+    }
+
+    const monday = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate()
+    );
+
+    const offset = (monday.getDay() + 6) % 7;
+    monday.setDate(monday.getDate() - offset);
+
+    const sunday = new Date(monday);
+    sunday.setDate(sunday.getDate() + 6);
+
+    const thursday = new Date(monday);
+    thursday.setDate(thursday.getDate() + 3);
+
+    return {
+        start: monday,
+        end: sunday,
+        month: thursday.getMonth() + 1,
+        year: thursday.getFullYear(),
+    };
+};
+
+// LIMITES DO MÊS COMERCIAL BEBCOM
+const getCommercialMonthRange = (month, year) => {
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0);
+
+    const firstWeek = getCommercialWeek(firstDay);
+    const lastWeek = getCommercialWeek(lastDay);
+
+    const start = new Date(firstWeek.start);
+
+    if (
+        firstWeek.month !== month ||
+        firstWeek.year !== year
+    ) {
+        start.setDate(start.getDate() + 7);
+    }
+
+    const end = new Date(lastWeek.end);
+
+    if (
+        lastWeek.month !== month ||
+        lastWeek.year !== year
+    ) {
+        end.setDate(end.getDate() - 7);
+    }
+
+    end.setHours(23, 59, 59, 999);
+
+    return { start, end };
+};
+
+// ETAPA 3 — CONSULTA EXCLUSIVA DO FATURAMENTO SEMANAL COMERCIAL
+const getCommercialWeekEntries = async (month, year) => {
+    const { start, end } = getCommercialMonthRange(month, year);
+
+    return Entry.find({
+        deleted: { $ne: true },
+        type: 'income',
+        date: {
+            $gte: start,
+            $lte: end,
+        },
+    });
+};
+
 const getPeriodFromQuestion = (question) => {
   const now = new Date();
   const lower = question.toLowerCase();
@@ -14272,21 +14350,19 @@ const buildWeekRanking = (
   entries
     .filter((entry) => entry.type === type)
     .forEach((entry) => {
-      const date = new Date(entry.date);
-      const day = date.getDay();
+        const week = getCommercialWeek(entry.date);
 
-const mondayOffset =
-  day === 0
-    ? -6
-    : 1 - day;
+        if (!week) return;
 
-const weekStart = new Date(date);
-weekStart.setDate(
-  date.getDate() + mondayOffset
-);
+        const weekStart = week.start;
+        const weekEnd = week.end;
 
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekStart.getDate() + 6);
+        const completedAt = new Date(weekEnd);
+        completedAt.setHours(23, 59, 59, 999);
+
+        if (completedAt >= new Date()) {
+            return;
+        }
 
       if (
   periodStart &&
@@ -14350,8 +14426,7 @@ const isAdvancedTemporalQuestion = (question) => {
   const hasHistoricalRange =
     lower.includes('do ano') ||
     lower.includes('no ano') ||
-    lower.includes('de 2026') ||
-    lower.includes('em 2026') ||
+    /\b(?:de|em|do|no)\s+20\d{2}\b/.test(lower) ||
     lower.includes('desde janeiro') ||
     lower.includes('janeiro a') ||
     lower.includes('fevereiro a') ||
@@ -15093,7 +15168,7 @@ Essa leitura considera apenas dias com entradas registradas. Dias sem lançament
 `.trim();
 };
 
-const buildTemporalAnalyticsAnswer = (question, ctx) => {
+const buildTemporalAnalyticsAnswer = async (question, ctx) => {
   const lower = normalizeText(question);
 
   const wantsBest =
@@ -15185,53 +15260,172 @@ if (
   lower.includes('semana teve maior faturamento')
 ) {
 
-  
-const weeks = ctx.month
-  ? (() => {
-      const grouped = {};
+    // ETAPA 4 — RANKING SEMANAL COMERCIAL BEBCOM
+    const weeks = ctx.month
+        ? await(async () => {
+            const entries = await getCommercialWeekEntries(
+                ctx.month,
+                ctx.year
+            );
 
-      ctx.entries
-        .filter((entry) => entry.type === 'income')
-        .forEach((entry) => {
-          const date = new Date(entry.date);
-          const day = date.getDate();
-          const weekIndex = Math.floor((day - 1) / 7);
-          const startDay = weekIndex * 7 + 1;
-          const endDay = Math.min(
-            startDay + 6,
-            new Date(ctx.year, ctx.month, 0).getDate()
-          );
+            const grouped = {};
 
-          const key = `Sem ${weekIndex + 1}`;
+            // ETAPA 8 — INCLUIR TODAS AS SEMANAS COMERCIAIS
+            const { start, end } = getCommercialMonthRange(
+                ctx.month,
+                ctx.year
+            );
 
-          if (!grouped[key]) {
-            grouped[key] = {
-              label: `${String(startDay).padStart(2, '0')}/${String(ctx.month).padStart(2, '0')}/${ctx.year} a ${String(endDay).padStart(2, '0')}/${String(ctx.month).padStart(2, '0')}/${ctx.year}`,
-              amount: 0,
-              count: 0,
-            };
-          }
+            const formatWeekDate = (date) =>
+                date.toLocaleDateString('pt-BR');
 
-          grouped[key].amount += Math.abs(
-            Number(entry.amount || 0)
-          );
-          grouped[key].count += 1;
-        });
+            for (
+                const date = new Date(start);
+                date <= end;
+                date.setDate(date.getDate() + 7)
+            ) {
+                const week = getCommercialWeek(date);
 
-      return Object.values(grouped).sort(
-        (a, b) => b.amount - a.amount
-      );
-    })()
-  : buildWeekRanking(
-      ctx.entries,
-      'income',
-      ctx.start,
-      ctx.end
-    );
+                if (!week) continue;
+
+                const key = formatWeekDate(week.start);
+
+                grouped[key] = {
+                    label: `${formatWeekDate(week.start)} a ${formatWeekDate(week.end)}`,
+                    endDate: week.end,
+                    amount: 0,
+                    count: 0,
+                };
+            }
+
+            entries.forEach((entry) => {
+                const week = getCommercialWeek(entry.date);
+
+                if (!week) return;
+
+                if (
+                    week.month !== ctx.month ||
+                    week.year !== ctx.year
+                ) {
+                    return;
+                }
+
+                const formatDate = (date) =>
+                    date.toLocaleDateString('pt-BR');
+
+                const key = formatDate(week.start);
+
+                if (!grouped[key]) {
+                    grouped[key] = {
+                        label: `${formatDate(week.start)} a ${formatDate(week.end)}`,
+                        endDate: week.end,
+                        amount: 0,
+                        count: 0,
+                    };
+                }
+
+                grouped[key].amount += Math.abs(
+                    Number(entry.amount || 0)
+                );
+
+                grouped[key].count += 1;
+            });
+
+            const now = new Date();
+
+            return Object.values(grouped)
+                .filter((item) => {
+                    if (!item.endDate) return false;
+
+                    const completedAt = new Date(item.endDate);
+                    completedAt.setHours(23, 59, 59, 999);
+
+                    const isCompleted = completedAt < now;
+                    const hasRecords = item.count > 0;
+
+                    return isCompleted && hasRecords;
+                })
+                .sort((a, b) => b.amount - a.amount);
+        })()
+        : await (async () => {
+            const firstWeek = getCommercialWeek(ctx.start);
+            const lastWeek = getCommercialWeek(ctx.end);
+
+            const entries = await Entry.find({
+                deleted: { $ne: true },
+                type: 'income',
+                date: {
+                    $gte: firstWeek.start,
+                    $lte: new Date(
+                        lastWeek.end.getFullYear(),
+                        lastWeek.end.getMonth(),
+                        lastWeek.end.getDate(),
+                        23, 59, 59, 999
+                    ),
+                },
+            });
+
+            const grouped = {};
+            const now = new Date();
+
+            entries.forEach((entry) => {
+                const week = getCommercialWeek(entry.date);
+                if (!week) return;
+
+                const thursday = new Date(week.start);
+                thursday.setDate(thursday.getDate() + 3);
+
+                if (thursday < ctx.start || thursday > ctx.end) {
+                    return;
+                }
+
+                const completedAt = new Date(week.end);
+                completedAt.setHours(23, 59, 59, 999);
+
+                if (completedAt >= now) return;
+
+                const key = week.start.toLocaleDateString('pt-BR');
+
+                if (!grouped[key]) {
+                    grouped[key] = {
+                        label: `${key} a ${week.end.toLocaleDateString('pt-BR')}`,
+                        amount: 0,
+                        count: 0,
+                    };
+                }
+
+                grouped[key].amount += Math.abs(
+                    Number(entry.amount || 0)
+                );
+
+                grouped[key].count += 1;
+            });
+
+            return Object.values(grouped)
+                .filter((item) => item.count > 0)
+                .sort((a, b) => b.amount - a.amount);
+        })();
 
     if (!weeks.length) {
-      return `
-Não encontrei vendas suficientes para analisar semanas em ${ctx.periodLabel}.
+        return `
+📅 ANÁLISE SEMANAL — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+Ainda não existem semanas comerciais concluídas
+com lançamentos de faturamento suficientes
+para estabelecer uma classificação neste período.
+
+Semanas em andamento e semanas sem registros
+não participam do ranking.
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha análise
+
+A classificação será possível quando houver
+pelo menos uma semana comercial encerrada
+com lançamentos registrados.
 `.trim();
     }
 
@@ -15257,7 +15451,13 @@ ${selected.count}
 
 🧠 Minha análise
 
-Essa análise agrupa as entradas por semana e identifica o maior ou menor faturamento semanal.
+Essa análise agrupa as entradas por semanas comerciais completas,
+de segunda-feira a domingo, e identifica o maior ou menor faturamento semanal.
+
+Cada semana pertence ao mês e ao ano que contêm sua quinta-feira.
+
+Foram consideradas exclusivamente semanas já encerradas,
+com lançamentos de faturamento registrados.
 `.trim();
   }
 
@@ -17571,7 +17771,41 @@ let previousPeriod = {
 const isWeeklyRankingQuestion =
   /melhor semana|pior semana|pior de semana|piro de semana|semana do ano|semana vendeu mais|semana vendeu menos|semana teve menor faturamento|semana teve maior faturamento/.test(
     normalizeText(question)
-  );
+          );
+
+      // ETAPA 17 — IDENTIFICAÇÃO DE RANKING SEMANAL ANUAL
+      const normalizedWeeklyQuestion = normalizeText(question);
+
+      const hasExplicitMonth = monthNames.some((item) =>
+          item.names.some((name) =>
+              new RegExp(`\\b${name}\\b`).test(normalizedWeeklyQuestion)
+          )
+      );
+
+      const isAnnualWeeklyRanking =
+          isWeeklyRankingQuestion &&
+          !hasExplicitMonth &&
+          (
+              /\b(?:do|no|de|em|este|esse|neste|nesse)\s+ano\b/.test(normalizedWeeklyQuestion) ||
+              /\b(?:em|de|do|no)\s+20\d{2}\b/.test(normalizedWeeklyQuestion)
+          );
+
+      // ETAPA 18 — PERÍODO ANUAL DO RANKING SEMANAL
+      if (isAnnualWeeklyRanking) {
+          const yearMatch = normalizedWeeklyQuestion.match(/\b20\d{2}\b/);
+
+          const rankingYear = yearMatch
+              ? Number(yearMatch[0])
+              : new Date().getFullYear();
+
+          currentPeriod = {
+              month: null,
+              year: rankingYear,
+              start: new Date(rankingYear, 0, 1),
+              end: new Date(rankingYear, 11, 31, 23, 59, 59, 999),
+              customLabel: `Ano de ${rankingYear}`,
+          };
+      }
 
 const limitDay = isWeeklyRankingQuestion
   ? null
@@ -18763,10 +18997,10 @@ if (historicalTrendAnswer) {
 }
     
 const temporalAnalyticsAnswer =
-  buildTemporalAnalyticsAnswer(
-    question,
-    temporalCtx
-  );
+          await buildTemporalAnalyticsAnswer(
+              question,
+              temporalCtx
+          );
 
 if (temporalAnalyticsAnswer) {
   return res.json({

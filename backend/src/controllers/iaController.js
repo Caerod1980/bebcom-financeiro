@@ -3304,8 +3304,82 @@ ${item.hasPressure
     ? `A primeira necessidade potencial de cobertura acumulada aparece em ${firstPressureDay.date}. Existem ${pressureDays.length} dia(s) com resultado incremental acumulado negativo.`
     : 'Não foram identificados resultados incrementais acumulados negativos no horizonte analisado.';
 
-  const dailyRiskSummary =
-    `${dailyPressureSummary}\n\n${accumulatedPressureSummary}`;
+    // CP-017.6 — Planejamento preventivo de reservas
+    const reservePlan = dailyPressureDays.length
+        ? dailyPressureDays.map((pressureDay) => {
+            const pressureIndex = dailySchedule.indexOf(pressureDay);
+
+            const favorableDays = dailySchedule
+                .slice(0, pressureIndex)
+                .filter((item) => item.income > item.payable)
+                .map((item) => ({
+                    date: item.date,
+                    surplus: item.income - item.payable
+                }));
+
+            const favorableText = favorableDays.length
+                ? favorableDays
+                    .map(
+                        (item) =>
+                            `${item.date}: excedente estimado de ${formatCurrency(item.surplus)}`
+                    )
+                    .join('\n')
+                : 'Não há dias anteriores com excedente estimado neste horizonte.';
+
+            return `
+📅 Compromissos de ${pressureDay.date}
+
+💰 Reserva preventiva recomendada:
+${formatCurrency(pressureDay.dailyDeficit)}
+
+⏰ Prazo:
+Preservar esse valor antes de ${pressureDay.date}.
+
+📈 Dias anteriores favoráveis à acumulação:
+${favorableText}
+
+🧠 Orientação:
+Separar parte dos excedentes efetivamente realizados
+para complementar os pagamentos dessa data.
+
+Essa reserva não representa uma despesa adicional.
+É uma destinação antecipada de recursos previstos.
+`.trim();
+        }).join('\n\n')
+        : 'Não foram identificados déficits diários que exijam reserva preventiva específica.';
+
+    const totalDailyDeficits = dailyPressureDays.reduce(
+        (sum, item) => sum + item.dailyDeficit,
+        0
+    );
+
+    const dailyRiskSummary = `
+${dailyPressureSummary}
+
+${accumulatedPressureSummary}
+
+━━━━━━━━━━━━━━━━━━
+
+🛡️ PLANEJAMENTO PREVENTIVO DE RESERVAS
+
+${reservePlan}
+
+━━━━━━━━━━━━━━━━━━
+
+💰 Soma dos déficits diários previstos:
+${formatCurrency(totalDailyDeficits)}
+
+Esse valor é uma referência para organizar reservas
+entre os dias, não uma necessidade comprovada
+de capital adicional.
+
+Os excedentes anteriores podem financiar
+os déficits posteriores, desde que sejam
+efetivamente realizados e preservados.
+
+O resultado acumulado projetado não representa
+o saldo disponível em caixa ou bancos.
+`.trim();
 
 
   const periodDetails = periods

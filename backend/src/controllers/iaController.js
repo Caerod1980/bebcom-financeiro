@@ -18858,14 +18858,22 @@ if (conversationalContextAnswer) {
       lowerQuestion.includes('pagar da semana') ||
       lowerQuestion.includes('quanto tenho para pagar');
 
-    const isBiggestRiskQuestion =
+      // CP-018.3 — Preservar simulações financeiras
+      const isBiggestRiskQuestion =
+          !(
+              /\b(entradas|recebimentos|receitas|faturamento)\b/.test(normalizeText(question)) &&
+              /\b(abaixo|queda|reducao|reduzir|diminuicao|menor)\b/.test(normalizeText(question)) &&
+              /\b\d+(?:[.,]\d+)?\s*%/.test(normalizeText(question))
+          ) &&
+          (
   lowerQuestion.includes('maior risco') ||
   lowerQuestion.includes('o que mais me preocupa') ||
   lowerQuestion.includes('maior preocupação') ||
   lowerQuestion.includes('maior preocupacao') ||
   lowerQuestion.includes('o que preocupa') ||
   lowerQuestion.includes('qual o risco') ||
-  lowerQuestion.includes('qual meu risco');
+  lowerQuestion.includes('qual meu risco')
+          );
 
   const isBiggestProblemQuestion =
   lowerQuestion.includes('maior problema') ||

@@ -18977,11 +18977,18 @@ const isSevenDayPaymentForecast =
     )
   );
 
-if (wantsNext7Days && !isSevenDayPaymentForecast) {
-  return res.json({
-    answer: buildUpcomingDueAnswer(ctx, 7),
-  });
-}
+
+      if (
+          wantsNext7Days &&
+          (
+              !isSevenDayPaymentForecast ||
+              /\bprevisao de pagamentos\b/.test(normalizeText(question))
+          )
+      ) {
+          return res.json({
+              answer: buildUpcomingDueAnswer(ctx, 7),
+          });
+      }
 
     
 const isSupplierPayableQuestion =

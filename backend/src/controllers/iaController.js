@@ -5799,7 +5799,16 @@ const buildOperationalAnalyticsAnswer = (
   ctx,
   previousCtx
 ) => {
-  const lower = normalizeText(question);
+    const lower = normalizeText(question);
+
+    // CP-005.2 — Encaminhar ranking de contas em aberto
+    // para a rotina específica de contas a pagar.
+    if (
+        lower.includes('fornecedor') &&
+        lower.includes('contas a pagar')
+    ) {
+        return null;
+    }
 
   const wantsIncome =
     lower.includes('recebi') ||

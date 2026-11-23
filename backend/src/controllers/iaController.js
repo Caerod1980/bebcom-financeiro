@@ -2557,10 +2557,11 @@ const buildGenericPayablesAnswer = (ctx, question) => {
   
   const raw = String(question || '').toLowerCase();
 
-  const isPayableQuestion =
-    lower.includes('contas a pagar') ||
-    lower.includes('contas vencidas') ||
-    lower.includes('contas pendentes');
+    const isPayableQuestion =
+        lower.includes('contas a pagar') ||
+        lower.includes('contas vencidas') ||
+        lower.includes('contas pendentes') ||
+        /\bcontas\s+(?:que\s+)?(?:estao\s+)?vencidas\b/.test(lower);
 
   if (!isPayableQuestion) return null;
 

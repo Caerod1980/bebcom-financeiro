@@ -18988,6 +18988,113 @@ const isSevenDayPaymentForecast =
       ) {
           const normalizedQuestion = normalizeText(question);
 
+
+          // CP-012 — Maior fornecedor nos próximos 7 dias
+          const wantsTopSupplierInPeriod =
+              /\b(qual fornecedor|que fornecedor|fornecedor com maior|fornecedor tem o maior)\b/.test(normalizedQuestion) &&
+              /\b(maior valor|mais valor|mais a receber|maior pagamento)\b/.test(normalizedQuestion);
+
+          if (wantsTopSupplierInPeriod) {
+              const today = new Date();
+              const start = new Date(
+                  today.getFullYear(),
+                  today.getMonth(),
+                  today.getDate()
+              );
+
+              const end = new Date(start);
+              end.setDate(end.getDate() + 7);
+              end.setHours(23, 59, 59, 999);
+
+              const grouped = new Map();
+
+              (ctx.accounts || [])
+                  .filter((account) => {
+                      const dueDate = new Date(account.dueDate);
+
+                      return (
+                          account.type === 'payable' &&
+                          ['pending', 'overdue'].includes(account.status) &&
+                          account.dueDate &&
+                          !Number.isNaN(dueDate.getTime()) &&
+                          dueDate >= start &&
+                          dueDate <= end
+                      );
+                  })
+                  .forEach((account) => {
+                      const name = String(
+                          account.person ||
+                          account.description ||
+                          'Não informado'
+                      ).trim();
+
+                      const key = normalizeText(name);
+
+                      const item = grouped.get(key) || {
+                          name,
+                          count: 0,
+                          total: 0
+                      };
+
+                      item.count += 1;
+                      item.total += Math.abs(Number(account.amount || 0));
+
+                      grouped.set(key, item);
+                  });
+
+              const suppliers = [...grouped.values()]
+                  .sort((a, b) => b.total - a.total);
+
+              if (!suppliers.length) {
+                  return res.json({
+                      answer: 'Não há contas a pagar previstas para os próximos 7 dias.'
+                  });
+              }
+
+              const top = suppliers[0];
+
+              const totalPeriod = suppliers.reduce(
+                  (sum, item) => sum + item.total,
+                  0
+              );
+
+              const share = totalPeriod > 0
+                  ? (top.total / totalPeriod) * 100
+                  : 0;
+
+              return res.json({
+                  answer: `
+🏦 MAIOR FORNECEDOR — PRÓXIMOS 7 DIAS
+
+━━━━━━━━━━━━━━━━━━
+
+🏢 Fornecedor
+${top.name}
+
+💰 Valor a receber da Bebcom
+${formatCurrency(top.total)}
+
+📋 Quantidade de contas
+${top.count}
+
+📊 Participação nos pagamentos previstos
+${share.toFixed(2).replace('.', ',')}%
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha leitura
+
+Este é o fornecedor com maior valor financeiro em contas a pagar no período analisado.
+
+🎯 Minha recomendação
+
+Acompanhe os vencimentos desse fornecedor e avalie antecipadamente a disponibilidade de caixa.
+                  `.trim()
+              });
+          }
+
+
+
           const wantsPeakPaymentDay =
               /\b(qual dia|em qual dia|que dia|dia de maior|dia com maior)\b/.test(normalizedQuestion) &&
               /\b(mais contas|mais boletos|maior valor|maior volume|mais pagamentos|maior concentracao)\b/.test(normalizedQuestion);

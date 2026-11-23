@@ -18145,7 +18145,139 @@ Acompanhe essa proporção juntamente com o saldo de caixa, as contas a pagar e 
           });
       }
 
-const managementReportComparisonAnswer =
+      // ETAPA 8 — Correção 4
+      // Análise consultiva da sustentabilidade financeira
+
+      const sustainabilityQuestion =
+          (
+              normalizedQuestion.includes('sustentavel') ||
+              normalizedQuestion.includes('sustentabilidade') ||
+              normalizedQuestion.includes('mais saudavel financeiramente') ||
+              normalizedQuestion.includes('saude financeira')
+          ) &&
+          (
+              normalizedQuestion.includes('crescimento') ||
+              normalizedQuestion.includes('melhora') ||
+              normalizedQuestion.includes('resultado') ||
+              normalizedQuestion.includes('financeir')
+          );
+
+      if (sustainabilityQuestion) {
+          const anterior = equivalentPreviousCtx;
+
+          if (!hasReliableComparisonData(ctx) ||
+              !hasReliableComparisonData(anterior)) {
+              return res.json({
+                  answer:
+                      'Não há dados comparativos suficientes para avaliar ' +
+                      'a sustentabilidade financeira com segurança.'
+              });
+          }
+
+          const diferencaResultado =
+              Number(ctx.balance || 0) -
+              Number(anterior.balance || 0);
+
+          const receitaCresceu =
+              Number(ctx.totalIncome || 0) >
+              Number(anterior.totalIncome || 0);
+
+          const compras =
+              Number(
+                  ctx.expenseCategories?.find(
+                      item => item.category === 'compras_mercadorias'
+                  )?.amount || 0
+              );
+
+          const pendentes = Number(ctx.pendingPayable || 0);
+
+          const pesoCompras =
+              ctx.totalIncome > 0
+                  ? (compras / ctx.totalIncome) * 100
+                  : null;
+
+          const evolucao =
+              diferencaResultado > 0
+                  ? `melhorou ${formatCurrency(diferencaResultado)}`
+                  : diferencaResultado < 0
+                      ? `piorou ${formatCurrency(Math.abs(diferencaResultado))}`
+                      : 'permaneceu estável';
+
+          const diagnostico =
+              diferencaResultado > 0
+                  ? 'A Bebcom apresenta melhora no resultado financeiro, ' +
+                  'mas isso ainda não comprova sustentabilidade.'
+                  : diferencaResultado < 0
+                      ? 'O resultado financeiro piorou, o que exige atenção ' +
+                      'antes de considerar o crescimento sustentável.'
+                      : 'O resultado permaneceu estável, sem evidência ' +
+                      'suficiente de fortalecimento financeiro.';
+
+          return res.json({
+              answer: `
+📊 SUSTENTABILIDADE FINANCEIRA — ${ctx.periodLabel}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 DIAGNÓSTICO
+
+${diagnostico}
+
+━━━━━━━━━━━━━━━━━━
+
+📈 EVOLUÇÃO FINANCEIRA
+
+Período anterior: ${anterior.periodLabel}
+• Entradas: ${formatCurrency(anterior.totalIncome)}
+• Saídas: ${formatCurrency(anterior.totalExpenses)}
+• Resultado: ${formatCurrency(anterior.balance)}
+
+Período atual: ${ctx.periodLabel}
+• Entradas: ${formatCurrency(ctx.totalIncome)}
+• Saídas: ${formatCurrency(ctx.totalExpenses)}
+• Resultado: ${formatCurrency(ctx.balance)}
+
+O resultado ${evolucao}.
+
+${receitaCresceu
+                      ? 'As entradas também cresceram.'
+                      : 'As entradas não apresentaram crescimento.'}
+
+━━━━━━━━━━━━━━━━━━
+
+⚠️ COMPROMISSOS E PRESSÕES
+
+• Contas a pagar pendentes: ${formatCurrency(pendentes)}
+• Compras de mercadorias: ${formatCurrency(compras)}
+• Compras sobre entradas: ${pesoCompras === null
+                      ? 'não calculável'
+                      : `${pesoCompras.toFixed(1)}%`
+                  }
+
+O peso das compras não representa o CMV nem a
+margem de lucro da operação.
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 MINHA CONCLUSÃO
+
+${diferencaResultado > 0
+                      ? 'A evolução financeira é positiva, porém a saúde financeira ' +
+                      'depende também da capacidade de cumprir os próximos vencimentos.'
+                      : 'Ainda não existem evidências suficientes para afirmar ' +
+                      'que a situação financeira esteja se fortalecendo.'}
+
+Resultado operacional positivo não significa,
+necessariamente, dinheiro disponível em caixa.
+
+Minha recomendação é confrontar os vencimentos
+futuros com o caixa disponível e os recebimentos
+previstos, além de acompanhar o giro do estoque.
+`.trim()
+          });
+      }
+
+      const managementReportComparisonAnswer =
   await buildManagementReportComparisonAnswer(
     question,
     ctx

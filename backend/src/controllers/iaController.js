@@ -19325,7 +19325,7 @@ Priorize o planejamento do dia com maior valor financeiro e confira também a qu
       const cp015WantsDailyComparison =
           !!cp015Date &&
           /\b(entradas?|recebimentos?)\b/.test(cp015Question) &&
-          /\b(contas a pagar|vencimentos?|pagamentos?|compromissos?)\b/.test(cp015Question) &&
+          /\b(contas a pagar|contas que vencem|vencimentos?|pagamentos?|compromissos?)\b/.test(cp015Question) &&
           /\b(suficientes?|pagar|compare|comparar|diferenca|deficit|cobertura)\b/.test(cp015Question);
 
       if (cp015WantsDailyComparison) {

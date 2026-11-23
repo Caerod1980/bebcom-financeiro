@@ -18989,6 +18989,128 @@ const isSevenDayPaymentForecast =
           const normalizedQuestion = normalizeText(question);
 
 
+          // CP-013 — Ranking dos maiores fornecedores nos próximos 7 dias
+          const wantsSupplierRanking =
+              /\b(ranking|top\s*\d+|\d+\s+maiores|cinco maiores)\b/.test(normalizedQuestion) &&
+              /\bfornecedores?\b/.test(normalizedQuestion) &&
+              /\b(contas a pagar|pagamentos?|valores?|vencimentos?)\b/.test(normalizedQuestion);
+
+          if (wantsSupplierRanking) {
+              const today = new Date();
+              const start = new Date(
+                  today.getFullYear(),
+                  today.getMonth(),
+                  today.getDate()
+              );
+
+              const end = new Date(start);
+              end.setDate(end.getDate() + 7);
+              end.setHours(23, 59, 59, 999);
+
+              const grouped = new Map();
+
+              (ctx.accounts || [])
+                  .filter((account) => {
+                      const dueDate = new Date(account.dueDate);
+
+                      return (
+                          account.type === 'payable' &&
+                          ['pending', 'overdue'].includes(account.status) &&
+                          account.dueDate &&
+                          !Number.isNaN(dueDate.getTime()) &&
+                          dueDate >= start &&
+                          dueDate <= end
+                      );
+                  })
+                  .forEach((account) => {
+                      const name = String(
+                          account.person ||
+                          account.description ||
+                          'Não informado'
+                      ).trim();
+
+                      const key = normalizeText(name);
+
+                      const item = grouped.get(key) || {
+                          name,
+                          count: 0,
+                          total: 0
+                      };
+
+                      item.count += 1;
+                      item.total += Math.abs(Number(account.amount || 0));
+
+                      grouped.set(key, item);
+                  });
+
+              const suppliers = [...grouped.values()]
+                  .sort((a, b) => b.total - a.total);
+
+              if (!suppliers.length) {
+                  return res.json({
+                      answer: 'Não há contas a pagar previstas para os próximos 7 dias.'
+                  });
+              }
+
+              const totalPeriod = suppliers.reduce(
+                  (sum, item) => sum + item.total,
+                  0
+              );
+
+              const ranking = suppliers.slice(0, 5)
+                  .map((item, index) => {
+                      const share = totalPeriod > 0
+                          ? (item.total / totalPeriod) * 100
+                          : 0;
+
+                      return `${index + 1}. ${item.name}
+💰 ${formatCurrency(item.total)}
+📋 ${item.count} conta(s)
+📊 ${share.toFixed(2).replace('.', ',')}%`;
+                  })
+                  .join('\n\n');
+
+              const topFiveTotal = suppliers
+                  .slice(0, 5)
+                  .reduce((sum, item) => sum + item.total, 0);
+
+              const concentration = totalPeriod > 0
+                  ? (topFiveTotal / totalPeriod) * 100
+                  : 0;
+
+              return res.json({
+                  answer: `
+🏆 RANKING DOS 5 MAIORES FORNECEDORES — PRÓXIMOS 7 DIAS
+
+━━━━━━━━━━━━━━━━━━
+
+${ranking}
+
+━━━━━━━━━━━━━━━━━━
+
+💰 Total dos 5 maiores
+${formatCurrency(topFiveTotal)}
+
+📊 Participação no total previsto
+${concentration.toFixed(2).replace('.', ',')}%
+
+💰 Total geral previsto
+${formatCurrency(totalPeriod)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha leitura
+
+Os cinco maiores fornecedores concentram ${concentration.toFixed(2).replace('.', ',')}% dos pagamentos previstos para o período.
+
+🎯 Minha recomendação
+
+Acompanhe os vencimentos desses fornecedores e avalie antecipadamente a necessidade de caixa para evitar concentração de pagamentos.
+                  `.trim()
+              });
+          }
+
+
           // CP-012 — Maior fornecedor nos próximos 7 dias
           const wantsTopSupplierInPeriod =
               /\b(qual fornecedor|que fornecedor|fornecedor com maior|fornecedor tem o maior)\b/.test(normalizedQuestion) &&

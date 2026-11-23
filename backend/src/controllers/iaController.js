@@ -19318,6 +19318,21 @@ Priorize o planejamento do dia com maior valor financeiro e confira também a qu
           });
       }
 
+      // CP-015.1 — Prioridade para comparação financeira em data específica
+      const cp015Question = normalizeText(question);
+      const cp015Date = getSpecificDatePeriod(question);
+
+      const cp015WantsDailyComparison =
+          !!cp015Date &&
+          /\b(entradas?|recebimentos?)\b/.test(cp015Question) &&
+          /\b(contas a pagar|vencimentos?|pagamentos?|compromissos?)\b/.test(cp015Question) &&
+          /\b(suficientes?|pagar|compare|comparar|diferenca|deficit|cobertura)\b/.test(cp015Question);
+
+      if (cp015WantsDailyComparison) {
+          return res.json({
+              answer: buildCashForecastAnswer(ctx)
+          });
+      }
     
 const isSupplierPayableQuestion =
   !!supplierPayableName &&

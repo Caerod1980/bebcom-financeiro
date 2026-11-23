@@ -8645,14 +8645,19 @@ Revise prazo, desconto, bonificações e frequência de compra antes de reduzir 
 }
 
   // Pergunta 3
-if (
-  (
-    lower.includes('vencimentos') ||
-    lower.includes('precisam realmente ser pagos') ||
-    lower.includes('parte deles pode ser negociada') ||
-    lower.includes('pode ser negociada')
-  ) &&
-  !extractSupplierPayableName(question) &&
+    if (
+        (
+            lower.includes('vencimentos') ||
+            lower.includes('precisam realmente ser pagos') ||
+            lower.includes('parte deles pode ser negociada') ||
+            lower.includes('pode ser negociada')
+        ) &&
+        !(
+            /\b(reservar|reserva|reservas|acumular)\b/.test(normalizeText(question)) &&
+            /\b(recursos|dinheiro|caixa)\b/.test(normalizeText(question)) &&
+            /\b(vencimentos|pagamentos|contas|compromissos)\b/.test(normalizeText(question))
+        ) &&
+        !extractSupplierPayableName(question) &&
   !lower.includes('proximos 3 dias') &&
   !lower.includes('próximos 3 dias') &&
   !lower.includes('proximos 5 dias') &&

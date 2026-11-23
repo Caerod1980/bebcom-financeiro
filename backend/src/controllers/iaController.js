@@ -1041,11 +1041,22 @@ const getPeriodFromQuestion = (question) => {
   let month = now.getMonth() + 1;
   let year = now.getFullYear();
 
- const foundMonth = monthNames.find((item) =>
-  item.names.some((name) =>
-    new RegExp(`\\b${name}\\b`, 'i').test(lower)
-  )
-);
+    // ETAPA 8 — Correção 5
+    // Identifica o primeiro mês mencionado na pergunta,
+    // independentemente da ordem do calendário.
+
+    const foundMonth = monthNames
+        .flatMap((item) =>
+            item.names.map((name) => {
+                const match = new RegExp(`\\b${name}\\b`, 'i').exec(lower);
+
+                return match
+                    ? { number: item.number, index: match.index }
+                    : null;
+            })
+        )
+        .filter(Boolean)
+        .sort((a, b) => a.index - b.index)[0] || null;
 
   if (foundMonth) {
     month = foundMonth.number;
@@ -1440,7 +1451,14 @@ const versusExpression =
   lower.includes(' vs ') ||
   lower.includes(' versus ');
 
-if (relationExpression || versusExpression) {
+      if (
+          relationExpression ||
+          versusExpression ||
+          (
+              /\b(sustentavel|sustentabilidade)\b/.test(normalizeText(question)) &&
+              /\b(melhora|crescimento|resultado)\b/.test(normalizeText(question))
+          )
+      ) {
   return {
     current: {
       month: first.month,

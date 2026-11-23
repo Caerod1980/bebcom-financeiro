@@ -19428,8 +19428,13 @@ const isPayablesDueDateQuestion =
   lowerQuestion.includes('capacidade de pagamento') ||
   lowerQuestion.includes('consegue pagar todas as contas') ||
   lowerQuestion.includes('conseguimos pagar todas as contas') ||
-  lowerQuestion.includes('tem dinheiro para pagar todas as contas') ||
-  lowerQuestion.includes('temos dinheiro para pagar todas as contas');
+      lowerQuestion.includes('tem dinheiro para pagar todas as contas') ||
+      lowerQuestion.includes('temos dinheiro para pagar todas as contas') ||
+      (
+          /\b(reservar|reserva|reservas|acumular)\b/.test(normalizeText(question)) &&
+          /\b(recursos|dinheiro|caixa)\b/.test(normalizeText(question)) &&
+          /\b(vencimentos|pagamentos|contas|compromissos)\b/.test(normalizeText(question))
+      );
 
 
     const isDecisionSimulationQuestion =

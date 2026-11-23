@@ -18276,8 +18276,11 @@ ${(() => {
                           return 'Não há base percentual suficiente para avaliar a evolução proporcional das entradas e saídas.';
                       }
 
-                      const percentual = (valor) =>
-                          `${valor >= 0 ? '+' : ''}${valor.toFixed(1)}%`;
+                  const percentual = (valor) =>
+                      `${valor >= 0 ? '+' : ''}${valor.toLocaleString('pt-BR', {
+                          minimumFractionDigits: 1,
+                          maximumFractionDigits: 1
+                      })}%`;
 
                       let interpretacao;
 
@@ -18313,7 +18316,10 @@ ${(() => {
 • Compras de mercadorias: ${formatCurrency(compras)}
 • Compras sobre entradas: ${pesoCompras === null
                       ? 'não calculável'
-                      : `${pesoCompras.toFixed(1)}%`
+                  : `${pesoCompras.toLocaleString('pt-BR', {
+                      minimumFractionDigits: 1,
+                      maximumFractionDigits: 1
+                  })}%`
                   }
 
 O peso das compras não representa o CMV nem a

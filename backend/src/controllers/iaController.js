@@ -18991,7 +18991,7 @@ const isSevenDayPaymentForecast =
 
           // CP-013 — Ranking dos maiores fornecedores nos próximos 7 dias
           const wantsSupplierRanking =
-              /\b(ranking|top\s*\d+|\d+\s+maiores|cinco maiores)\b/.test(normalizedQuestion) &&
+              /\b(ranking|top\s*\d+|\d+\s+(?:maiores|fornecedores)|cinco maiores)\b/.test(normalizedQuestion) &&
               /\bfornecedores?\b/.test(normalizedQuestion) &&
               /\b(contas a pagar|pagamentos?|valores?|vencimentos?)\b/.test(normalizedQuestion);
 

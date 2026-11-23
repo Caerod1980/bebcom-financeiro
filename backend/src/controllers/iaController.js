@@ -18984,11 +18984,12 @@ if (isRiskRadarQuestion) {
   });
 }
 
-const historicalTrendAnswer =
-  await buildHistoricalTrendPointAnswer(
-    question,
-    temporalCtx
-  );
+      const historicalTrendAnswer = comparisonPeriods
+          ? null
+          : await buildHistoricalTrendPointAnswer(
+              question,
+              temporalCtx
+          );
 
 if (historicalTrendAnswer) {
   return res.json({

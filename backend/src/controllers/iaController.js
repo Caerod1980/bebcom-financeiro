@@ -18978,6 +18978,7 @@ const isSevenDayPaymentForecast =
   );
 
 
+
       if (
           wantsNext7Days &&
           (
@@ -18985,6 +18986,104 @@ const isSevenDayPaymentForecast =
               /\bprevisao de pagamentos\b/.test(normalizeText(question))
           )
       ) {
+          const normalizedQuestion = normalizeText(question);
+
+          const wantsPeakPaymentDay =
+              /\b(qual dia|em qual dia|que dia|dia de maior|dia com maior)\b/.test(normalizedQuestion) &&
+              /\b(mais contas|mais boletos|maior valor|maior volume|mais pagamentos|maior concentracao)\b/.test(normalizedQuestion);
+
+          if (wantsPeakPaymentDay) {
+              const today = new Date();
+              const start = new Date(
+                  today.getFullYear(),
+                  today.getMonth(),
+                  today.getDate()
+              );
+              const end = new Date(start);
+              end.setDate(end.getDate() + 7);
+              end.setHours(23, 59, 59, 999);
+
+              const grouped = new Map();
+
+              (ctx.accounts || [])
+                  .filter((account) => {
+                      const dueDate = new Date(account.dueDate);
+
+                      return (
+                          account.type === 'payable' &&
+                          ['pending', 'overdue'].includes(account.status) &&
+                          account.dueDate &&
+                          !Number.isNaN(dueDate.getTime()) &&
+                          dueDate >= start &&
+                          dueDate <= end
+                      );
+                  })
+                  .forEach((account) => {
+                      const dueDate = new Date(account.dueDate);
+                      const key = [
+                          dueDate.getFullYear(),
+                          String(dueDate.getMonth() + 1).padStart(2, '0'),
+                          String(dueDate.getDate()).padStart(2, '0')
+                      ].join('-');
+
+                      const item = grouped.get(key) || {
+                          date: dueDate.toLocaleDateString('pt-BR'),
+                          count: 0,
+                          total: 0
+                      };
+
+                      item.count += 1;
+                      item.total += Math.abs(Number(account.amount || 0));
+                      grouped.set(key, item);
+                  });
+
+              const days = [...grouped.values()];
+
+              if (!days.length) {
+                  return res.json({
+                      answer: 'Não há contas a pagar previstas para os próximos 7 dias.'
+                  });
+              }
+
+              const byValue = [...days].sort(
+                  (a, b) => b.total - a.total
+              )[0];
+
+              const byCount = [...days].sort(
+                  (a, b) => b.count - a.count || b.total - a.total
+              )[0];
+
+              return res.json({
+                  answer: `
+📊 CONCENTRAÇÃO DE PAGAMENTOS — PRÓXIMOS 7 DIAS
+
+━━━━━━━━━━━━━━━━━━
+
+💰 Maior valor financeiro
+${byValue.date}
+${formatCurrency(byValue.total)}
+${byValue.count} conta(s)
+
+━━━━━━━━━━━━━━━━━━
+
+📋 Maior quantidade de contas
+${byCount.date}
+${byCount.count} conta(s)
+${formatCurrency(byCount.total)}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 Minha leitura
+
+O dia com maior valor de pagamentos não é necessariamente o dia com mais boletos.
+
+🎯 Minha recomendação
+
+Priorize o planejamento do dia com maior valor financeiro e confira também a quantidade de compromissos por data.
+      `.trim()
+              });
+          }
+
           return res.json({
               answer: buildUpcomingDueAnswer(ctx, 7),
           });

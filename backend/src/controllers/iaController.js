@@ -8731,6 +8731,12 @@ Revise prazo, desconto, bonificações e frequência de compra antes de reduzir 
             /\b(recursos|dinheiro|caixa)\b/.test(normalizeText(question)) &&
             /\b(vencimentos|pagamentos|contas|compromissos)\b/.test(normalizeText(question))
         ) &&
+        // CP-018.1 — Não interceptar simulações de queda nas entradas
+        !(
+            /\b(entradas|recebimentos|receitas|faturamento)\b/.test(normalizeText(question)) &&
+            /\b(abaixo|queda|reducao|reduzir|diminuicao|menor)\b/.test(normalizeText(question)) &&
+            /\b\d+(?:[.,]\d+)?\s*%/.test(normalizeText(question))
+        ) &&
         !extractSupplierPayableName(question) &&
   !lower.includes('proximos 3 dias') &&
   !lower.includes('próximos 3 dias') &&

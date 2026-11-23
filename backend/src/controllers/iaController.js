@@ -19004,6 +19004,7 @@ const isPayablesDueDateQuestion =
   (
     lowerQuestion.includes('ranking') ||
     lowerQuestion.includes('maiores fornecedores') ||
+    lowerQuestion.includes('fornecedores concentram os maiores valores') ||
     lowerQuestion.includes('fornecedores em aberto') ||
     lowerQuestion.includes('fornecedor mais pesa') ||
     lowerQuestion.includes('quem mais pesa') ||

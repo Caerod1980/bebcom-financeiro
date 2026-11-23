@@ -19318,6 +19318,20 @@ Priorize o planejamento do dia com maior valor financeiro e confira também a qu
           });
       }
 
+      // CP-017.2 — Prioridade para planejamento preventivo de reservas
+      const cp017Question = normalizeText(question);
+
+      const cp017WantsReservePlanning =
+          /\b(reservar|reserva|reservas|acumular)\b/.test(cp017Question) &&
+          /\b(recursos|dinheiro|caixa)\b/.test(cp017Question) &&
+          /\b(vencimentos|pagamentos|contas|compromissos)\b/.test(cp017Question);
+
+      if (cp017WantsReservePlanning) {
+          return res.json({
+              answer: buildCashForecastAnswer(ctx)
+          });
+      }
+
       // CP-015.1 — Prioridade para comparação financeira em data específica
       const cp015Question = normalizeText(question);
       const cp015Date = getSpecificDatePeriod(question);

@@ -18386,12 +18386,23 @@ if (dynamicExecutiveMemoryAnswer) {
   });
 }
     
-const operationalAnalyticsAnswer =
-  buildOperationalAnalyticsAnswer(
-    question,
-    ctx,
-    equivalentPreviousCtx
-  );
+      // CP-017.5 — Evitar que planejamento de reservas
+      // seja interpretado como consulta histórica de entradas
+      const cp017OperationalQuestion = normalizeText(question);
+
+      const cp017IsReservePlanning =
+          /\b(reservar|reserva|reservas|acumular)\b/.test(cp017OperationalQuestion) &&
+          /\b(recursos|dinheiro|caixa)\b/.test(cp017OperationalQuestion) &&
+          /\b(vencimentos|pagamentos|contas|compromissos)\b/.test(cp017OperationalQuestion);
+
+      const operationalAnalyticsAnswer =
+          cp017IsReservePlanning
+              ? null
+              : buildOperationalAnalyticsAnswer(
+                  question,
+                  ctx,
+                  equivalentPreviousCtx
+              );
 
 if (operationalAnalyticsAnswer) {
   return res.json({

@@ -17984,8 +17984,8 @@ if (
   ctx.month === new Date().getMonth() + 1 &&
   ctx.year === new Date().getFullYear()
 ) {
-  const today = new Date();
-  const currentDay = today.getDate();
+
+  const currentDay = period.end.getDate();
 
   const previousMonth = ctx.month === 1 ? 12 : ctx.month - 1;
   const previousYear = ctx.month === 1 ? ctx.year - 1 : ctx.year;

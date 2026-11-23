@@ -18130,7 +18130,20 @@ Essa relação não representa o CMV nem a margem de lucro, pois compras e merca
 Acompanhe essa proporção juntamente com o saldo de caixa, as contas a pagar e o giro do estoque, evitando comprometer recursos em compras acima da necessidade operacional.
 `.trim()
   });
-}
+      }
+      // ETAPA 8 — Comparação entre crescimento de vendas e resultado financeiro
+      const mixedSalesResultQuestion =
+          /\b(vendendo mais|vendendo menos|vendas aumentaram|faturamento aumentou)\b/.test(normalizeText(question)) &&
+          /\b(ganhando menos|ganhando mais|lucrando menos|lucrando mais)\b/.test(normalizeText(question));
+
+      if (mixedSalesResultQuestion) {
+          return res.json({
+              answer: buildComparisonAnswer(
+                  ctx,
+                  equivalentPreviousCtx
+              ),
+          });
+      }
 
 const managementReportComparisonAnswer =
   await buildManagementReportComparisonAnswer(

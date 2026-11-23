@@ -18680,16 +18680,24 @@ const isExecutiveAdviceQuestion =
   lowerQuestion.includes('projeção de fechamento') ||
   lowerQuestion.includes('projecao de fechamento');
 
-    const isRiskRadarQuestion =
-    lowerQuestion.includes('risco') ||
-    lowerQuestion.includes('alerta') ||
+      // CP-018.2 — Excluir simulações financeiras do radar genérico
+      const isRiskRadarQuestion =
+          !(
+              /\b(entradas|recebimentos|receitas|faturamento)\b/.test(normalizeText(question)) &&
+              /\b(abaixo|queda|reducao|reduzir|diminuicao|menor)\b/.test(normalizeText(question)) &&
+              /\b\d+(?:[.,]\d+)?\s*%/.test(normalizeText(question))
+          ) &&
+          (
+              lowerQuestion.includes('risco') ||
+              lowerQuestion.includes('alerta') ||
     lowerQuestion.includes('perigo') ||
     lowerQuestion.includes('atenção') ||
     lowerQuestion.includes('atencao') ||
     lowerQuestion.includes('radar') ||
     lowerQuestion.includes('segura') ||
-    lowerQuestion.includes('saudável') ||
-    lowerQuestion.includes('saudavel');
+              lowerQuestion.includes('saudável') ||
+              lowerQuestion.includes('saudavel')
+          );
 
     const isRiskScoreQuestion =
   lowerQuestion.includes('score de risco') ||

@@ -2258,15 +2258,16 @@ const expensesByDay =
 };
 
 const extractSupplierPayableName = (question) => {
-  const lower = normalizeText(question);
+    const lower = normalizeText(question);
 
-  if (
-  lower.includes('qual fornecedor concentra') ||
-  lower.includes('fornecedor concentra o maior') ||
-  lower.includes('maior valor em contas a pagar')
-) {
-  return null;
-}
+    if (
+        lower.includes('qual fornecedor concentra') ||
+        lower.includes('fornecedor concentra o maior') ||
+        lower.includes('maior valor em contas a pagar') ||
+        lower.includes('fornecedores concentram os maiores valores')
+    ) {
+        return null;
+    }
 
 const patterns = [
   /^total de contas a pagar\s+(?:de|da|do)?\s*(.+?)\??$/i,

@@ -18981,6 +18981,11 @@ const isSevenDayPaymentForecast =
 
       if (
           wantsNext7Days &&
+          !(
+              /\b(reservar|reserva|reservas|acumular)\b/.test(normalizeText(question)) &&
+              /\b(recursos|dinheiro|caixa)\b/.test(normalizeText(question)) &&
+              /\b(vencimentos|pagamentos|contas|compromissos)\b/.test(normalizeText(question))
+          ) &&
           (
               !isSevenDayPaymentForecast ||
               /\bprevisao de pagamentos\b/.test(normalizeText(question))

@@ -18257,9 +18257,53 @@ Período atual: ${ctx.periodLabel}
 
 O resultado ${evolucao}.
 
-${receitaCresceu
-                      ? 'As entradas também cresceram.'
-                      : 'As entradas não apresentaram crescimento.'}
+${(() => {
+                      const entradasAtuais = Number(ctx.totalIncome || 0);
+                      const entradasAnteriores = Number(anterior.totalIncome || 0);
+
+                      const saidasAtuais = Number(ctx.totalExpenses || 0);
+                      const saidasAnteriores = Number(anterior.totalExpenses || 0);
+
+                      const variacaoEntradas = entradasAnteriores > 0
+                          ? ((entradasAtuais - entradasAnteriores) / entradasAnteriores) * 100
+                          : null;
+
+                      const variacaoSaidas = saidasAnteriores > 0
+                          ? ((saidasAtuais - saidasAnteriores) / saidasAnteriores) * 100
+                          : null;
+
+                      if (variacaoEntradas === null || variacaoSaidas === null) {
+                          return 'Não há base percentual suficiente para avaliar a evolução proporcional das entradas e saídas.';
+                      }
+
+                      const percentual = (valor) =>
+                          `${valor >= 0 ? '+' : ''}${valor.toFixed(1)}%`;
+
+                      let interpretacao;
+
+                      if (variacaoEntradas > variacaoSaidas && diferencaResultado > 0) {
+                          interpretacao =
+                              'As entradas cresceram proporcionalmente mais que as saídas, ' +
+                              'favorecendo o resultado financeiro. Isso indica uma evolução ' +
+                              'positiva na relação entre entradas e desembolsos, mas ainda ' +
+                              'não comprova maior lucratividade nem sustentabilidade futura.';
+                      } else if (variacaoEntradas < variacaoSaidas) {
+                          interpretacao =
+                              'As saídas cresceram proporcionalmente mais que as entradas, ' +
+                              'indicando pressão sobre a relação financeira da operação.';
+                      } else {
+                          interpretacao =
+                              'A evolução das entradas e saídas deve ser acompanhada ' +
+                              'em conjunto com o resultado financeiro e os compromissos futuros.';
+                      }
+
+                      return (
+                          '📊 ANÁLISE DO CRESCIMENTO\n\n' +
+                          `• Variação das entradas: ${percentual(variacaoEntradas)}\n` +
+                          `• Variação das saídas: ${percentual(variacaoSaidas)}\n\n` +
+                          interpretacao
+                      );
+                  })()}
 
 ━━━━━━━━━━━━━━━━━━
 

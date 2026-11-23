@@ -18535,7 +18535,14 @@ if (operationalAnalyticsAnswer) {
   lowerQuestion.includes('tendo prejuizo') ||
   lowerQuestion.includes('tendo prejuízo');
 
- const isAlertQuestion =
+      // CP-018.4 — Não classificar simulações financeiras como alertas genéricos
+      const isAlertQuestion =
+          !(
+              /\b(entradas|recebimentos|receitas|faturamento)\b/.test(normalizeText(question)) &&
+              /\b(abaixo|queda|reducao|reduzir|diminuicao|menor)\b/.test(normalizeText(question)) &&
+              /\b\d+(?:[.,]\d+)?\s*%/.test(normalizeText(question))
+          ) &&
+          (
   lowerQuestion.includes('alerta') ||
   lowerQuestion.includes('alertas') ||
   lowerQuestion.includes('risco') ||
@@ -18546,7 +18553,8 @@ if (operationalAnalyticsAnswer) {
   lowerQuestion.includes('o que devo me preocupar') ||
   lowerQuestion.includes('existe algo') ||
   lowerQuestion.includes('situação crítica') ||
-  lowerQuestion.includes('situacao critica');
+  lowerQuestion.includes('situacao critica')
+          );
 
 const isExecutiveAdviceQuestion =
   lowerQuestion.includes('o que você faria') ||

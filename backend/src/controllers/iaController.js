@@ -19329,8 +19329,24 @@ Priorize o planejamento do dia com maior valor financeiro e confira também a qu
           /\b(suficientes?|pagar|compare|comparar|diferenca|deficit|cobertura)\b/.test(cp015Question);
 
       if (cp015WantsDailyComparison) {
+          const cp015MonthlyCtx = await buildContext({
+              month: cp015Date.start.getMonth() + 1,
+              year: cp015Date.start.getFullYear(),
+              start: new Date(
+                  cp015Date.start.getFullYear(),
+                  cp015Date.start.getMonth(),
+                  1
+              ),
+              end: new Date(
+                  cp015Date.start.getFullYear(),
+                  cp015Date.start.getMonth() + 1,
+                  0,
+                  23, 59, 59, 999
+              )
+          });
+
           return res.json({
-              answer: buildCashForecastAnswer(ctx)
+              answer: buildCashForecastAnswer(cp015MonthlyCtx)
           });
       }
     

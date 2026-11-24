@@ -18045,7 +18045,21 @@ previousCtx = await buildContext(previousPeriod);
 
   historicalMemory = buildHistoricalMemory(ctx, historicalContexts);
   seasonalityAnalysis = buildSeasonalityAnalysis(ctx, historicalContexts);
-} 
+      } 
+      // CP-018.6 — Prioridade para simulações de contingência financeira
+      const cp018Question = normalizeText(question);
+
+      const cp018IsContingencySimulation =
+          /\b(entradas|recebimentos|receitas|faturamento)\b/.test(cp018Question) &&
+          /\b(abaixo|queda|reducao|reduzir|diminuicao|menor)\b/.test(cp018Question) &&
+          /\b\d+(?:[.,]\d+)?\s*%/.test(cp018Question) &&
+          /\b(vencimentos|pagamentos|contas|compromissos)\b/.test(cp018Question);
+
+      if (cp018IsContingencySimulation) {
+          return res.json({
+              answer: buildCashForecastAnswer(ctx)
+          });
+      }
 
     const analyticalInsights = buildAnalyticalInsights(ctx, previousCtx);
     const operationalTrends = buildOperationalTrend(ctx, previousCtx);

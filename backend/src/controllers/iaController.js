@@ -12853,12 +12853,20 @@ if (
   lower.includes('que conselho')
 ) return 'president_decision';
 
-  if (
-    lower.includes('risco') ||
-    lower.includes('principal problema') ||
-    lower.includes('alerta') ||
-    lower.includes('preocupa')
-  ) return 'risk';
+    // CP-018.5 — Não tratar simulações de queda nas entradas como risco genérico
+    if (
+        !(
+            /\b(entradas|recebimentos|receitas|faturamento)\b/.test(normalizeText(question)) &&
+            /\b(abaixo|queda|reducao|reduzir|diminuicao|menor)\b/.test(normalizeText(question)) &&
+            /\b\d+(?:[.,]\d+)?\s*%/.test(normalizeText(question))
+        ) &&
+        (
+            lower.includes('risco') ||
+            lower.includes('principal problema') ||
+            lower.includes('alerta') ||
+            lower.includes('preocupa')
+        )
+    ) return 'risk';
 
   if (
     lower.includes('prioridade') ||

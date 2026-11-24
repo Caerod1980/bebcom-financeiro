@@ -3517,10 +3517,43 @@ Resultado acumulado: ${formatCurrency(period.accumulated)}
     )
     .join('\n');
 
-  const situation =
-    adjustedSevenDays < 0
-      ? 'A projeção indica pressão financeira nos próximos sete dias, considerando também os compromissos vencidos.'
-      : 'A projeção operacional indica potencial de cobertura dos compromissos nos próximos sete dias, desde que as entradas estimadas se realizem.';
+
+    // CP-018.7 — Análise gerencial personalizada da contingência
+    const contingencyTopRiskDays = dailyPressureDays
+        .slice()
+        .sort((a, b) => b.dailyDeficit - a.dailyDeficit)
+        .slice(0, 2);
+
+    const contingencyWorstAccumulatedDay = pressureDays
+        .slice()
+        .sort((a, b) => a.accumulated - b.accumulated)[0];
+
+    const contingencyManagementAnalysis =
+        contingencyTopRiskDays.length > 0
+            ? `Os maiores pontos de atenção pelo déficit diário neste cenário são:
+
+${contingencyTopRiskDays
+                .map((item) =>
+                    `• ${item.date}: déficit diário estimado de ${formatCurrency(item.dailyDeficit)}.`
+                )
+                .join('\n')}
+
+${contingencyWorstAccumulatedDay
+                ? `A maior necessidade potencial de cobertura acumulada ocorre em ${contingencyWorstAccumulatedDay.date}, atingindo ${formatCurrency(Math.abs(contingencyWorstAccumulatedDay.accumulated))}.`
+                : 'Apesar dos déficits diários, não foi identificado resultado incremental acumulado negativo neste horizonte.'}
+
+Recomendo avaliar antecipadamente os compromissos das datas críticas, considerando vencimentos, consequências de atrasos e importância operacional de cada pagamento.
+
+A Bebcom deve acompanhar a realização das entradas previstas e avaliar possibilidades de negociação antes que a pressão financeira comprometa a continuidade da operação.`
+            : 'Mesmo com a redução simulada das entradas operacionais, não foram identificados déficits diários neste horizonte. Recomendo manter o acompanhamento das entradas efetivamente realizadas e preservar a disponibilidade financeira.';
+
+    const situation =
+        reductionRate > 0
+            ? contingencyManagementAnalysis
+            : adjustedSevenDays < 0
+                ? 'A projeção indica pressão financeira nos próximos sete dias, considerando também os compromissos vencidos.'
+                : 'A projeção operacional indica potencial de cobertura dos compromissos nos próximos sete dias, desde que as entradas estimadas se realizem.';
+
 
     return `
 ${reductionRate > 0

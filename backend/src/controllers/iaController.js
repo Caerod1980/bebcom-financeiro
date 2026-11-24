@@ -3087,8 +3087,14 @@ Confira se o caixa comporta esses pagamentos e priorize vencimentos de hoje, ven
 };
 
 
-const buildCashForecastAnswer = (ctx) => {
-  const projection = ctx.cashFlowProjection || [];
+// CP-018.7 — Preparação para simulação de redução nas entradas
+const buildCashForecastAnswer = (ctx, reductionPercent = 0) => {
+    const reductionRate = Math.min(
+        1,
+        Math.max(0, Number(reductionPercent) || 0) / 100
+    );
+
+    const projection = ctx.cashFlowProjection || [];
 
   if (!projection.length) {
     return 'Não há projeção de fluxo de caixa disponível para esta análise.';
@@ -3124,10 +3130,16 @@ const buildCashForecastAnswer = (ctx) => {
 
   let accumulated = 0;
 
-  const periods = projection.map((period) => {
-    const income = Number(period.receivable || 0);
-    const payable = Number(period.payable || 0);
-    const balance = income - payable;
+    // CP-018.7 — Ajuste dos totais por intervalo na simulação
+    const periods = projection.map((period) => {
+        const originalIncome = Number(period.receivable || 0);
+        const operationalForecast = Number(period.operationalForecast || 0);
+
+        const income =
+            originalIncome - (operationalForecast * reductionRate);
+
+        const payable = Number(period.payable || 0);
+        const balance = income - payable;
 
     accumulated += balance;
 
@@ -3167,11 +3179,14 @@ const buildCashForecastAnswer = (ctx) => {
     (period) => period.label === '7 Dias'
   );
 
-  const dailyOperationalIncome =
-    Number(rawSevenDays?.operationalForecast || 0) / 7;
+    // CP-018.7 — Redução simulada das entradas operacionais
+    const dailyOperationalIncome =
+        (Number(rawSevenDays?.operationalForecast || 0) / 7) *
+        (1 - reductionRate);
 
-  const todayOperationalIncome =
-    Number(rawToday?.operationalForecast || 0);
+    const todayOperationalIncome =
+        Number(rawToday?.operationalForecast || 0) *
+        (1 - reductionRate);
 
   const openAccounts = (ctx.accounts || []).filter(
     (account) =>
@@ -3289,7 +3304,114 @@ ${item.hasPressure
  
   const dailyPressureDays = dailySchedule.filter(
     (item) => item.hasDailyPressure
-  );
+    );
+
+    // CP-018.7 — Ranking dos dias críticos na simulação
+    const contingencyRiskRanking = reductionRate > 0
+        ? dailyPressureDays
+            .slice()
+            .sort((a, b) => b.dailyDeficit - a.dailyDeficit)
+            .map((item, index) => {
+                const accumulatedStatus = item.hasPressure
+                    ? '🚨 Resultado incremental acumulado negativo.'
+                    : '✅ Resultado incremental acumulado não negativo.';
+
+                return `
+${index + 1}. 📅 ${item.date}
+
+Déficit diário estimado:
+${formatCurrency(item.dailyDeficit)}
+
+${accumulatedStatus}
+`.trim();
+            })
+            .join('\n\n')
+        : '';
+
+    const contingencyRiskSummary = reductionRate > 0
+        ? `
+🚨 DIAS DE MAIOR RISCO NA SIMULAÇÃO
+
+${contingencyRiskRanking ||
+            'Não foram identificados déficits diários neste cenário.'}
+
+Os dias estão classificados pelo maior déficit diário,
+não pelo resultado acumulado.
+
+━━━━━━━━━━━━━━━━━━
+`.trim()
+        : '';
+
+    // CP-018.7 — Contas vinculadas aos dias críticos
+    const contingencyCriticalPayables = reductionRate > 0
+        ? dailyPressureDays
+            .slice()
+            .sort((a, b) => b.dailyDeficit - a.dailyDeficit)
+            .map((riskDay) => {
+                const accounts = openAccounts
+                    .filter((account) => {
+                        if (account.type !== 'payable') return false;
+
+                        const offset = getDayOffset(account.dueDate);
+
+                        if (offset === null) return false;
+
+                        const dueDate = new Date(today);
+                        dueDate.setDate(
+                            dueDate.getDate() + Math.max(0, offset)
+                        );
+
+                        return dueDate.toLocaleDateString('pt-BR') ===
+                            riskDay.date;
+                    })
+                    .sort(
+                        (a, b) =>
+                            Number(b.amount || 0) -
+                            Number(a.amount || 0)
+                    );
+
+                return {
+                    date: riskDay.date,
+                    dailyDeficit: riskDay.dailyDeficit,
+                    accounts
+                };
+            })
+        : [];
+
+
+    // CP-018.7 — Detalhamento dos pagamentos nos dias críticos
+    const contingencyPayablesSummary = reductionRate > 0
+        ? contingencyCriticalPayables.length
+            ? contingencyCriticalPayables
+                .map((riskDay) => {
+                    const accountDetails = riskDay.accounts.length
+                        ? riskDay.accounts
+                            .map((account, index) => {
+                                const description =
+                                    account.description ||
+                                    account.supplier ||
+                                    account.name ||
+                                    'Compromisso sem descrição';
+
+                                return `${index + 1}. ${description} — ${formatCurrency(account.amount)}`;
+                            })
+                            .join('\n')
+                        : 'Nenhuma conta a pagar cadastrada para esta data.';
+
+                    return `
+📅 ${riskDay.date}
+
+⚠️ Déficit diário estimado:
+${formatCurrency(riskDay.dailyDeficit)}
+
+📋 Compromissos cadastrados:
+${accountDetails}
+`.trim();
+                })
+                .join('\n\n')
+            : 'Não foram identificados dias com déficit diário na simulação.'
+        : '';
+
 
   const dailyPressureSummary = dailyPressureDays.length
     ? dailyPressureDays
@@ -3400,8 +3522,23 @@ Resultado acumulado: ${formatCurrency(period.accumulated)}
       ? 'A projeção indica pressão financeira nos próximos sete dias, considerando também os compromissos vencidos.'
       : 'A projeção operacional indica potencial de cobertura dos compromissos nos próximos sete dias, desde que as entradas estimadas se realizem.';
 
-  return `
-🏦 ANÁLISE DE CAPACIDADE DE PAGAMENTO — ${ctx.periodLabel}
+    return `
+${reductionRate > 0
+            ? `🧪 SIMULAÇÃO DE CONTINGÊNCIA FINANCEIRA
+
+📉 Redução considerada nas entradas operacionais:
+${(reductionRate * 100).toLocaleString('pt-BR', {
+                maximumFractionDigits: 2
+            })}%
+
+As entradas operacionais foram reduzidas neste cenário.
+As contas a receber cadastradas e os compromissos
+a pagar foram mantidos nos valores originais.
+
+━━━━━━━━━━━━━━━━━━
+
+`
+            : ''}🏦 ANÁLISE DE CAPACIDADE DE PAGAMENTO — ${ctx.periodLabel}
 
 ━━━━━━━━━━━━━━━━━━
 
@@ -3436,7 +3573,21 @@ ${dailyScheduleText}
 
 ━━━━━━━━━━━━━━━━━━
 
-🚨 ANÁLISE DOS DIAS DE PRESSÃO
+
+${contingencyRiskSummary
+            ? `${contingencyRiskSummary}
+
+━━━━━━━━━━━━━━━━━━
+
+📋 COMPROMISSOS DOS DIAS CRÍTICOS
+
+${contingencyPayablesSummary}
+
+━━━━━━━━━━━━━━━━━━
+
+`
+            : ''}🚨 ANÁLISE DOS DIAS DE PRESSÃO
+
 
 ${dailyRiskSummary}
 
@@ -3461,13 +3612,49 @@ Sem conhecer a disponibilidade financeira inicial, não é possível confirmar q
 
 ━━━━━━━━━━━━━━━━━━
 
+
 🎯 MINHA RECOMENDAÇÃO
 
-Priorizar contas vencidas e compromissos imediatos.
+${reductionRate > 0
+            ? `🛡️ PLANO PREVENTIVO PARA PROTEGER O CAIXA
+
+1. PRIORIDADES DE PAGAMENTO
+
+Avaliar primeiro as contas vencidas e os compromissos com vencimento imediato.
+
+Nos dias identificados como críticos, verificar quais pagamentos possuem consequências contratuais, legais ou operacionais relevantes em caso de atraso.
+
+Preservar, sempre que possível, os compromissos indispensáveis à continuidade da operação, considerando as informações efetivamente disponíveis.
+
+A ordem de apresentação dos fornecedores por valor não representa uma classificação automática de prioridade.
+
+2. NEGOCIAÇÃO PREVENTIVA
+
+Antecipar o contato com credores dos dias de maior pressão financeira.
+
+Avaliar possibilidades de prorrogação, parcelamento ou redistribuição de vencimentos, mediante concordância dos credores e análise dos custos envolvidos.
+
+Não considerar um pagamento renegociado até que exista confirmação do novo acordo.
+
+3. PROTEÇÃO DO CAPITAL DE GIRO
+
+Evitar compras não essenciais e reposições acima da necessidade de giro durante o cenário de contingência.
+
+Acompanhar diariamente as entradas efetivamente realizadas, comparando-as com os valores projetados e os compromissos de cada data.
+
+Revisar o planejamento quando a receita observada divergir das estimativas.
+
+4. VALIDAÇÃO DA DISPONIBILIDADE
+
+Antes de autorizar pagamentos, conferir os saldos efetivamente disponíveis em caixa e bancos.
+
+O resultado incremental acumulado desta simulação não representa dinheiro disponível e não comprova capacidade imediata de pagamento.`
+            : `Priorizar contas vencidas e compromissos imediatos.
 
 Acompanhar diariamente a realização das entradas previstas e comparar os vencimentos com os recursos efetivamente disponíveis.
 
-Evitar assumir novos compromissos com base apenas em faturamento estimado.
+Evitar assumir novos compromissos com base apenas em faturamento estimado.`}
+
 `.trim();
 };
 
@@ -18055,9 +18242,18 @@ previousCtx = await buildContext(previousPeriod);
           /\b\d+(?:[.,]\d+)?\s*%/.test(cp018Question) &&
           /\b(vencimentos|pagamentos|contas|compromissos)\b/.test(cp018Question);
 
+      // CP-018.7 — Encaminhar percentual da simulação
       if (cp018IsContingencySimulation) {
+          const reductionMatch = cp018Question.match(
+              /\b(\d+(?:[.,]\d+)?)\s*%/
+          );
+
+          const reductionPercent = reductionMatch
+              ? Number(reductionMatch[1].replace(',', '.'))
+              : 0;
+
           return res.json({
-              answer: buildCashForecastAnswer(ctx)
+              answer: buildCashForecastAnswer(ctx, reductionPercent)
           });
       }
 

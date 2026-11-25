@@ -9246,7 +9246,10 @@ Revise prazo, desconto, bonificações e frequência de compra antes de reduzir 
             lower.includes('precisam realmente ser pagos') ||
             lower.includes('parte deles pode ser negociada') ||
             lower.includes('pode ser negociada')
+
         ) &&
+        // CP-018.7 — Prioridade para capacidade de pagamento
+        !/\bcapacidade de pagamento\b/.test(normalizeText(question)) &&
         !(
             /\b(reservar|reserva|reservas|acumular)\b/.test(normalizeText(question)) &&
             /\b(recursos|dinheiro|caixa)\b/.test(normalizeText(question)) &&

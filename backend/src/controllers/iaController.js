@@ -3470,10 +3470,13 @@ Essa reserva não representa uma despesa adicional.
         }).join('\n\n')
         : 'Não foram identificados déficits diários que exijam reserva preventiva específica.';
 
+
+    // CP-018.7 — Etapa 16: consistência monetária dos déficits apresentados
     const totalDailyDeficits = dailyPressureDays.reduce(
-        (sum, item) => sum + item.dailyDeficit,
+        (sum, item) => sum + Math.round(item.dailyDeficit * 100),
         0
-    );
+    ) / 100;
+
 
     const dailyRiskSummary = `
 ${dailyPressureSummary}

@@ -3498,6 +3498,9 @@ ${accountDetails}
     // CP-018.7 — Etapa 18.5.1: controle dos déficits anteriores
     let pendingUncoveredDeficit = 0;
 
+    // CP-018.7 — Etapa 21.3.5.1: controle das compensações intermediárias
+    let totalIntermediateCompensation = 0;
+
     // CP-017.6 — Planejamento preventivo de reservas
     const reservePlan = dailyPressureDays.length
 
@@ -3542,10 +3545,14 @@ ${accountDetails}
                     (previousDeficitCompensation + compensationAmount) * 100
                 ) / 100;
 
+                // CP-018.7 — Etapa 21.3.5.2: acumulação das compensações intermediárias
+                totalIntermediateCompensation = Math.round(
+                    (totalIntermediateCompensation + compensationAmount) * 100
+                ) / 100;
+
             }
 
-
-
+            
             // CP-018.7 — Etapa 18.5.5.2: normalização monetária dos déficits
             let remainingDeficit = Math.round(
                 pressureDay.dailyDeficit * 100
@@ -3740,7 +3747,7 @@ ${finalUncoveredDeficit > 0
             : '✅ Não há necessidade complementar de cobertura financeira ao final do horizonte simulado.'}
 
 
-${finalDeficitCompensation > 0
+${totalIntermediateCompensation > 0 || finalDeficitCompensation > 0
             ? 'A compensação posterior não elimina a insuficiência financeira identificada na data original do vencimento.'
             : ''}
 
@@ -3781,14 +3788,20 @@ ${finalReserveSummary}
 ${formatCurrency(totalDailyDeficits)}
 
 
-Esse valor é uma referência para organizar reservas
+${dailyPressureDays.length > 0
+            ? `Esse valor é uma referência para organizar reservas
 entre os dias, não uma necessidade comprovada
 de capital adicional.
 
-
 Os excedentes anteriores podem financiar
 os déficits posteriores, desde que sejam
-efetivamente realizados e preservados.
+efetivamente realizados e preservados.`
+            : `Não há necessidade projetada de destinar reservas
+para cobertura de déficits diários neste horizonte.
+
+Os excedentes projetados devem ser preservados
+e acompanhados conforme a realização efetiva
+das entradas financeiras.`}
 `.trim();
 
 
@@ -3949,7 +3962,7 @@ Sem conhecer a disponibilidade financeira inicial, não é possível confirmar q
 
 🎯 MINHA RECOMENDAÇÃO
 
-${reductionRate > 0
+${reductionRate > 0 && dailyPressureDays.length > 0
             ? `🛡️ PLANO PREVENTIVO PARA PROTEGER O CAIXA
 
 1. PRIORIDADES DE PAGAMENTO
@@ -3983,6 +3996,28 @@ Revisar o planejamento quando a receita observada divergir das estimativas.
 Antes de autorizar pagamentos, conferir os saldos efetivamente disponíveis em caixa e bancos.
 
 O resultado incremental acumulado desta simulação não representa dinheiro disponível e não comprova capacidade imediata de pagamento.`
+        : reductionRate > 0
+            ? `🛡️ PLANO DE MANUTENÇÃO DA ESTABILIDADE FINANCEIRA
+
+1. ACOMPANHAMENTO DAS ENTRADAS
+
+Monitorar diariamente as entradas efetivamente realizadas e comparar seu comportamento com o cenário de redução simulado.
+
+2. PRESERVAÇÃO DOS EXCEDENTES
+
+Preservar os excedentes financeiros projetados, evitando assumir novos compromissos com base apenas na expectativa de faturamento.
+
+3. DISCIPLINA FINANCEIRA
+
+Manter o planejamento dos pagamentos conforme os vencimentos cadastrados, priorizando a continuidade da operação.
+
+Reavaliar a projeção caso as entradas realizadas fiquem abaixo das estimativas ou surjam novos compromissos.
+
+4. VALIDAÇÃO DA DISPONIBILIDADE
+
+Conferir os saldos efetivamente disponíveis em caixa e bancos antes de autorizar pagamentos.
+
+A ausência de déficits projetados não comprova disponibilidade financeira imediata.`
             : `Priorizar contas vencidas e compromissos imediatos.
 
 Acompanhar diariamente a realização das entradas previstas e comparar os vencimentos com os recursos efetivamente disponíveis.

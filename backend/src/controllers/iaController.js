@@ -3335,12 +3335,12 @@ ${accumulatedStatus}
 ${contingencyRiskRanking ||
             'Não foram identificados déficits diários neste cenário.'}
 
+
 Os dias estão classificados pelo maior déficit diário,
 não pelo resultado acumulado.
-
-━━━━━━━━━━━━━━━━━━
 `.trim()
         : '';
+
 
     // CP-018.7 — Contas vinculadas aos dias críticos
     const contingencyCriticalPayables = reductionRate > 0

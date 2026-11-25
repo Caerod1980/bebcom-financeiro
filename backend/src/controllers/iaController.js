@@ -18594,6 +18594,14 @@ previousCtx = await buildContext(previousPeriod);
           });
       }
 
+
+      // CP-018.7 — Etapa 21.3.2.5: prioridade para capacidade de pagamento
+      if (/\bcapacidade de pagamento\b/.test(cp018Question)) {
+          return res.json({
+              answer: buildCashForecastAnswer(ctx)
+          });
+      }
+
     const analyticalInsights = buildAnalyticalInsights(ctx, previousCtx);
     const operationalTrends = buildOperationalTrend(ctx, previousCtx);
     const temporalMemories = buildTemporalOperationalMemory(ctx, previousCtx);

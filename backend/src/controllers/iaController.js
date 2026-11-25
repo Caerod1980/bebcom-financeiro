@@ -3538,9 +3538,22 @@ ${contingencyTopRiskDays
                 )
                 .join('\n')}
 
+
 ${contingencyWorstAccumulatedDay
                 ? `A maior necessidade potencial de cobertura acumulada ocorre em ${contingencyWorstAccumulatedDay.date}, atingindo ${formatCurrency(Math.abs(contingencyWorstAccumulatedDay.accumulated))}.`
-                : 'Apesar dos déficits diários, não foi identificado resultado incremental acumulado negativo neste horizonte.'}
+                : `Apesar dos déficits diários, não foi identificado resultado incremental acumulado negativo neste horizonte.
+
+${dailySchedule
+                    .slice()
+                    .sort((a, b) => a.accumulated - b.accumulated)
+                    .slice(0, 1)
+                    .map((item) =>
+                        `A menor folga financeira acumulada projetada ocorre em ${item.date}, com resultado incremental de ${formatCurrency(item.accumulated)}.
+
+Recomendo atenção especial à realização das entradas previstas até essa data, preservando os recursos necessários para os compromissos programados.`
+                    )
+                    .join('')}`}
+
 
 Recomendo avaliar antecipadamente os compromissos das datas críticas, considerando vencimentos, consequências de atrasos e importância operacional de cada pagamento.
 

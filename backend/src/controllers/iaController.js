@@ -3668,9 +3668,7 @@ ${isFullyCovered
                     ? 'Preservar os excedentes destinados, desde que as entradas previstas se realizem.'
                     : 'Avaliar disponibilidade financeira complementar ou negociar antecipadamente os compromissos desta data.'}
 
-Os excedentes destinados nesta simulação não serão reutilizados para cobrir outros déficits.
 
-Essa reserva não representa uma despesa adicional nem comprova disponibilidade real de dinheiro em caixa ou bancos.
 `.trim();
 
 
@@ -3741,9 +3739,15 @@ ${finalUncoveredDeficit > 0
             ? '⚠️ A projeção ainda indica necessidade complementar de cobertura financeira ao final do horizonte.'
             : '✅ Não há necessidade complementar de cobertura financeira ao final do horizonte simulado.'}
 
-A compensação posterior não elimina a insuficiência financeira identificada na data original do vencimento.
 
-Os valores são condicionados à realização das entradas previstas e não representam saldos efetivamente disponíveis em caixa ou bancos.
+${finalDeficitCompensation > 0
+            ? 'A compensação posterior não elimina a insuficiência financeira identificada na data original do vencimento.'
+            : ''}
+
+
+${dailyPressureDays.length > 0
+            ? 'Os excedentes destinados nesta simulação não serão reutilizados para cobrir outros déficits.\n\nAs reservas planejadas não representam despesas adicionais.\n\n'
+            : ''}Os valores são condicionados à realização das entradas previstas e não representam saldos efetivamente disponíveis em caixa ou bancos.
 `.trim();
 
 
@@ -3781,12 +3785,10 @@ Esse valor é uma referência para organizar reservas
 entre os dias, não uma necessidade comprovada
 de capital adicional.
 
+
 Os excedentes anteriores podem financiar
 os déficits posteriores, desde que sejam
 efetivamente realizados e preservados.
-
-O resultado acumulado projetado não representa
-o saldo disponível em caixa ou bancos.
 `.trim();
 
 

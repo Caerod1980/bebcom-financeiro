@@ -3128,29 +3128,43 @@ const buildCashForecastAnswer = (ctx, reductionPercent = 0) => {
       0
     );
 
-  let accumulated = 0;
 
-    // CP-018.7 — Ajuste dos totais por intervalo na simulação
+    let accumulated = 0;
+
+    // CP-018.7 — Etapa 20.5: normalização monetária dos intervalos
     const periods = projection.map((period) => {
         const originalIncome = Number(period.receivable || 0);
         const operationalForecast = Number(period.operationalForecast || 0);
 
-        const income =
-            originalIncome - (operationalForecast * reductionRate);
+        const registeredReceivableCents = Math.round(
+            (originalIncome - operationalForecast) * 100
+        );
 
-        const payable = Number(period.payable || 0);
-        const balance = income - payable;
+        const adjustedOperationalCents = Math.round(
+            operationalForecast * (1 - reductionRate) * 100
+        );
 
-    accumulated += balance;
+        const incomeCents =
+            registeredReceivableCents + adjustedOperationalCents;
 
-    return {
-      label: period.label,
-      income,
-      payable,
-      balance,
-      accumulated
-    };
-  });
+        const payableCents = Math.round(
+            Number(period.payable || 0) * 100
+        );
+
+        const balanceCents = incomeCents - payableCents;
+
+        accumulated = (
+            Math.round(accumulated * 100) + balanceCents
+        ) / 100;
+
+        return {
+            label: period.label,
+            income: incomeCents / 100,
+            payable: payableCents / 100,
+            balance: balanceCents / 100,
+            accumulated
+        };
+    });
 
   const todayProjection = periods.find(
     (period) => period.label === 'Hoje'
@@ -3179,14 +3193,28 @@ const buildCashForecastAnswer = (ctx, reductionPercent = 0) => {
     (period) => period.label === '7 Dias'
   );
 
-    // CP-018.7 — Redução simulada das entradas operacionais
-    const dailyOperationalIncome =
-        (Number(rawSevenDays?.operationalForecast || 0) / 7) *
-        (1 - reductionRate);
 
-    const todayOperationalIncome =
+    // CP-018.7 — Etapa 20.1: distribuição monetária da projeção operacional
+    const sevenDaysOperationalCents = Math.round(
+        Number(rawSevenDays?.operationalForecast || 0) *
+        (1 - reductionRate) * 100
+    );
+
+    const dailyOperationalBaseCents = Math.floor(
+        sevenDaysOperationalCents / 7
+    );
+
+    const dailyOperationalRemainderCents =
+        sevenDaysOperationalCents -
+        (dailyOperationalBaseCents * 7);
+
+    const dailyOperationalIncome =
+        dailyOperationalBaseCents / 100;
+
+    const todayOperationalIncome = Math.round(
         Number(rawToday?.operationalForecast || 0) *
-        (1 - reductionRate);
+        (1 - reductionRate) * 100
+    ) / 100;
 
   const openAccounts = (ctx.accounts || []).filter(
     (account) =>
@@ -3236,47 +3264,69 @@ const buildCashForecastAnswer = (ctx, reductionPercent = 0) => {
         : offset === day;
     });
 
-    const payable = dailyAccounts
-      .filter((account) => account.type === 'payable')
-      .reduce(
-        (sum, account) =>
-          sum + Math.abs(Number(account.amount || 0)),
-        0
-      );
 
-    const receivableAccounts = dailyAccounts
-      .filter((account) => account.type === 'receivable')
-      .reduce(
-        (sum, account) =>
-          sum + Math.abs(Number(account.amount || 0)),
-        0
-      );
+      // CP-018.7 — Etapa 20.3: normalização monetária dos compromissos e recebíveis
+      const payable = dailyAccounts
+          .filter((account) => account.type === 'payable')
+          .reduce(
+              (sum, account) =>
+                  sum + Math.round(Math.abs(Number(account.amount || 0)) * 100),
+              0
+          ) / 100;
 
-    // Recebíveis vencidos não são tratados como
-    // entradas garantidas no primeiro dia.
-    const receivableForecast =
-      day === 0 ? 0 : receivableAccounts;
 
-    const operationalIncome =
-      day === 0
-        ? todayOperationalIncome
-        : dailyOperationalIncome;
+      // CP-018.7 — Etapa 20.6.2: conciliação dos recebíveis diários
+      const receivableAccounts = dailyAccounts
+          .filter((account) =>
+              account.type === 'receivable' &&
+              getDayOffset(account.dueDate) === day
+          )
+          .reduce(
+              (sum, account) =>
+                  sum + Math.round(Math.abs(Number(account.amount || 0)) * 100),
+              0
+          ) / 100;
 
-    const income =
-      operationalIncome + receivableForecast;
+      // Recebíveis vencidos anteriormente não integram
+      // a previsão de entradas do dia atual.
+      const receivableForecast = receivableAccounts;
 
-    dailyAccumulated += income - payable;
 
-    
-    dailySchedule.push({
-      date: date.toLocaleDateString('pt-BR'),
-      income,
-      payable,
-      accumulated: dailyAccumulated,
-      hasPressure: dailyAccumulated < 0,
-      hasDailyPressure: payable > income,
-      dailyDeficit: Math.max(0, payable - income)
-    });
+      // CP-018.7 — Etapa 20.2: distribuição dos centavos remanescentes
+      const operationalIncome =
+          day === 0
+              ? todayOperationalIncome
+              : (
+                  dailyOperationalBaseCents +
+                  (day > 7 - dailyOperationalRemainderCents ? 1 : 0)
+              ) / 100;
+
+
+
+      // CP-018.7 — Etapa 20.4: normalização dos resultados diários e acumulados
+      const income = (
+          Math.round(operationalIncome * 100) +
+          Math.round(receivableForecast * 100)
+      ) / 100;
+
+      const dailyBalanceCents =
+          Math.round(income * 100) -
+          Math.round(payable * 100);
+
+      dailyAccumulated = (
+          Math.round(dailyAccumulated * 100) +
+          dailyBalanceCents
+      ) / 100;
+
+      dailySchedule.push({
+          date: date.toLocaleDateString('pt-BR'),
+          income,
+          payable,
+          accumulated: dailyAccumulated,
+          hasPressure: dailyAccumulated < 0,
+          hasDailyPressure: dailyBalanceCents < 0,
+          dailyDeficit: Math.max(0, -dailyBalanceCents) / 100
+      });
   }
 
   const dailyScheduleText = dailySchedule

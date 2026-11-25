@@ -3426,49 +3426,275 @@ ${accountDetails}
     ? `A primeira necessidade potencial de cobertura acumulada aparece em ${firstPressureDay.date}. Existem ${pressureDays.length} dia(s) com resultado incremental acumulado negativo.`
     : 'Não foram identificados resultados incrementais acumulados negativos no horizonte analisado.';
 
+
+
+    // CP-018.7 — Etapa 18.5.5.1: normalização monetária dos excedentes
+    const reserveSurplusPool = dailySchedule
+        .map((item, index) => {
+            const surplus = Math.round(
+                Math.max(0, item.income - item.payable) * 100
+            ) / 100;
+
+            return {
+                date: item.date,
+                dayIndex: index,
+                originalSurplus: surplus,
+                remainingSurplus: surplus
+            };
+        })
+        .filter((item) => item.originalSurplus > 0);
+
+
+    // CP-018.7 — Etapa 18.5.1: controle dos déficits anteriores
+    let pendingUncoveredDeficit = 0;
+
     // CP-017.6 — Planejamento preventivo de reservas
     const reservePlan = dailyPressureDays.length
+
+
         ? dailyPressureDays.map((pressureDay) => {
+
+
             const pressureIndex = dailySchedule.indexOf(pressureDay);
 
-            const favorableDays = dailySchedule
-                .slice(0, pressureIndex)
-                .filter((item) => item.income > item.payable)
-                .map((item) => ({
-                    date: item.date,
-                    surplus: item.income - item.payable
-                }));
+            // CP-018.7 — Etapa 18.5.2: compensação prioritária das pendências
+            const previousDeficitBeforeCompensation =
+                pendingUncoveredDeficit;
 
-            const favorableText = favorableDays.length
-                ? favorableDays
+            let previousDeficitCompensation = 0;
+
+            for (const surplusDay of reserveSurplusPool) {
+                if (pendingUncoveredDeficit <= 0) break;
+
+                if (
+                    surplusDay.dayIndex >= pressureIndex ||
+                    surplusDay.remainingSurplus <= 0
+                ) {
+                    continue;
+                }
+
+                const compensationAmount = Math.min(
+                    surplusDay.remainingSurplus,
+                    pendingUncoveredDeficit
+                );
+
+
+                // CP-018.7 — Etapa 18.5.5.3: precisão das compensações
+                surplusDay.remainingSurplus = Math.round(
+                    (surplusDay.remainingSurplus - compensationAmount) * 100
+                ) / 100;
+
+                pendingUncoveredDeficit = Math.round(
+                    (pendingUncoveredDeficit - compensationAmount) * 100
+                ) / 100;
+
+                previousDeficitCompensation = Math.round(
+                    (previousDeficitCompensation + compensationAmount) * 100
+                ) / 100;
+
+            }
+
+
+
+            // CP-018.7 — Etapa 18.5.5.2: normalização monetária dos déficits
+            let remainingDeficit = Math.round(
+                pressureDay.dailyDeficit * 100
+            ) / 100;
+
+            const reserveAllocations = [];
+
+
+            for (const surplusDay of reserveSurplusPool) {
+                if (remainingDeficit <= 0) break;
+
+                if (
+                    surplusDay.dayIndex >= pressureIndex ||
+                    surplusDay.remainingSurplus <= 0
+                ) {
+                    continue;
+                }
+
+                const allocatedAmount = Math.min(
+                    surplusDay.remainingSurplus,
+                    remainingDeficit
+                );
+
+
+                // CP-018.7 — Etapa 18.5.5.4: precisão das destinações
+                surplusDay.remainingSurplus = Math.round(
+                    (surplusDay.remainingSurplus - allocatedAmount) * 100
+                ) / 100;
+
+                remainingDeficit = Math.round(
+                    (remainingDeficit - allocatedAmount) * 100
+                ) / 100;
+
+
+                reserveAllocations.push({
+                    date: surplusDay.date,
+                    allocatedAmount,
+                    remainingSurplus: surplusDay.remainingSurplus
+                });
+            }
+
+
+
+            // CP-018.7 — Etapa 18.5.5.5: consistência monetária das acumulações
+            const coveredDeficit = reserveAllocations.reduce(
+                (sum, item) => sum + Math.round(item.allocatedAmount * 100),
+                0
+            ) / 100;
+
+            const uncoveredDeficit = Math.max(
+                0,
+                remainingDeficit
+            );
+
+            const isFullyCovered =
+                uncoveredDeficit < 0.005;
+
+            // Atualização monetária das pendências acumuladas
+            pendingUncoveredDeficit = Math.round(
+                (pendingUncoveredDeficit + uncoveredDeficit) * 100
+            ) / 100;
+
+            const accumulatedUncoveredDeficit =
+                pendingUncoveredDeficit;
+
+
+
+            // CP-018.7 — Etapa 18.4: apresentação das reservas destinadas
+            const allocationText = reserveAllocations.length
+                ? reserveAllocations
                     .map(
                         (item) =>
-                            `${item.date}: excedente estimado de ${formatCurrency(item.surplus)}`
+                            `• ${item.date}: destinar ${formatCurrency(item.allocatedAmount)} — excedente remanescente após esta destinação: ${formatCurrency(item.remainingSurplus)}.`
                     )
                     .join('\n')
-                : 'Não há dias anteriores com excedente estimado neste horizonte.';
+                : 'Não há excedentes anteriores ainda disponíveis para esta destinação.';
 
             return `
 📅 Compromissos de ${pressureDay.date}
 
-💰 Reserva preventiva recomendada:
+💰 Reserva preventiva necessária:
 ${formatCurrency(pressureDay.dailyDeficit)}
 
-⏰ Prazo:
-Preservar esse valor antes de ${pressureDay.date}.
+📈 Cobertura projetada por excedentes anteriores:
+${formatCurrency(coveredDeficit)}
 
-📈 Dias anteriores favoráveis à acumulação:
-${favorableText}
+
+🛡️ Cobertura complementar necessária para esta data:
+${formatCurrency(uncoveredDeficit)}
+
+${isFullyCovered
+                    ? '✅ Cobertura projetada integral do déficit desta data.'
+                    : '⚠️ Cobertura projetada insuficiente para esta data.'}
+
+${previousDeficitBeforeCompensation >= 0.005
+                    ? `📊 Tratamento das pendências anteriores:
+
+Déficits anteriores ainda não cobertos:
+${formatCurrency(previousDeficitBeforeCompensation)}
+
+Compensação projetada por excedentes posteriores aos déficits anteriores:
+${formatCurrency(previousDeficitCompensation)}
+
+`
+                    : ''}💰 Necessidade acumulada de cobertura até esta data:
+${formatCurrency(accumulatedUncoveredDeficit)}
+
+${accumulatedUncoveredDeficit >= 0.005
+                    ? '⚠️ Ainda existe necessidade acumulada de cobertura financeira.'
+                    : '✅ Não há necessidade acumulada de cobertura complementar nesta data.'}
+
+⏰ Prazo:
+Planejar a cobertura antes de ${pressureDay.date}.
+
+📋 Destinação dos excedentes projetados:
+${allocationText}
 
 🧠 Orientação:
-Separar parte dos excedentes efetivamente realizados
-para complementar os pagamentos dessa data.
+${isFullyCovered
+                    ? 'Preservar os excedentes destinados, desde que as entradas previstas se realizem.'
+                    : 'Avaliar disponibilidade financeira complementar ou negociar antecipadamente os compromissos desta data.'}
 
-Essa reserva não representa uma despesa adicional.
-É uma destinação antecipada de recursos previstos.
+Os excedentes destinados nesta simulação não serão reutilizados para cobrir outros déficits.
+
+Essa reserva não representa uma despesa adicional nem comprova disponibilidade real de dinheiro em caixa ou bancos.
 `.trim();
+
+
         }).join('\n\n')
         : 'Não foram identificados déficits diários que exijam reserva preventiva específica.';
+
+
+    // CP-018.7 — Etapa 18.5.7.1: compensações ao final do horizonte
+    const pendingDeficitBeforeFinalCompensation =
+        pendingUncoveredDeficit;
+
+    let finalDeficitCompensation = 0;
+
+    for (const surplusDay of reserveSurplusPool) {
+        if (pendingUncoveredDeficit <= 0) break;
+
+        if (surplusDay.remainingSurplus <= 0) {
+            continue;
+        }
+
+        const finalCompensationAmount = Math.min(
+            surplusDay.remainingSurplus,
+            pendingUncoveredDeficit
+        );
+
+        surplusDay.remainingSurplus = Math.round(
+            (surplusDay.remainingSurplus - finalCompensationAmount) * 100
+        ) / 100;
+
+        pendingUncoveredDeficit = Math.round(
+            (pendingUncoveredDeficit - finalCompensationAmount) * 100
+        ) / 100;
+
+        finalDeficitCompensation = Math.round(
+            (finalDeficitCompensation + finalCompensationAmount) * 100
+        ) / 100;
+    }
+
+
+
+    // CP-018.7 — Etapa 18.5.7.2: consolidação final das reservas
+    const finalRemainingSurplus = reserveSurplusPool.reduce(
+        (sum, item) => sum + Math.round(item.remainingSurplus * 100),
+        0
+    ) / 100;
+
+    const finalUncoveredDeficit = pendingUncoveredDeficit;
+
+    const finalReserveSummary = `
+📊 CONSOLIDAÇÃO AO FINAL DO HORIZONTE
+
+📅 Data de encerramento:
+${dailySchedule[dailySchedule.length - 1].date}
+
+💰 Pendências após o último dia deficitário:
+${formatCurrency(pendingDeficitBeforeFinalCompensation)}
+
+📈 Compensação projetada por excedentes posteriores:
+${formatCurrency(finalDeficitCompensation)}
+
+🛡️ Necessidade complementar ao final do horizonte:
+${formatCurrency(finalUncoveredDeficit)}
+
+💵 Excedentes projetados ainda não destinados:
+${formatCurrency(finalRemainingSurplus)}
+
+${finalUncoveredDeficit > 0
+            ? '⚠️ A projeção ainda indica necessidade complementar de cobertura financeira ao final do horizonte.'
+            : '✅ Não há necessidade complementar de cobertura financeira ao final do horizonte simulado.'}
+
+A compensação posterior não elimina a insuficiência financeira identificada na data original do vencimento.
+
+Os valores são condicionados à realização das entradas previstas e não representam saldos efetivamente disponíveis em caixa ou bancos.
+`.trim();
 
 
     // CP-018.7 — Etapa 16: consistência monetária dos déficits apresentados
@@ -3478,6 +3704,7 @@ Essa reserva não representa uma despesa adicional.
     ) / 100;
 
 
+
     const dailyRiskSummary = `
 ${dailyPressureSummary}
 
@@ -3485,14 +3712,20 @@ ${accumulatedPressureSummary}
 
 ━━━━━━━━━━━━━━━━━━
 
+
 🛡️ PLANEJAMENTO PREVENTIVO DE RESERVAS
 
 ${reservePlan}
 
 ━━━━━━━━━━━━━━━━━━
 
+${finalReserveSummary}
+
+━━━━━━━━━━━━━━━━━━
+
 💰 Soma dos déficits diários previstos:
 ${formatCurrency(totalDailyDeficits)}
+
 
 Esse valor é uma referência para organizar reservas
 entre os dias, não uma necessidade comprovada
